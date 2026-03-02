@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-mono:
+    "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code", ui-monospace,
+    monospace;
+
+  /* ---- spacing scale ---- */
+  /*  p-xs, gap-sm, m-lg, etc.  */
+  --spacing-xs: 0.25rem; /* 4px  */
+  --spacing-sm: 0.5rem; /* 8px  */
+  --spacing-md: 0.75rem; /* 12px */
+  --spacing-lg: 1rem; /* 16px */
+  --spacing-xl: 1.5rem; /* 24px */
+  --spacing-2xl: 2rem; /* 32px */
+  --spacing-3xl: 2.5rem; /* 40px */
+
+  /* semantic shortcuts — p-hdr-x, h-hdr, px-tb, gap-tb, etc. */
+  --spacing-hdr: 2.75rem; /* header height */
+  --spacing-hdr-x: 0.75rem; /* header inline padding */
+  --spacing-tb-x: 1rem; /* toolbar inline padding */
+  --spacing-tb-y: 0.5rem; /* toolbar block padding */
+  --spacing-tb: 0.5rem; /* toolbar gap */
+  --spacing-pn-x: 1rem; /* panel inline padding */
+  --spacing-pn-y: 1rem; /* panel block padding */
+  --spacing-pn-lbl: 0.375rem; /* panel label block padding */
+  --spacing-gr: 1rem; /* grid gap */
+  --spacing-gr-p: 1.5rem; /* grid padding */
+  --spacing-gr-c: 0.5rem; /* compact grid gap */
+  --spacing-gr-cp: 0.75rem; /* compact grid padding */
+  --spacing-mi-x: 0.75rem; /* menu item inline padding */
+  --spacing-mi-y: 0.5rem; /* menu item block padding */
+
+  /* ---- light (default) ---- */
+  --color-bg: #f5f5f4;
+  --color-bg-surface: #ffffff;
+  --color-bg-hover: #e7e5e4;
+  --color-bg-active: #d6d3d1;
+  --color-bg-inset: #fafaf9;
+  --color-bg-overlay: rgba(0, 0, 0, 0.4);
+
+  --color-border: #c4c1be;
+  --color-border-muted: #e0dedc;
+
+  --color-text: #1c1917;
+  --color-text-muted: #78716c;
+  --color-text-inverse: #fafaf9;
+
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-text: #ffffff;
+
+  --color-secondary: #44403c;
+  --color-secondary-hover: #292524;
+  --color-secondary-text: #fafaf9;
+
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-text: #ffffff;
+
+  --color-success: #16a34a;
+  --color-success-hover: #15803d;
+  --color-success-text: #ffffff;
+
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-subtle: #eff6ff;
+}
+
+/* ---- dark overrides ---- */
+.dark {
+  --color-bg: #0c0a09;
+  --color-bg-surface: #1c1917;
+  --color-bg-hover: #292524;
+  --color-bg-active: #44403c;
+  --color-bg-inset: #171412;
+  --color-bg-overlay: rgba(0, 0, 0, 0.6);
+
+  --color-border: #44403c;
+  --color-border-muted: #292524;
+
+  --color-text: #e7e5e4;
+  --color-text-muted: #a8a29e;
+  --color-text-inverse: #1c1917;
+
+  --color-primary: #3b82f6;
+  --color-primary-hover: #60a5fa;
+  --color-primary-text: #ffffff;
+
+  --color-secondary: #a8a29e;
+  --color-secondary-hover: #d6d3d1;
+  --color-secondary-text: #1c1917;
+
+  --color-danger: #ef4444;
+  --color-danger-hover: #f87171;
+  --color-danger-text: #ffffff;
+
+  --color-success: #22c55e;
+  --color-success-hover: #4ade80;
+  --color-success-text: #ffffff;
+
+  --color-accent: #3b82f6;
+  --color-accent-hover: #60a5fa;
+  --color-accent-subtle: #172554;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    font-family: var(--font-mono);
+    background: var(--color-bg);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    font-size: 16px;
+  }
+
+  button,
+  select {
+    font-family: inherit;
+  }
+
+  textarea,
+  input {
+    font-family: inherit;
+  }
+}
