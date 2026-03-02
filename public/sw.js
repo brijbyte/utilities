@@ -6,7 +6,7 @@ const PRECACHE = ["/", "/manifest.webmanifest", "/icon.svg"];
 // Install: precache shell
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)),
   );
   self.skipWaiting();
 });
@@ -14,13 +14,15 @@ self.addEventListener("install", (event) => {
 // Activate: clean old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      )
-    )
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      ),
   );
   self.clients.claim();
 });
@@ -42,7 +44,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put("/", clone));
           return response;
         })
-        .catch(() => caches.match("/"))
+        .catch(() => caches.match("/")),
     );
     return;
   }
@@ -57,8 +59,8 @@ self.addEventListener("fetch", (event) => {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
             return response;
-          })
-      )
+          }),
+      ),
     );
     return;
   }
@@ -72,6 +74,6 @@ self.addEventListener("fetch", (event) => {
         return response;
       });
       return cached || fetchPromise;
-    })
+    }),
   );
 });

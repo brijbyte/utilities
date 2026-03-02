@@ -43,8 +43,20 @@ export default function JsonFormatter() {
   return (
     <div className="h-full flex flex-col">
       <Toolbar.Root className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
-        <Toolbar.Button render={(props) => <Button {...props} variant="primary" onClick={format}>format</Button>} />
-        <Toolbar.Button render={(props) => <Button {...props} variant="secondary" onClick={minify}>minify</Button>} />
+        <Toolbar.Button
+          render={(props) => (
+            <Button {...props} variant="primary" onClick={format}>
+              format
+            </Button>
+          )}
+        />
+        <Toolbar.Button
+          render={(props) => (
+            <Button {...props} variant="secondary" onClick={minify}>
+              minify
+            </Button>
+          )}
+        />
         <Toolbar.Separator className="w-px h-5 bg-border-muted mx-xs" />
         <label className="flex items-center gap-sm text-xs text-text-muted">
           indent
@@ -61,9 +73,26 @@ export default function JsonFormatter() {
 
         <Toolbar.Group className="ml-auto flex items-center gap-tb">
           {output && (
-            <Toolbar.Button render={(props) => <Button {...props} variant="outline" onClick={copyOutput}>copy</Button>} />
+            <Toolbar.Button
+              render={(props) => (
+                <Button {...props} variant="outline" onClick={copyOutput}>
+                  copy
+                </Button>
+              )}
+            />
           )}
-          <Toolbar.Button render={(props) => <Button {...props} variant="ghost" onClick={clear} disabled={!input && !output}>clear</Button>} />
+          <Toolbar.Button
+            render={(props) => (
+              <Button
+                {...props}
+                variant="ghost"
+                onClick={clear}
+                disabled={!input && !output}
+              >
+                clear
+              </Button>
+            )}
+          />
         </Toolbar.Group>
       </Toolbar.Root>
 
@@ -76,7 +105,9 @@ export default function JsonFormatter() {
       <div className="flex-1 grid grid-cols-2 gap-px bg-border-muted min-h-0">
         <div className="flex flex-col bg-bg-surface min-h-0">
           <div className="px-pn-x py-pn-lbl border-b border-border-muted">
-            <span className="text-[10px] uppercase tracking-widest text-text-muted">input</span>
+            <span className="text-[10px] uppercase tracking-widest text-text-muted">
+              input
+            </span>
           </div>
           <textarea
             value={input}
@@ -88,7 +119,9 @@ export default function JsonFormatter() {
         </div>
         <div className="flex flex-col bg-bg-surface min-h-0">
           <div className="px-pn-x py-pn-lbl border-b border-border-muted">
-            <span className="text-[10px] uppercase tracking-widest text-text-muted">output</span>
+            <span className="text-[10px] uppercase tracking-widest text-text-muted">
+              output
+            </span>
           </div>
           <textarea
             value={output}

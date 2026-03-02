@@ -39,6 +39,7 @@ export function AppPage() {
       <Header />
       <main className="flex-1 min-h-0">
         <Suspense key={id} fallback={fallback}>
+          {/* eslint-disable-next-line react-hooks/static-components */}
           <LazyComponent />
         </Suspense>
       </main>

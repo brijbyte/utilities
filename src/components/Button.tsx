@@ -9,10 +9,8 @@ const variantClasses: Record<Variant, string> = {
     "bg-secondary hover:bg-secondary-hover text-secondary-text border-secondary hover:border-secondary-hover",
   danger:
     "bg-danger hover:bg-danger-hover text-danger-text border-danger hover:border-danger-hover",
-  ghost:
-    "bg-transparent hover:bg-bg-hover text-text border-transparent",
-  outline:
-    "bg-bg-surface hover:bg-bg-hover text-text border-border",
+  ghost: "bg-transparent hover:bg-bg-hover text-text border-transparent",
+  outline: "bg-bg-surface hover:bg-bg-hover text-text border-border",
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

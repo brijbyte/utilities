@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import { Tooltip } from "@base-ui/react/tooltip";
 import { usePlugins } from "../registry";
 
@@ -9,6 +9,7 @@ interface AppGridProps {
 
 export function AppGrid({ onSelect, compact }: AppGridProps) {
   const plugins = usePlugins();
+  const { id: activeId } = useParams<{ id: string }>();
 
   if (plugins.length === 0) {
     return (
@@ -27,47 +28,54 @@ export function AppGrid({ onSelect, compact }: AppGridProps) {
             : "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-gr p-gr-p"
         }
       >
-        {plugins.map((p) => (
-          <Tooltip.Root key={p.id}>
-            <Tooltip.Trigger
-              render={
-                <Link
-                  to={`/a/${p.id}`}
-                  onClick={onSelect}
-                  className="group flex flex-col items-center gap-sm no-underline"
-                />
-              }
-            >
-              <div
-                className={`
+        {plugins.map((p) => {
+          const active = p.id === activeId;
+          return (
+            <Tooltip.Root key={p.id}>
+              <Tooltip.Trigger
+                render={
+                  <Link
+                    to={`/a/${p.id}`}
+                    onClick={onSelect}
+                    className="group flex flex-col items-center gap-sm no-underline"
+                  />
+                }
+              >
+                <div
+                  className={`
                   flex items-center justify-center
-                  border border-border bg-bg-surface text-text-muted
-                  group-hover:bg-bg-hover group-hover:text-text group-hover:border-border
-                  transition-all
+                  border transition-all
+                  ${
+                    active
+                      ? "bg-accent-subtle border-accent text-accent ring-1 ring-accent/20"
+                      : "border-border bg-bg-surface text-text-muted group-hover:bg-bg-hover group-hover:text-text group-hover:border-border"
+                  }
                   ${compact ? "w-12 h-12 rounded-xl [&>svg]:size-4" : "w-16 h-16 rounded-2xl [&>svg]:size-6"}
                 `}
-              >
-                {p.icon}
-              </div>
-              <span
-                className={`
-                  text-text-muted group-hover:text-text text-center leading-tight transition-colors
+                >
+                  {p.icon}
+                </div>
+                <span
+                  className={`
+                  text-center leading-tight transition-colors
                   max-w-20 truncate
+                  ${active ? "text-accent" : "text-text-muted group-hover:text-text"}
                   ${compact ? "text-[10px]" : "text-[11px]"}
                 `}
-              >
-                {p.name}
-              </span>
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Positioner sideOffset={8}>
-                <Tooltip.Popup className="px-md py-sm bg-text text-text-inverse text-[11px] max-w-48 rounded border border-border-muted origin-(--transform-origin) transition-[transform,scale,opacity] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 data-instant:transition-none">
-                  {p.meta.description}
-                </Tooltip.Popup>
-              </Tooltip.Positioner>
-            </Tooltip.Portal>
-          </Tooltip.Root>
-        ))}
+                >
+                  {p.name}
+                </span>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Positioner sideOffset={8}>
+                  <Tooltip.Popup className="px-md py-sm bg-text text-text-inverse text-[11px] max-w-48 rounded border border-border-muted origin-(--transform-origin) transition-[transform,scale,opacity] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 data-instant:transition-none">
+                    {p.meta.description}
+                  </Tooltip.Popup>
+                </Tooltip.Positioner>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          );
+        })}
       </div>
     </Tooltip.Provider>
   );

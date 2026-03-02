@@ -22,7 +22,7 @@ export default defineConfig({
             if (id.includes("@base-ui")) {
               return "vendor-base-ui";
             }
-            return "vendor-all";
+            return null;
           }
         },
       },

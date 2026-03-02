@@ -20,7 +20,9 @@ async function prerender() {
   });
 
   // Load the SSR module
-  const { render } = await import(path.join(distDir, "server", "entry-server.js"));
+  const { render } = await import(
+    path.join(distDir, "server", "entry-server.js")
+  );
 
   // Render home page
   const html = render("/");
@@ -32,7 +34,7 @@ async function prerender() {
   // Inject SSR content into #root
   template = template.replace(
     '<div id="root"></div>',
-    `<div id="root">${html}</div>`
+    `<div id="root">${html}</div>`,
   );
 
   // Write back

@@ -13,6 +13,6 @@ export function render(url: string) {
           <HomePage />
         </StaticRouter>
       </ThemeProvider>
-    </RegistryProvider>
+    </RegistryProvider>,
   );
 }

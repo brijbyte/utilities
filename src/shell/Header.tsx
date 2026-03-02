@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { LayoutGrid } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { useParams } from "react-router";
@@ -37,6 +38,13 @@ export function Header() {
             </Popover.Positioner>
           </Popover.Portal>
         </Popover.Root>
+
+        <Link
+          to="/"
+          className="text-xs text-text-muted hover:text-text transition-colors no-underline"
+        >
+          / home /
+        </Link>
 
         {plugin && (
           <span className="flex items-center gap-sm text-xs text-text-muted">

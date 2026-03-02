@@ -8,7 +8,8 @@ export const plugins: Plugin[] = [
     name: "JSON Formatter",
     icon: <Braces size={24} />,
     meta: {
-      description: "Format, validate and minify JSON with configurable indentation",
+      description:
+        "Format, validate and minify JSON with configurable indentation",
       keywords: ["json", "formatter", "validator", "minify", "prettify"],
     },
     load: () => import("./json-formatter/App"),
@@ -16,7 +17,7 @@ export const plugins: Plugin[] = [
   },
   {
     id: "base64",
-    name: "Base64",
+    name: "Base64 Encoder/Decoder",
     icon: <Binary size={24} />,
     meta: {
       description: "Encode and decode Base64 strings with full UTF-8 support",
