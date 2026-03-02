@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Toolbar } from "@base-ui/react/toolbar";
 import { Button } from "../../components/Button";
 
 export default function JsonFormatter() {
@@ -41,15 +42,11 @@ export default function JsonFormatter() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* toolbar */}
-      <div className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
-        <Button variant="primary" onClick={format}>
-          format
-        </Button>
-        <Button variant="secondary" onClick={minify}>
-          minify
-        </Button>
-        <label className="flex items-center gap-sm text-xs text-text-muted ml-xs">
+      <Toolbar.Root className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
+        <Toolbar.Button render={(props) => <Button {...props} variant="primary" onClick={format}>format</Button>} />
+        <Toolbar.Button render={(props) => <Button {...props} variant="secondary" onClick={minify}>minify</Button>} />
+        <Toolbar.Separator className="w-px h-5 bg-border-muted mx-xs" />
+        <label className="flex items-center gap-sm text-xs text-text-muted">
           indent
           <select
             value={indent}
@@ -62,26 +59,20 @@ export default function JsonFormatter() {
           </select>
         </label>
 
-        <div className="ml-auto flex items-center gap-tb">
+        <Toolbar.Group className="ml-auto flex items-center gap-tb">
           {output && (
-            <Button variant="outline" onClick={copyOutput}>
-              copy
-            </Button>
+            <Toolbar.Button render={(props) => <Button {...props} variant="outline" onClick={copyOutput}>copy</Button>} />
           )}
-          <Button variant="ghost" onClick={clear} disabled={!input && !output}>
-            clear
-          </Button>
-        </div>
-      </div>
+          <Toolbar.Button render={(props) => <Button {...props} variant="ghost" onClick={clear} disabled={!input && !output}>clear</Button>} />
+        </Toolbar.Group>
+      </Toolbar.Root>
 
-      {/* error bar */}
       {error && (
         <div className="px-tb-x py-tb-y text-xs bg-danger/5 border-b border-danger/20 text-danger">
           ✕ {error}
         </div>
       )}
 
-      {/* editor panels */}
       <div className="flex-1 grid grid-cols-2 gap-px bg-border-muted min-h-0">
         <div className="flex flex-col bg-bg-surface min-h-0">
           <div className="px-pn-x py-pn-lbl border-b border-border-muted">

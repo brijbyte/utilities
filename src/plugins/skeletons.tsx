@@ -13,7 +13,7 @@ export function TwoPanelSkeleton() {
       </div>
       <div className="flex-1 grid grid-cols-2 gap-px bg-border-muted min-h-0">
         <div className="flex flex-col bg-bg-surface">
-          <div className="px-pn-x py-pn-lbl border-b border-border-muted">
+          <div className="px-pn-x py-mi-x border-b border-border-muted">
             <Bar className="w-10 h-3" />
           </div>
           <div className="px-pn-x py-pn-y flex flex-col gap-sm">
@@ -23,7 +23,7 @@ export function TwoPanelSkeleton() {
           </div>
         </div>
         <div className="flex flex-col bg-bg-surface">
-          <div className="px-pn-x py-pn-lbl border-b border-border-muted">
+          <div className="px-pn-x py-mi-x border-b border-border-muted">
             <Bar className="w-12 h-3" />
           </div>
           <div className="px-pn-x py-pn-y flex flex-col gap-sm">

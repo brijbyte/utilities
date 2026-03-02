@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, type ComponentType } from "react";
+import { Suspense, lazy, type ComponentType } from "react";
 import { useParams, Navigate } from "react-router";
 import { usePlugin } from "../registry";
 import { Header } from "./Header";
@@ -23,28 +23,6 @@ function getLazyComponent(plugin: Plugin) {
   return cached;
 }
 
-function usePluginMeta(plugin: Plugin) {
-  useEffect(() => {
-    const prevTitle = document.title;
-    document.title = `${plugin.name} — utilities`;
-
-    const meta = plugin.meta;
-    const descTag = document.querySelector('meta[name="description"]')
-      ?? Object.assign(document.createElement("meta"), { name: "description" });
-    descTag.setAttribute("content", meta.description);
-    if (!descTag.parentNode) document.head.appendChild(descTag);
-
-    const kwTag = document.querySelector('meta[name="keywords"]')
-      ?? Object.assign(document.createElement("meta"), { name: "keywords" });
-    kwTag.setAttribute("content", meta.keywords?.join(", ") ?? "");
-    if (!kwTag.parentNode) document.head.appendChild(kwTag);
-
-    return () => {
-      document.title = prevTitle;
-    };
-  }, [plugin]);
-}
-
 export function AppPage() {
   const { id } = useParams<{ id: string }>();
   const plugin = usePlugin(id ?? "");
@@ -52,8 +30,6 @@ export function AppPage() {
   if (!plugin) {
     return <Navigate to="/" replace />;
   }
-
-  usePluginMeta(plugin);
 
   const LazyComponent = getLazyComponent(plugin);
   const fallback = plugin.skeleton ? plugin.skeleton() : <DefaultSkeleton />;
