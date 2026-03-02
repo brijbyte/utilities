@@ -39,12 +39,15 @@ export function Header() {
           </Popover.Portal>
         </Popover.Root>
 
-        <Link
-          to="/"
-          className="text-xs text-text-muted hover:text-text transition-colors no-underline"
-        >
-          / home /
-        </Link>
+        <span>
+          <Link
+            to="/"
+            className="text-xs text-text-muted hover:text-text transition-colors no-underline"
+          >
+            home
+          </Link>
+          <span className="text-xs">&nbsp;/</span>
+        </span>
 
         {plugin && (
           <span className="flex items-center gap-sm text-xs text-text-muted">
