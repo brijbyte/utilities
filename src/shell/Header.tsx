@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import { LayoutGrid } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
@@ -9,11 +10,12 @@ import { ThemeSwitcher } from "./ThemeSwitcher";
 export function Header() {
   const { id } = useParams<{ id: string }>();
   const plugin = usePlugin(id ?? "");
+  const [open, setOpen] = useState(false);
 
   return (
     <header className="h-hdr border-b border-border flex items-center justify-between px-hdr-x bg-bg-surface">
       <div className="flex items-center gap-md shrink-0">
-        <Popover.Root>
+        <Popover.Root open={open} onOpenChange={setOpen}>
           <Popover.Trigger className="w-8 h-8 flex items-center justify-center border border-border bg-bg-surface hover:bg-bg-hover cursor-pointer text-text-muted hover:text-text transition-colors">
             <LayoutGrid size={14} />
           </Popover.Trigger>
@@ -33,7 +35,7 @@ export function Header() {
                     />
                   </svg>
                 </Popover.Arrow>
-                <AppGrid compact />
+                <AppGrid compact onSelect={() => setOpen(false)} />
               </Popover.Popup>
             </Popover.Positioner>
           </Popover.Portal>

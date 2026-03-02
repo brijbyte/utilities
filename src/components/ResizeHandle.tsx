@@ -1,3 +1,4 @@
+"use no memo";
 import { Separator } from "react-resizable-panels";
 import { GripVertical } from "lucide-react";
 

@@ -1,3 +1,4 @@
+"use no memo";
 import { useState } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { Panel, Group as PanelGroup } from "react-resizable-panels";
