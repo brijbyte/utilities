@@ -1,9 +1,9 @@
-import { createContext, useContext } from "react";
+import React, { createContext, useContext } from "react";
 import type { Semaphore } from "./semaphore";
 
 interface HashContextValue {
-  signal: AbortSignal;
-  semaphore: Semaphore;
+  signal: React.RefObject<AbortController | null>;
+  semaphore: React.RefObject<Semaphore>;
   flashCopied: (key: string) => void;
 }
 
@@ -13,6 +13,7 @@ export const HashContextProvider = HashContext.Provider;
 
 export function useHashContext(): HashContextValue {
   const ctx = useContext(HashContext);
-  if (!ctx) throw new Error("useHashContext must be used within HashContextProvider");
+  if (!ctx)
+    throw new Error("useHashContext must be used within HashContextProvider");
   return ctx;
 }

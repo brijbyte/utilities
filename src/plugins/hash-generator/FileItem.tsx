@@ -48,11 +48,15 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
     if (started.current) return;
     started.current = true;
 
+    // Capture the current signal at start — this is the one controlling this batch
+    const abortSignal = signal.current?.signal;
+    if (!abortSignal || abortSignal.aborted) return;
+
     (async () => {
       try {
-        await semaphore.acquire();
-        if (signal.aborted) {
-          semaphore.release();
+        await semaphore.current?.acquire();
+        if (abortSignal.aborted) {
+          semaphore.current?.release();
           return;
         }
 
@@ -63,7 +67,8 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
         let bytesRead = 0;
 
         while (true) {
-          if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+          if (abortSignal.aborted)
+            throw new DOMException("Aborted", "AbortError");
           const { done, value } = await reader.read();
           if (done) break;
           chunks.push(value);
@@ -80,16 +85,16 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
         chunks.length = 0;
 
         setPhase("hashing");
-        await hashInWorker(combined.buffer, signal, (algo, hex) => {
+        await hashInWorker(combined.buffer, abortSignal, (algo, hex) => {
           setHashes((prev) => ({ ...prev, [algo]: hex }));
         });
 
-        if (!signal.aborted) {
+        if (!abortSignal.aborted) {
           setPhase("done");
         }
-        semaphore.release();
+        semaphore.current?.release();
       } catch (err) {
-        semaphore.release();
+        semaphore.current?.release();
         if ((err as Error).name !== "AbortError") {
           console.error("Hash failed:", err);
           setPhase("error");

@@ -1,5 +1,4 @@
-"use no memo";
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { SplitPanel } from "../../components/SplitPanel";
 import { Button } from "../../components/Button";
@@ -143,27 +142,29 @@ export default function HashGenerator() {
     [addFiles],
   );
 
-  function clear() {
+  const clear = useCallback((ev: React.SyntheticEvent | boolean = false) => {
+    const unmount = typeof ev === "boolean" ? ev : false;
     abortRef.current?.abort();
     textAbortRef.current?.abort();
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    setInput("");
-    setTextHashes(null);
-    setFiles([]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
+    if (!unmount) {
+      setInput("");
+      setTextHashes(null);
+      setFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
+
+  useEffect(() => () => clear(true), [clear]);
 
   const hasContent = !!input || files.length > 0;
 
   const hashCtx = useMemo(
-    () =>
-      abortRef.current
-        ? {
-            signal: abortRef.current.signal,
-            semaphore: semaphoreRef.current,
-            flashCopied,
-          }
-        : null,
+    () => ({
+      signal: abortRef,
+      semaphore: semaphoreRef,
+      flashCopied,
+    }),
     [flashCopied], // files dependency triggers recalc when addFiles creates new controller
   );
 
@@ -248,23 +249,14 @@ export default function HashGenerator() {
           </div>
         }
         right={
-          hashCtx ? (
-            <HashContextProvider value={hashCtx}>
-              <FileResults
-                files={files}
-                textHashes={textHashes}
-                copied={copied}
-                onCopy={handleCopy}
-              />
-            </HashContextProvider>
-          ) : (
+          <HashContextProvider value={hashCtx}>
             <FileResults
               files={files}
               textHashes={textHashes}
               copied={copied}
               onCopy={handleCopy}
             />
-          )
+          </HashContextProvider>
         }
       />
     </div>
