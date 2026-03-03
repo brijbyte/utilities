@@ -35,7 +35,7 @@ export default function HashGenerator() {
   const abortRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const semaphoreRef = useRef(new Semaphore(5));
+  const semaphoreRef = useRef(new Semaphore(20));
 
   const flashCopied = useCallback((key: string) => {
     if (copiedTimer.current) clearTimeout(copiedTimer.current);
@@ -103,7 +103,9 @@ export default function HashGenerator() {
     setInput("");
     setTextHashes(null);
 
-    const entries: FileInfo[] = fileList.map((f) => ({
+    const sorted = [...fileList].sort((a, b) => a.file.size - b.file.size);
+
+    const entries: FileInfo[] = sorted.map((f) => ({
       id: `file-${++entryIdCounter}`,
       file: f.file,
       path: f.path,

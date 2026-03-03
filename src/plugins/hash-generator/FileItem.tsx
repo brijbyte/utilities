@@ -52,11 +52,14 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
     const abortSignal = signal.current?.signal;
     if (!abortSignal || abortSignal.aborted) return;
 
+    const LARGE_FILE = 100 * 1024 * 1024; // 100MB
+    const slots = file.size >= LARGE_FILE ? 20 : 1;
+
     (async () => {
       try {
-        await semaphore.current?.acquire();
+        await semaphore.current?.acquire(slots);
         if (abortSignal.aborted) {
-          semaphore.current?.release();
+          semaphore.current?.release(slots);
           return;
         }
 
@@ -86,9 +89,9 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
           setPhase("done");
           onFileComplete();
         }
-        semaphore.current?.release();
+        semaphore.current?.release(slots);
       } catch (err) {
-        semaphore.current?.release();
+        semaphore.current?.release(slots);
         if ((err as Error).name !== "AbortError") {
           console.error("Hash failed:", err);
           setPhase("error");
