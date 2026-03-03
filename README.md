@@ -68,4 +68,4 @@ Colors and spacing are defined as CSS custom properties in `src/index.css` via T
 
 ## License
 
-Private
+MIT
