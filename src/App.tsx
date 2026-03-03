@@ -8,7 +8,7 @@ import { ThemeProvider } from "./theme";
 
 export default function App() {
   return (
-    <RegistryProvider value={plugins}>
+    <RegistryProvider plugins={plugins}>
       <ThemeProvider>
         <Routes>
           <Route path="/" element={<HomePage />} />

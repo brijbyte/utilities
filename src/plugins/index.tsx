@@ -1,8 +1,22 @@
-import { Braces, Binary, Hash } from "lucide-react";
+import { Braces, Binary, Hash, Workflow } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
+import { operations as jsonOps } from "./json-formatter/operations";
+import { operations as base64Ops } from "./base64/operations";
+import { operations as hashOps } from "./hash-generator/operations";
 
 export const plugins: Plugin[] = [
+  {
+    id: "pipeline",
+    name: "Pipeline",
+    icon: <Workflow size={24} />,
+    meta: {
+      description: "Chain operations together into reusable data pipelines",
+      keywords: ["pipeline", "chain", "workflow", "compose", "transform"],
+    },
+    load: () => import("./pipeline/App"),
+    skeleton: () => <TwoPanelSkeleton />,
+  },
   {
     id: "json-formatter",
     name: "JSON Formatter",
@@ -14,6 +28,7 @@ export const plugins: Plugin[] = [
     },
     load: () => import("./json-formatter/App"),
     skeleton: () => <TwoPanelSkeleton />,
+    operations: jsonOps,
   },
   {
     id: "base64",
@@ -25,6 +40,7 @@ export const plugins: Plugin[] = [
     },
     load: () => import("./base64/App"),
     skeleton: () => <TwoPanelSkeleton />,
+    operations: base64Ops,
   },
   {
     id: "hash-generator",
@@ -37,5 +53,6 @@ export const plugins: Plugin[] = [
     },
     load: () => import("./hash-generator/App"),
     skeleton: () => <TwoPanelSkeleton />,
+    operations: hashOps,
   },
 ];

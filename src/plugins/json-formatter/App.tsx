@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { SplitPanel } from "../../components/SplitPanel";
 import { Button } from "../../components/Button";
+import { format as formatJson, minify as minifyJson } from "./process";
 
 export default function JsonFormatter() {
   const [input, setInput] = useState("");
@@ -9,10 +10,13 @@ export default function JsonFormatter() {
   const [error, setError] = useState("");
   const [indent, setIndent] = useState(2);
 
-  function format() {
+  async function format() {
     try {
-      const parsed = JSON.parse(input);
-      setOutput(JSON.stringify(parsed, null, indent));
+      const result = await formatJson(
+        { type: "text", data: input },
+        { indent: String(indent) },
+      );
+      setOutput(result.data as string);
       setError("");
     } catch (e) {
       setError((e as Error).message);
@@ -20,10 +24,10 @@ export default function JsonFormatter() {
     }
   }
 
-  function minify() {
+  async function minify() {
     try {
-      const parsed = JSON.parse(input);
-      setOutput(JSON.stringify(parsed));
+      const result = await minifyJson({ type: "text", data: input }, {});
+      setOutput(result.data as string);
       setError("");
     } catch (e) {
       setError((e as Error).message);

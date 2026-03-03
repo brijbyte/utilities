@@ -12,7 +12,7 @@ interface FileItemProps {
 }
 
 export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
-  const { signal, semaphore } = useHashContext();
+  const { signal, semaphore, onFileComplete } = useHashContext();
   const [phase, setPhase] = useState<
     "queued" | "reading" | "hashing" | "done" | "error"
   >("queued");
@@ -61,36 +61,30 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
         }
 
         setPhase("reading");
+        const buffer = new ArrayBuffer(file.size);
+        const combined = new Uint8Array(buffer);
         const stream = file.stream();
         const reader = stream.getReader();
-        const chunks: Uint8Array[] = [];
-        let bytesRead = 0;
+        let offset = 0;
 
         while (true) {
           if (abortSignal.aborted)
             throw new DOMException("Aborted", "AbortError");
           const { done, value } = await reader.read();
           if (done) break;
-          chunks.push(value);
-          bytesRead += value.byteLength;
-          setReadProgress(Math.round((bytesRead / file.size) * 100));
+          combined.set(value, offset);
+          offset += value.byteLength;
+          setReadProgress(Math.round((offset / file.size) * 100));
         }
-
-        const combined = new Uint8Array(bytesRead);
-        let offset = 0;
-        for (const chunk of chunks) {
-          combined.set(chunk, offset);
-          offset += chunk.byteLength;
-        }
-        chunks.length = 0;
 
         setPhase("hashing");
-        await hashInWorker(combined.buffer, abortSignal, (algo, hex) => {
+        await hashInWorker(buffer, abortSignal, (algo, hex) => {
           setHashes((prev) => ({ ...prev, [algo]: hex }));
         });
 
         if (!abortSignal.aborted) {
           setPhase("done");
+          onFileComplete();
         }
         semaphore.current?.release();
       } catch (err) {
@@ -98,6 +92,7 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
         if ((err as Error).name !== "AbortError") {
           console.error("Hash failed:", err);
           setPhase("error");
+          onFileComplete();
         }
       }
     })();

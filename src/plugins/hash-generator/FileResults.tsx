@@ -24,7 +24,12 @@ export function FileResults({
   if (textHashes) {
     return (
       <div className="overflow-auto px-pn-x py-pn-y">
-        <HashTable hashes={textHashes} keyPrefix="text" copied={copied} onCopy={onCopy} />
+        <HashTable
+          hashes={textHashes}
+          keyPrefix="text"
+          copied={copied}
+          onCopy={onCopy}
+        />
       </div>
     );
   }

@@ -5,6 +5,7 @@ interface HashContextValue {
   signal: React.RefObject<AbortController | null>;
   semaphore: React.RefObject<Semaphore>;
   flashCopied: (key: string) => void;
+  onFileComplete: () => void;
 }
 
 const HashContext = createContext<HashContextValue | null>(null);

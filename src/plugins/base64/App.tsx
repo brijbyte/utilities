@@ -2,8 +2,11 @@ import { useState } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { SplitPanel } from "../../components/SplitPanel";
 import { Button } from "../../components/Button";
+import { encode, decode } from "./process";
 
 type Mode = "encode" | "decode";
+
+const processFn = { encode, decode };
 
 export default function Base64Tool() {
   const [input, setInput] = useState("");
@@ -11,7 +14,7 @@ export default function Base64Tool() {
   const [mode, setMode] = useState<Mode>("encode");
   const [error, setError] = useState("");
 
-  function convert(text: string, m: Mode) {
+  async function convert(text: string, m: Mode) {
     setInput(text);
     setError("");
     if (!text) {
@@ -19,11 +22,8 @@ export default function Base64Tool() {
       return;
     }
     try {
-      if (m === "encode") {
-        setOutput(btoa(unescape(encodeURIComponent(text))));
-      } else {
-        setOutput(decodeURIComponent(escape(atob(text.trim()))));
-      }
+      const result = await processFn[m]({ type: "text", data: text }, {});
+      setOutput(result.data as string);
     } catch (e) {
       setError((e as Error).message);
       setOutput("");

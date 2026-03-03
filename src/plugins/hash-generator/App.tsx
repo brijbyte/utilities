@@ -26,7 +26,12 @@ export default function HashGenerator() {
   > | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [completed, setCompleted] = useState(0);
   const [copied, setCopied] = useState<string | null>(null);
+
+  const onFileComplete = useCallback(() => {
+    setCompleted((prev) => prev + 1);
+  }, []);
   const abortRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,6 +103,7 @@ export default function HashGenerator() {
 
     setInput("");
     setTextHashes(null);
+    setCompleted(0);
 
     const entries: FileInfo[] = fileList.map((f) => ({
       id: `file-${++entryIdCounter}`,
@@ -150,6 +156,7 @@ export default function HashGenerator() {
     if (!unmount) {
       setInput("");
       setTextHashes(null);
+      setCompleted(0);
       setFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -164,8 +171,9 @@ export default function HashGenerator() {
       signal: abortRef,
       semaphore: semaphoreRef,
       flashCopied,
+      onFileComplete,
     }),
-    [flashCopied], // files dependency triggers recalc when addFiles creates new controller
+    [flashCopied, onFileComplete], // files dependency triggers recalc when addFiles creates new controller
   );
 
   return (
@@ -226,7 +234,7 @@ export default function HashGenerator() {
         leftLabel="input — drop files or folders, or type text"
         rightLabel={
           files.length > 0
-            ? `hashes — ${files.length} file${files.length > 1 ? "s" : ""}`
+            ? `hashes — ${completed}/${files.length} file${files.length > 1 ? "s" : ""}`
             : "hashes"
         }
         left={
