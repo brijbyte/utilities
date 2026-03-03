@@ -12,15 +12,12 @@ export default defineConfig({
     tailwindcss(),
   ],
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
             if (id.includes("/react-dom/") || id.includes("/react/")) {
               return "vendor-react";
-            }
-            if (id.includes("@base-ui")) {
-              return "vendor-base-ui";
             }
             return null;
           }

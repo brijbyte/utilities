@@ -1,20 +1,19 @@
-import { BrowserRouter, Routes, Route } from "react-router";
-import { ThemeProvider } from "./theme";
-import { RegistryProvider } from "./registry";
+import { Route, Routes } from "react-router";
+
 import { plugins } from "./plugins";
-import { HomePage } from "./shell/HomePage";
+import { RegistryProvider } from "./registry";
 import { AppPage } from "./shell/AppPage";
+import { HomePage } from "./shell/HomePage";
+import { ThemeProvider } from "./theme";
 
 export default function App() {
   return (
     <RegistryProvider value={plugins}>
       <ThemeProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/a/:id" element={<AppPage />} />
-          </Routes>
-        </BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/a/:id" element={<AppPage />} />
+        </Routes>
       </ThemeProvider>
     </RegistryProvider>
   );

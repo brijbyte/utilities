@@ -42,26 +42,12 @@ export function AppGrid({ onSelect, compact }: AppGridProps) {
                 }
               >
                 <div
-                  className={`
-                  flex items-center justify-center
-                  border transition-all
-                  ${
-                    active
-                      ? "bg-accent-subtle border-accent text-accent ring-1 ring-accent/20"
-                      : "border-border bg-bg-surface text-text-muted group-hover:bg-bg-hover group-hover:text-text group-hover:border-border"
-                  }
-                  ${compact ? "w-12 h-12 rounded-xl [&>svg]:size-4" : "w-16 h-16 rounded-2xl [&>svg]:size-6"}
-                `}
+                  className={`flex items-center justify-center border transition-all ${active ? "bg-accent-subtle border-accent text-accent ring-1 ring-accent/20" : "border-border bg-bg-surface text-text-muted group-hover:bg-bg-hover group-hover:text-text group-hover:border-border"} ${compact ? "w-12 h-12 rounded-xl [&>svg]:size-4" : "w-16 h-16 rounded-2xl [&>svg]:size-6"}`}
                 >
                   {p.icon}
                 </div>
                 <span
-                  className={`
-                  text-center leading-tight transition-colors
-                  max-w-20 truncate
-                  ${active ? "text-accent" : "text-text-muted group-hover:text-text"}
-                  ${compact ? "text-[10px]" : "text-[11px]"}
-                `}
+                  className={`text-center leading-tight transition-colors max-w-20 truncate ${active ? "text-accent" : "text-text-muted group-hover:text-text"} ${compact ? "text-[10px]" : "text-[11px]"}`}
                 >
                   {p.name}
                 </span>

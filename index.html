@@ -1,61 +1,81 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function () {
+        var t = localStorage.getItem("utilities-theme") || "system";
+        var d =
+          t === "dark" ||
+          (t === "system" && matchMedia("(prefers-color-scheme:dark)").matches);
+        if (d) document.documentElement.classList.add("dark");
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<head>
-  <meta charset="UTF-8" />
-  <script>
-    (function () {
-      var t = localStorage.getItem("utilities-theme") || "system";
-      var d =
-        t === "dark" ||
-        (t === "system" && matchMedia("(prefers-color-scheme:dark)").matches);
-      if (d) document.documentElement.classList.add("dark");
-    })();
-  </script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Primary -->
+    <title>utilities — developer tools in the browser</title>
+    <meta
+      name="description"
+      content="Free, fast, browser-based developer utilities. JSON formatter, Base64 encoder/decoder and more. No install, no signup, works offline."
+    />
+    <meta
+      name="keywords"
+      content="developer tools, json formatter, base64 encoder, base64 decoder, online dev tools, browser utilities, web tools"
+    />
+    <meta name="author" content="brijbyte" />
 
-  <!-- Primary -->
-  <title>utilities — developer tools in the browser</title>
-  <meta name="description"
-    content="Free, fast, browser-based developer utilities. JSON formatter, Base64 encoder/decoder and more. No install, no signup, works offline." />
-  <meta name="keywords"
-    content="developer tools, json formatter, base64 encoder, base64 decoder, online dev tools, browser utilities, web tools" />
-  <meta name="author" content="brijbyte" />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://utilities.brijbyte.com/" />
+    <meta
+      property="og:title"
+      content="utilities — developer tools in the browser"
+    />
+    <meta
+      property="og:description"
+      content="Free, fast, browser-based developer utilities. JSON formatter, Base64 encoder/decoder and more. No install, no signup, works offline."
+    />
+    <meta property="og:site_name" content="utilities" />
+    <meta property="og:locale" content="en_US" />
 
-  <!-- Open Graph -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://utilities.brijbyte.com/" />
-  <meta property="og:title" content="utilities — developer tools in the browser" />
-  <meta property="og:description"
-    content="Free, fast, browser-based developer utilities. JSON formatter, Base64 encoder/decoder and more. No install, no signup, works offline." />
-  <meta property="og:site_name" content="utilities" />
-  <meta property="og:locale" content="en_US" />
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="utilities — developer tools in the browser"
+    />
+    <meta
+      name="twitter:description"
+      content="Free, fast, browser-based developer utilities. JSON formatter, Base64 encoder/decoder and more."
+    />
 
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="utilities — developer tools in the browser" />
-  <meta name="twitter:description"
-    content="Free, fast, browser-based developer utilities. JSON formatter, Base64 encoder/decoder and more." />
+    <!-- Technical -->
+    <meta
+      name="theme-color"
+      content="#1c1917"
+      media="(prefers-color-scheme: dark)"
+    />
+    <meta
+      name="theme-color"
+      content="#f5f5f4"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://utilities.brijbyte.com/" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+  </head>
 
-  <!-- Technical -->
-  <meta name="theme-color" content="#1c1917" media="(prefers-color-scheme: dark)" />
-  <meta name="theme-color" content="#f5f5f4" media="(prefers-color-scheme: light)" />
-  <meta name="color-scheme" content="light dark" />
-  <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://utilities.brijbyte.com/" />
-  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-  <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="/icon.svg" />
-</head>
-
-<body class="isolate">
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js");
-    }
-  </script>
-</body>
-
+  <body class="isolate">
+    <div id="root"><!--ssr-outlet--></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js");
+      }
+    </script>
+  </body>
 </html>

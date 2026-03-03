@@ -1,21 +1,26 @@
 import { StrictMode } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
-import "./index.css";
+import { BrowserRouter } from "react-router";
+
 import App from "./App";
+
+import "./index.css";
 
 const root = document.getElementById("root")!;
 
-if (root.children.length > 0) {
-  hydrateRoot(
-    root,
-    <StrictMode>
+const app = (
+  <StrictMode>
+    <BrowserRouter>
       <App />
-    </StrictMode>,
-  );
+    </BrowserRouter>
+  </StrictMode>
+);
+
+// Only the home page is pre-rendered (SSG), so only hydrate on "/"
+if (root.children.length > 0 && window.location.pathname === "/") {
+  hydrateRoot(root, app);
 } else {
-  createRoot(root).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  );
+  // Clear any pre-rendered content if we're on a different route
+  root.innerHTML = "";
+  createRoot(root).render(app);
 }

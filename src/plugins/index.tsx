@@ -1,4 +1,4 @@
-import { Braces, Binary } from "lucide-react";
+import { Braces, Binary, Hash } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
 
@@ -24,6 +24,18 @@ export const plugins: Plugin[] = [
       keywords: ["base64", "encode", "decode", "binary", "text"],
     },
     load: () => import("./base64/App"),
+    skeleton: () => <TwoPanelSkeleton />,
+  },
+  {
+    id: "hash-generator",
+    name: "Hash Generator",
+    icon: <Hash size={24} />,
+    meta: {
+      description:
+        "Generate SHA-1, SHA-256, SHA-384, SHA-512 hashes from text or files",
+      keywords: ["hash", "sha", "sha256", "sha512", "checksum", "digest"],
+    },
+    load: () => import("./hash-generator/App"),
     skeleton: () => <TwoPanelSkeleton />,
   },
 ];
