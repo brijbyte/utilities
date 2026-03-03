@@ -96,14 +96,12 @@ export default function HashGenerator() {
   );
 
   const addFiles = useCallback((fileList: FileWithPath[]) => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    semaphoreRef.current = new Semaphore(5);
+    if (!abortRef.current) {
+      abortRef.current = new AbortController();
+    }
 
     setInput("");
     setTextHashes(null);
-    setCompleted(0);
 
     const entries: FileInfo[] = fileList.map((f) => ({
       id: `file-${++entryIdCounter}`,
