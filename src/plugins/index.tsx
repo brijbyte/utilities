@@ -1,10 +1,11 @@
-import { Braces, Binary, Hash, Workflow, Link } from "lucide-react";
+import { Braces, Binary, Hash, Workflow, Link, KeyRound } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
 import { operations as jsonOps } from "./json-formatter/operations";
 import { operations as base64Ops } from "./base64/operations";
 import { operations as hashOps } from "./hash-generator/operations";
 import { operations as urlOps } from "./url-encoder/operations";
+import { operations as jwtOps } from "./jwt-decoder/operations";
 
 export const plugins: Plugin[] = [
   {
@@ -68,5 +69,18 @@ export const plugins: Plugin[] = [
     load: () => import("./url-encoder/App"),
     skeleton: () => <TwoPanelSkeleton />,
     operations: urlOps,
+  },
+  {
+    id: "jwt-decoder",
+    name: "JWT Decoder",
+    icon: <KeyRound size={24} />,
+    meta: {
+      description:
+        "Decode JWT tokens, inspect header, payload, claims, and expiration status",
+      keywords: ["jwt", "token", "decode", "claims", "bearer", "auth"],
+    },
+    load: () => import("./jwt-decoder/App"),
+    skeleton: () => <TwoPanelSkeleton />,
+    operations: jwtOps,
   },
 ];
