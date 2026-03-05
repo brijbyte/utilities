@@ -1,4 +1,4 @@
-import { Cloud, LogOut, Loader2 } from "lucide-react";
+import { Cloud, LogOut, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "../../components/Button";
 import { useStorage } from "./useStorage";
 
@@ -27,9 +27,10 @@ function GoogleIcon() {
 
 interface Props {
   syncing?: boolean;
+  onRefresh?: () => void;
 }
 
-export function GoogleSyncButton({ syncing }: Props) {
+export function GoogleSyncButton({ syncing, onRefresh }: Props) {
   const {
     isGoogleLinked,
     googleLoading,
@@ -70,6 +71,15 @@ export function GoogleSyncButton({ syncing }: Props) {
         <span className="text-xs text-text-muted truncate max-w-24 sm:max-w-32">
           {syncing ? "Syncing…" : (googleUser ?? "Synced")}
         </span>
+        <Button
+          variant="ghost"
+          onClick={onRefresh}
+          disabled={syncing}
+          title="Refresh from Google Drive"
+          className="text-text-muted"
+        >
+          <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+        </Button>
         <Button
           variant="ghost"
           onClick={handleClick}

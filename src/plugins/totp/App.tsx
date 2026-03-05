@@ -111,6 +111,7 @@ function TotpAppInner() {
         syncing={syncState === "syncing"}
         onScanClick={() => setIsScanning(true)}
         onFileUpload={handleFileUpload}
+        onRefresh={loadAccounts}
       />
       <ScanDialog
         open={isScanning}

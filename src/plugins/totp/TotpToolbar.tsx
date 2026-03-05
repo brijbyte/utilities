@@ -8,14 +8,20 @@ interface Props {
   syncing: boolean;
   onScanClick: () => void;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRefresh?: () => void;
 }
 
-export function TotpToolbar({ syncing, onScanClick, onFileUpload }: Props) {
+export function TotpToolbar({
+  syncing,
+  onScanClick,
+  onFileUpload,
+  onRefresh,
+}: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <Toolbar.Root className="flex flex-wrap items-center gap-x-tb gap-y-xs px-tb-x py-tb-y border-b border-border bg-bg-surface">
-      <GoogleSyncButton syncing={syncing} />
+      <GoogleSyncButton syncing={syncing} onRefresh={onRefresh} />
       <Toolbar.Group className="ml-auto flex items-center gap-tb shrink-0">
         <input
           type="file"
