@@ -53,7 +53,6 @@ function TotpAppInner() {
     setAccounts((s) => [...s, account]);
     try {
       await adapter.add(account);
-      loadAccounts();
     } catch {
       setAccounts(prev);
       toastManager.add({ title: "Failed to sync new account." });
@@ -99,7 +98,6 @@ function TotpAppInner() {
       setAccounts((s) => s.filter((a) => a.id !== id));
       try {
         await adapter.remove(id);
-        loadAccounts();
       } catch {
         setAccounts(prev);
         toastManager.add({ title: "Failed to delete account." });
