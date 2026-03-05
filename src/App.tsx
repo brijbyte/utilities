@@ -8,6 +8,7 @@ import { HomePage } from "./shell/HomePage";
 import { ThemeProvider } from "./theme";
 import { toastManager } from "./utils/toastManager";
 import { GlobalToasts } from "./components/Toasts";
+import { PwaRouteRestore } from "./PwaRouteRestore";
 
 function Toaster() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
     <RegistryProvider plugins={plugins}>
       <Toast.Provider toastManager={toastManager}>
         <ThemeProvider>
+          <PwaRouteRestore />
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/a/:id" element={<AppPage />} />
