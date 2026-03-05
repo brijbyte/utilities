@@ -17,6 +17,59 @@ async function prerender() {
     "utf-8",
   );
 
+  // Load plugins to generate dynamic metadata
+  const { plugins } = await vite.ssrLoadModule("./src/plugins/index.tsx");
+
+  const toolNames = plugins
+    .filter((p) => p.id !== "pipeline")
+    .map((p) => p.name);
+  const toolList = toolNames.join(", ");
+
+  const description =
+    `Free, open-source developer tools that run entirely in your browser. ` +
+    `Completely offline, no server, no data ever leaves your device. ` +
+    `Privacy-first — zero tracking, zero analytics. ` +
+    `Includes: ${toolList}. ` +
+    `No install, no signup, works offline.`;
+
+  const allKeywords = [
+    "developer tools",
+    "browser tools",
+    "offline tools",
+    "privacy first",
+    "no tracking",
+    "client-side",
+    "open source",
+    ...plugins.flatMap((p) => p.meta?.keywords ?? []),
+  ];
+  const keywords = [...new Set(allKeywords)].join(", ");
+
+  const jsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "utilities",
+    url: "https://utilities.brijbyte.com/",
+    description,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Any",
+    browserRequirements: "Requires a modern browser with JavaScript enabled",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    featureList: toolNames,
+    author: {
+      "@type": "Person",
+      name: "brijbyte",
+    },
+  });
+
+  // Replace meta placeholders
+  template = template.replaceAll("<!--meta:description-->", description);
+  template = template.replaceAll("<!--meta:keywords-->", keywords);
+  template = template.replace("<!--meta:jsonld-->", jsonLd);
+
   // Load the SSR module
   const { render } = await vite.ssrLoadModule("./src/entry-server.tsx");
 

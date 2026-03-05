@@ -62,9 +62,15 @@ export const plugins: Plugin[] = [
     name: "URL Encoder/Decoder",
     icon: <Link size={24} />,
     meta: {
-      description:
-        "Encode and decode URL components with full UTF-8 support",
-      keywords: ["url", "encode", "decode", "percent", "uri", "encodeURIComponent"],
+      description: "Encode and decode URL components with full UTF-8 support",
+      keywords: [
+        "url",
+        "encode",
+        "decode",
+        "percent",
+        "uri",
+        "encodeURIComponent",
+      ],
     },
     load: () => import("./url-encoder/App"),
     skeleton: () => <TwoPanelSkeleton />,
