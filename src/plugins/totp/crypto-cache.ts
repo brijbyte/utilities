@@ -101,7 +101,7 @@ async function decrypt(
   cipher: ArrayBuffer,
 ): Promise<TotpAccount[]> {
   const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv as Uint8Array<ArrayBuffer> },
     key,
     cipher,
   );

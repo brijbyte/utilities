@@ -1,9 +1,10 @@
-const CACHE_NAME = "utilities-v1";
+const VERSION = "__SW_VERSION__";
+const CACHE_NAME = `utilities-${VERSION}`;
 
 // Static assets to precache (shell)
 const PRECACHE = ["/", "/manifest.webmanifest", "/icon.svg"];
 
-// Install: precache shell
+// Install: precache shell, skip waiting to activate immediately
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)),
@@ -11,7 +12,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: clean old caches, claim clients
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
@@ -76,4 +77,11 @@ self.addEventListener("fetch", (event) => {
       return cached || fetchPromise;
     }),
   );
+});
+
+// Listen for messages from the app
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });

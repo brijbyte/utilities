@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node prerender.js",
+    "build": "tsc -b && vite build && node inject-sw-version.js && node prerender.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy": "pnpm build && wrangler pages deploy",
