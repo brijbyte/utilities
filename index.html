@@ -67,28 +67,47 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ("serviceWorker" in navigator) {
+        var waitingWorker = null;
+
         navigator.serviceWorker.register("/sw.js").then(function (reg) {
-          // Check for updates periodically (every 60s)
           setInterval(function () {
             reg.update();
           }, 60000);
 
           reg.addEventListener("updatefound", function () {
-            var newWorker = reg.installing;
-            if (!newWorker) return;
-            newWorker.addEventListener("statechange", function () {
+            var nw = reg.installing;
+            if (!nw) return;
+            nw.addEventListener("statechange", function () {
               if (
-                newWorker.state === "installed" &&
+                nw.state === "installed" &&
                 navigator.serviceWorker.controller
               ) {
-                // New version available — activate it and reload
-                newWorker.postMessage("SKIP_WAITING");
+                waitingWorker = nw;
+                showUpdateBanner();
               }
             });
           });
         });
 
-        // Reload when the new SW takes over
+        function showUpdateBanner() {
+          if (document.getElementById("sw-update")) return;
+          var b = document.createElement("div");
+          b.id = "sw-update";
+          b.style.cssText =
+            "position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#1c1917;color:#f5f5f4;padding:12px 20px;border-radius:12px;font-size:14px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 24px rgba(0,0,0,.3);font-family:system-ui,sans-serif";
+          b.innerHTML =
+            "<span>New version available</span>" +
+            '<button id="sw-reload" style="background:#e7e5e4;color:#1c1917;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">Reload</button>' +
+            '<button id="sw-dismiss" style="background:none;border:none;color:#a8a29e;cursor:pointer;font-size:18px;line-height:1;padding:0 2px">\u2715</button>';
+          document.body.appendChild(b);
+          document.getElementById("sw-reload").onclick = function () {
+            if (waitingWorker) waitingWorker.postMessage("SKIP_WAITING");
+          };
+          document.getElementById("sw-dismiss").onclick = function () {
+            b.remove();
+          };
+        }
+
         var refreshing = false;
         navigator.serviceWorker.addEventListener(
           "controllerchange",
