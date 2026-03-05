@@ -148,14 +148,11 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       // Prevent stale background sync from overwriting state
       bgSyncRef.current = null;
 
-      // Read from cache (works offline too) and restore to local IDB
-      const cached = await readCache();
-      for (const acc of cached) {
-        await indexedDBAdapter.add(acc);
-      }
-
       // Destroy encrypted cache and key
       await destroyCache();
+
+      // Clear local IDB data (data lives in Google Drive)
+      await indexedDBAdapter.clear!();
 
       googleLogout();
       setToken(null);
