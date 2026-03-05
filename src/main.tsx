@@ -3,10 +3,20 @@ import { createRoot, hydrateRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 
 import App from "./App";
+import { getPersistedRoute, isPwa } from "./pwa";
 
 import "./index.css";
 
 const root = document.getElementById("root")!;
+
+// In PWA mode on "/", restore the last visited route
+const initialPath = window.location.pathname;
+if (isPwa && initialPath === "/") {
+  const saved = getPersistedRoute();
+  if (saved && saved !== "/") {
+    window.history.replaceState(null, "", saved);
+  }
+}
 
 const app = (
   <StrictMode>

@@ -1,7 +1,7 @@
 {
-  "name": "utilities",
+  "name": "utilities by BrijByte",
   "short_name": "utilities",
-  "description": "Developer tools in the browser",
+  "description": "Developer tools in the browser, completely offline and secure.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f5f4",
