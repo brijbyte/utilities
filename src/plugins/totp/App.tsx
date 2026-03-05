@@ -39,6 +39,8 @@ function TotpAppInner() {
 
   useEffect(() => {
     void loadAccounts();
+    const interval = setInterval(loadAccounts, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [loadAccounts]);
 
   useEffect(() => {
