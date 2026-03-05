@@ -1,6 +1,7 @@
-import { Braces, Binary, Hash, Workflow, Link, KeyRound } from "lucide-react";
+import { Braces, Binary, Hash, Workflow, Link, KeyRound, ShieldCheck } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
+import { TotpAppSkeleton } from "./totp/Skeleton";
 import { operations as jsonOps } from "./json-formatter/operations";
 import { operations as base64Ops } from "./base64/operations";
 import { operations as hashOps } from "./hash-generator/operations";
@@ -88,5 +89,17 @@ export const plugins: Plugin[] = [
     load: () => import("./jwt-decoder/App"),
     skeleton: () => <TwoPanelSkeleton />,
     operations: jwtOps,
+  },
+  {
+    id: "totp-authenticator",
+    name: "Authenticator",
+    icon: <ShieldCheck size={24} />,
+    meta: {
+      description:
+        "Generate Time-Based One-Time Passwords (TOTP) securely offline",
+      keywords: ["totp", "otp", "authenticator", "2fa", "mfa", "security"],
+    },
+    load: () => import("./totp/App"),
+    skeleton: () => <TotpAppSkeleton />,
   },
 ];

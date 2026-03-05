@@ -99,7 +99,7 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
         }
       }
     })();
-  }, [file, signal, semaphore]);
+  }, [file, signal, semaphore, onFileComplete]);
 
   return (
     <div className="border-b border-border last:border-b-0">

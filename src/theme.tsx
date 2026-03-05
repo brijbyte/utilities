@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useContext,
@@ -79,6 +80,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // apply on mount
   useEffect(() => {
     applyTheme(getResolvedTheme(theme));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <Ctx value={{ theme, resolved, setTheme }}>{children}</Ctx>;

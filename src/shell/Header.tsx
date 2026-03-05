@@ -41,7 +41,7 @@ export function Header() {
           </Popover.Portal>
         </Popover.Root>
 
-        <span>
+        <span className="flex gap-1">
           <Link
             to="/"
             className="text-xs text-text-muted hover:text-text transition-colors no-underline"
@@ -49,14 +49,14 @@ export function Header() {
             home
           </Link>
           <span className="text-xs">&nbsp;/</span>
+          {plugin && (
+            <span className="flex items-center gap-sm text-xs text-text-muted">
+              &nbsp;
+              <span className="text-text [&>svg]:size-3.5">{plugin.icon}</span>
+              <span className="text-text">{plugin.name}</span>
+            </span>
+          )}
         </span>
-
-        {plugin && (
-          <span className="flex items-center gap-sm text-xs text-text-muted">
-            <span className="text-text [&>svg]:size-3.5">{plugin.icon}</span>
-            <span className="text-text">{plugin.name}</span>
-          </span>
-        )}
       </div>
 
       <ThemeSwitcher />

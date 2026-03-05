@@ -256,6 +256,7 @@ export default function JwtDecoder() {
   const prevEntryCount = useRef(0);
   useEffect(() => {
     if (entries.length !== prevEntryCount.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpenItems(entries.map((e) => String(e.line)));
       prevEntryCount.current = entries.length;
     }
@@ -409,7 +410,7 @@ export default function JwtDecoder() {
                       >
                         <ChevronRight
                           size={10}
-                          className="text-text-muted transition-transform duration-150 group-data-[panel-open]:rotate-90"
+                          className="text-text-muted transition-transform duration-150 group-data-panel-open:rotate-90"
                         />
                         <span
                           className={`text-[10px] uppercase tracking-widest flex-1 ${
