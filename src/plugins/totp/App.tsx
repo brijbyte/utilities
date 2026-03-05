@@ -24,7 +24,7 @@ function TotpAppInner() {
     "initial",
   );
   const toastManager = Toast.useToastManager();
-  const { adapter } = useStorage();
+  const { adapter, adapterVersion } = useStorage();
   const bgSyncRef = useContext(BgSyncContext);
 
   const loadAccounts = useCallback(async () => {
@@ -34,7 +34,8 @@ function TotpAppInner() {
     } finally {
       setSyncState("idle");
     }
-  }, [adapter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adapter, adapterVersion]);
 
   useEffect(() => {
     void loadAccounts();

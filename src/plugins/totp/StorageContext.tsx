@@ -28,6 +28,8 @@ import type { TotpAccount } from "./db";
 
 export interface StorageContextValue {
   adapter: StorageAdapter;
+  /** Increments on link/unlink to signal consumers to re-fetch. */
+  adapterVersion: number;
   isGoogleLinked: boolean;
   googleLoading: boolean;
   googleUser: string | null;
@@ -40,6 +42,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const [isLinked, setIsLinked] = useState(isGoogleSyncEnabled);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<string | null>(getStoredUser);
+  const [adapterVersion, setAdapterVersion] = useState(0);
 
   // Ref for background sync callback — avoids stale closure in adapter
   const bgSyncRef = useRef<((accounts: TotpAccount[]) => void) | null>(null);
@@ -133,6 +136,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setGoogleSyncEnabled(true);
       setIsLinked(true);
       setUser(getStoredUser());
+      setAdapterVersion((v) => v + 1);
     } finally {
       setLoading(false);
     }
@@ -141,6 +145,9 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const unlinkGoogle = useCallback(async () => {
     setLoading(true);
     try {
+      // Prevent stale background sync from overwriting state
+      bgSyncRef.current = null;
+
       // Read from cache (works offline too) and restore to local IDB
       const cached = await readCache();
       for (const acc of cached) {
@@ -154,6 +161,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setToken(null);
       setUser(null);
       setIsLinked(false);
+      setAdapterVersion((v) => v + 1);
     } finally {
       setLoading(false);
     }
@@ -162,13 +170,22 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StorageContextValue>(
     () => ({
       adapter,
+      adapterVersion,
       isGoogleLinked: isLinked,
       googleLoading: loading,
       googleUser: user,
       linkGoogle,
       unlinkGoogle,
     }),
-    [adapter, isLinked, loading, user, linkGoogle, unlinkGoogle],
+    [
+      adapter,
+      adapterVersion,
+      isLinked,
+      loading,
+      user,
+      linkGoogle,
+      unlinkGoogle,
+    ],
   );
 
   return (
