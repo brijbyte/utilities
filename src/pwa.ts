@@ -7,9 +7,10 @@
 const PWA_ROUTE_KEY = "pwa-last-route";
 
 export const isPwa =
-  window.matchMedia("(display-mode: standalone)").matches ||
-  ("standalone" in navigator &&
-    (navigator as { standalone?: boolean }).standalone === true);
+  typeof window !== "undefined" &&
+  (window.matchMedia("(display-mode: standalone)").matches ||
+    ("standalone" in navigator &&
+      (navigator as { standalone?: boolean }).standalone === true));
 
 /** Save current path to localStorage (call on route changes). */
 export function persistRoute(path: string) {
