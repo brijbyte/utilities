@@ -53,12 +53,8 @@ export function createCachedDriveAdapter(
       else cached.push(account);
       await writeCache(cached);
 
-      // Persist to Drive
+      // Persist to Drive (no re-sync — caller triggers getAll which syncs)
       await drive.add(account);
-
-      // Re-sync to pick up any Drive-side state
-      const remote = await syncFromDrive();
-      if (remote && onBackgroundSync) onBackgroundSync(remote);
     },
 
     async remove(id) {
@@ -66,12 +62,8 @@ export function createCachedDriveAdapter(
       const cached = await readCache();
       await writeCache(cached.filter((a) => a.id !== id));
 
-      // Persist to Drive
+      // Persist to Drive (no re-sync — caller triggers getAll which syncs)
       await drive.remove(id);
-
-      // Re-sync
-      const remote = await syncFromDrive();
-      if (remote && onBackgroundSync) onBackgroundSync(remote);
     },
   };
 }
