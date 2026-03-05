@@ -10,6 +10,22 @@ async function prerender() {
   const { createServer } = await import("vite");
   const vite = await createServer({
     appType: "custom",
+    plugins: [
+      {
+        name: "ignore-css",
+        enforce: "pre",
+        resolveId(id) {
+          if (id.endsWith(".css")) {
+            return "\0empty-css";
+          }
+        },
+        load(id) {
+          if (id === "\0empty-css") {
+            return "";
+          }
+        },
+      },
+    ],
   });
 
   let template = await fs.readFile(
