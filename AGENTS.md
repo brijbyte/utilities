@@ -37,7 +37,7 @@ src/
       App.tsx               Main component. Text input + multi-file/folder drop. Web Worker hashing. Concurrency limit of 5.
       hash-worker.js        Web Worker for crypto.subtle.digest. Posts individual results as each algorithm completes.
 
-  prerender.ts              SSG script. Builds SSR bundle, renders "/" to string, injects into dist/index.html.
+  prerender.js              SSG script. Builds SSR bundle, renders "/" to string, injects into dist/index.html.
 ```
 
 ## Key Architecture Decisions

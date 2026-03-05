@@ -1,39 +1,48 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
 import { Plus, Camera, Image as ImageIcon, X } from "lucide-react";
 import { Button } from "../../components/Button";
-import {
-  getAllAccounts,
-  addAccount,
-  deleteAccount,
-  type TotpAccount,
-} from "./db";
+import type { TotpAccount } from "./db";
 import { parseOtpAuthUri } from "./qr";
 import jsQR from "jsqr";
 import { AccountItem } from "./AccountItem";
 import { Scanner } from "./Scanner";
+import { StorageProvider } from "./StorageContext";
+import { useStorage } from "./useStorage";
+import { GoogleSyncButton } from "./GoogleSyncButton";
+import { TotpGridSkeleton } from "./Skeleton";
 
 export default function TotpApp() {
+  return (
+    <StorageProvider>
+      <TotpAppInner />
+    </StorageProvider>
+  );
+}
+
+function TotpAppInner() {
   const [accounts, setAccounts] = useState<TotpAccount[]>([]);
   const [isScanning, setIsScanning] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [syncState, setSyncState] = useState<"initial" | "syncing" | "idle">("initial");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toastManager = Toast.useToastManager();
+  const { adapter } = useStorage();
 
-  async function loadAccounts() {
+  const loadAccounts = useCallback(async () => {
+    setSyncState((s) => (s === "idle" ? "syncing" : s));
     try {
-      const accs = await getAllAccounts();
+      const accs = await adapter.getAll();
       setAccounts(accs);
     } finally {
-      setLoading(false);
+      setSyncState("idle");
     }
-  }
+  }, [adapter]);
 
   useEffect(() => {
     void loadAccounts();
-  }, []);
+  }, [loadAccounts]);
 
   async function handleAddFromUri(uri: string) {
     const parsed = parseOtpAuthUri(uri);
@@ -66,9 +75,16 @@ export default function TotpApp() {
       createdAt: Date.now(),
     };
 
-    await addAccount(account);
-    loadAccounts();
+    const prev = accounts;
+    setAccounts((s) => [...s, account]);
     setIsScanning(false);
+    try {
+      await adapter.add(account);
+      loadAccounts();
+    } catch {
+      setAccounts(prev);
+      toastManager.add({ title: "Failed to sync new account." });
+    }
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -101,16 +117,23 @@ export default function TotpApp() {
 
   async function handleDelete(id: string) {
     if (confirm("Delete this account?")) {
-      await deleteAccount(id);
-      loadAccounts();
+      const prev = accounts;
+      setAccounts((s) => s.filter((a) => a.id !== id));
+      try {
+        await adapter.remove(id);
+        loadAccounts();
+      } catch {
+        setAccounts(prev);
+        toastManager.add({ title: "Failed to delete account." });
+      }
     }
   }
 
   return (
     <div className="h-full flex flex-col">
-      <Toolbar.Root className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
-        <span className="text-xs text-text-muted">TOTP Authenticator</span>
-        <Toolbar.Group className="ml-auto flex items-center gap-tb">
+      <Toolbar.Root className="flex flex-wrap items-center gap-x-tb gap-y-xs px-tb-x py-tb-y border-b border-border bg-bg-surface">
+        <GoogleSyncButton syncing={syncState === "syncing"} />
+        <Toolbar.Group className="ml-auto flex items-center gap-tb shrink-0">
           <input
             type="file"
             accept="image/*"
@@ -163,7 +186,7 @@ export default function TotpApp() {
       </Dialog.Root>
 
       <div className="flex-1 p-pn-y px-pn-x overflow-auto flex flex-col gap-md mx-auto w-full">
-        {loading ? null : accounts.length === 0 ? (
+        {syncState === "initial" ? <TotpGridSkeleton /> : accounts.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-text-muted gap-md">
             <Plus size={48} className="opacity-20" />
             <p>No accounts added yet.</p>
