@@ -338,7 +338,7 @@ export default function JwtDecoder() {
       <div className="flex-1 flex min-h-0">
         {/* Left: input */}
         <div className="flex-1 flex flex-col min-w-0 border-r border-border">
-          <div className="flex items-center gap-sm px-pn-x py-pn-lbl bg-bg-surface border-b border-border-muted">
+          <div className="flex items-center gap-sm px-pn-x py-pn-lbl bg-bg-surface border-b border-border-muted min-h-[32px]">
             <span className="text-[10px] uppercase tracking-widest text-text-muted">
               tokens — one per line
             </span>
@@ -372,7 +372,7 @@ export default function JwtDecoder() {
 
         {/* Right: decoded */}
         <div className="flex-1 flex flex-col min-w-0 overflow-auto">
-          <div className="px-pn-x py-pn-lbl bg-bg-surface border-b border-border-muted">
+          <div className="flex items-center px-pn-x py-pn-lbl bg-bg-surface border-b border-border-muted min-h-[32px]">
             <span className="text-[10px] uppercase tracking-widest text-text-muted">
               decoded
             </span>
