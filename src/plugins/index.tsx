@@ -1,4 +1,12 @@
-import { Braces, Binary, Hash, Workflow, Link, KeyRound, ShieldCheck } from "lucide-react";
+import {
+  Braces,
+  Binary,
+  Hash,
+  Workflow,
+  Link,
+  KeyRound,
+  ShieldCheck,
+} from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
 import { TotpAppSkeleton } from "./totp/Skeleton";

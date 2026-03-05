@@ -8,13 +8,13 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
-import {
-  type StorageAdapter,
-  indexedDBAdapter,
-  createGoogleDriveAdapter,
-} from "./storage";
+import { type StorageAdapter, indexedDBAdapter } from "./storage";
+import { createCachedDriveAdapter } from "./cached-drive-adapter";
+import { readCache, writeCache, destroyCache } from "./crypto-cache";
+import { mergeAccounts } from "./merge";
 import {
   getStoredToken,
   getStoredUser,
@@ -23,6 +23,8 @@ import {
   isGoogleSyncEnabled,
   setGoogleSyncEnabled,
 } from "./google-auth";
+import { StorageCtx, BgSyncContext } from "./storage-ctx";
+import type { TotpAccount } from "./db";
 
 export interface StorageContextValue {
   adapter: StorageAdapter;
@@ -33,13 +35,14 @@ export interface StorageContextValue {
   unlinkGoogle: () => Promise<void>;
 }
 
-import { StorageCtx } from "./storage-ctx";
-
 export function StorageProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLinked, setIsLinked] = useState(isGoogleSyncEnabled);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<string | null>(getStoredUser);
+
+  // Ref for background sync callback — avoids stale closure in adapter
+  const bgSyncRef = useRef<((accounts: TotpAccount[]) => void) | null>(null);
 
   // On mount, if sync enabled, try to restore token silently
   useEffect(() => {
@@ -52,14 +55,37 @@ export function StorageProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const driveAdapter = useMemo(
+  const cachedDriveAdapter = useMemo(
     () =>
-      createGoogleDriveAdapter(() => token ?? getStoredToken()),
+      createCachedDriveAdapter(
+        () => token ?? getStoredToken(),
+        (accounts) => bgSyncRef.current?.(accounts),
+      ),
     [token],
   );
 
-  const adapter: StorageAdapter =
-    isLinked && (token || getStoredToken()) ? driveAdapter : indexedDBAdapter;
+  const hasToken = !!(token || getStoredToken());
+  const adapter: StorageAdapter = useMemo(() => {
+    if (!isLinked) return indexedDBAdapter;
+    if (hasToken) return cachedDriveAdapter;
+    // Offline — no token but sync enabled: read/write encrypted cache only
+    return {
+      async getAll() {
+        return readCache();
+      },
+      async add(account) {
+        const cached = await readCache();
+        const idx = cached.findIndex((a) => a.id === account.id);
+        if (idx >= 0) cached[idx] = account;
+        else cached.push(account);
+        await writeCache(cached);
+      },
+      async remove(id) {
+        const cached = await readCache();
+        await writeCache(cached.filter((a) => a.id !== id));
+      },
+    };
+  }, [isLinked, hasToken, cachedDriveAdapter]);
 
   const ensureToken = useCallback(async (): Promise<string> => {
     const existing = getStoredToken();
@@ -75,28 +101,34 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const linkGoogle = useCallback(async () => {
     setLoading(true);
     try {
-      await ensureToken();
+      const t = await ensureToken();
 
-      // Migrate local data to Drive
+      // Collect local accounts before clearing
       const localAccounts = await indexedDBAdapter.getAll();
-      if (localAccounts.length > 0) {
-        const tempAdapter = createGoogleDriveAdapter(() => getStoredToken());
-        const remoteAccounts = await tempAdapter.getAll();
-        const remoteIds = new Set(remoteAccounts.map((a) => a.id));
 
-        for (const acc of localAccounts) {
-          if (!remoteIds.has(acc.id)) {
-            // Merge: add each missing account individually to avoid overwriting
-            remoteAccounts.push(acc);
-          }
+      // Fetch remote accounts from Drive
+      const { createGoogleDriveAdapter } = await import("./storage");
+      const tempDrive = createGoogleDriveAdapter(() => t);
+      const remoteAccounts = await tempDrive.getAll();
+
+      // Merge: dedupe by (issuer + label + secret), prefer remote for conflicts
+      const merged = mergeAccounts(remoteAccounts, localAccounts);
+
+      // Write merged set to Drive
+      // We need to do a full write — use the raw Drive functions via the adapter
+      // Clear and rewrite: remove all then add merged
+      if (merged.length > 0) {
+        // Write all at once — clear remote first if it existed, then write merged
+        for (const acc of merged) {
+          await tempDrive.add(acc);
         }
-        // Write merged set
-        for (const acc of remoteAccounts) {
-          await tempAdapter.add(acc);
-        }
-        // Clear local
-        await indexedDBAdapter.clear!();
       }
+
+      // Encrypt and cache locally
+      await writeCache(merged);
+
+      // Clear plaintext local data
+      await indexedDBAdapter.clear!();
 
       setGoogleSyncEnabled(true);
       setIsLinked(true);
@@ -109,20 +141,15 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const unlinkGoogle = useCallback(async () => {
     setLoading(true);
     try {
-      // Migrate Drive data back to local
-      if (token || getStoredToken()) {
-        try {
-          const tempAdapter = createGoogleDriveAdapter(
-            () => token ?? getStoredToken(),
-          );
-          const remoteAccounts = await tempAdapter.getAll();
-          for (const acc of remoteAccounts) {
-            await indexedDBAdapter.add(acc);
-          }
-        } catch {
-          // If we can't read from Drive, just proceed with unlink
-        }
+      // Read from cache (works offline too) and restore to local IDB
+      const cached = await readCache();
+      for (const acc of cached) {
+        await indexedDBAdapter.add(acc);
       }
+
+      // Destroy encrypted cache and key
+      await destroyCache();
+
       googleLogout();
       setToken(null);
       setUser(null);
@@ -130,7 +157,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   const value = useMemo<StorageContextValue>(
     () => ({
@@ -144,5 +171,9 @@ export function StorageProvider({ children }: { children: ReactNode }) {
     [adapter, isLinked, loading, user, linkGoogle, unlinkGoogle],
   );
 
-  return <StorageCtx value={value}>{children}</StorageCtx>;
+  return (
+    <BgSyncContext.Provider value={bgSyncRef}>
+      <StorageCtx value={value}>{children}</StorageCtx>
+    </BgSyncContext.Provider>
+  );
 }

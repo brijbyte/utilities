@@ -48,10 +48,9 @@ async function findFile(token: string): Promise<string | null> {
     q: `name='${DRIVE_FILE_NAME}'`,
     fields: "files(id)",
   });
-  const res = await fetch(
-    `${DRIVE_API}drive/v3/files?${params}`,
-    { headers: await driveHeaders(token) },
-  );
+  const res = await fetch(`${DRIVE_API}drive/v3/files?${params}`, {
+    headers: await driveHeaders(token),
+  });
   if (!res.ok) throw new Error(`Drive list failed: ${res.status}`);
   const data = await res.json();
   return data.files?.[0]?.id ?? null;
@@ -61,10 +60,9 @@ async function findFile(token: string): Promise<string | null> {
 async function driveRead(token: string): Promise<TotpAccount[]> {
   const fileId = await findFile(token);
   if (!fileId) return [];
-  const res = await fetch(
-    `${DRIVE_API}drive/v3/files/${fileId}?alt=media`,
-    { headers: await driveHeaders(token) },
-  );
+  const res = await fetch(`${DRIVE_API}drive/v3/files/${fileId}?alt=media`, {
+    headers: await driveHeaders(token),
+  });
   if (!res.ok) throw new Error(`Drive read failed: ${res.status}`);
   return res.json();
 }

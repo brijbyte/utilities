@@ -68,10 +68,9 @@ export function setGoogleSyncEnabled(v: boolean) {
 /** Fetch and cache the user's email. */
 async function fetchAndStoreUser(token: string): Promise<string | null> {
   try {
-    const res = await fetch(
-      "https://www.googleapis.com/oauth2/v2/userinfo",
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
+    const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (!res.ok) return null;
     const data = await res.json();
     const email: string = data.email ?? null;

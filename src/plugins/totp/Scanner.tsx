@@ -16,13 +16,15 @@ export function Scanner({ onScan }: ScannerProps) {
   useEffect(() => {
     async function getDevices() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
         const allDevices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = allDevices.filter(d => d.kind === "videoinput");
+        const videoDevices = allDevices.filter((d) => d.kind === "videoinput");
         setDevices(videoDevices);
-        
+
         // Stop the initial prompt stream immediately
-        stream.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach((t) => t.stop());
       } catch {
         // Ignored, fallback to generic constraint
       }
@@ -39,13 +41,13 @@ export function Scanner({ onScan }: ScannerProps) {
       try {
         setError(null);
         const constraints: MediaStreamConstraints = {
-          video: selectedDeviceId 
+          video: selectedDeviceId
             ? { deviceId: { exact: selectedDeviceId } }
-            : { facingMode: "environment" }
+            : { facingMode: "environment" },
         };
-        
+
         stream = await navigator.mediaDevices.getUserMedia(constraints);
-        
+
         // Extract label from the actual selected track
         if (stream.getVideoTracks().length > 0) {
           const track = stream.getVideoTracks()[0];
@@ -66,8 +68,11 @@ export function Scanner({ onScan }: ScannerProps) {
 
     function scan() {
       if (!isMounted) return;
-      
-      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+
+      if (
+        videoRef.current &&
+        videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA
+      ) {
         const canvas = document.createElement("canvas");
         canvas.width = videoRef.current.videoWidth;
         canvas.height = videoRef.current.videoHeight;
@@ -91,7 +96,7 @@ export function Scanner({ onScan }: ScannerProps) {
       isMounted = false;
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       if (stream) {
-        stream.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach((t) => t.stop());
       }
     };
   }, [onScan, selectedDeviceId]);
@@ -112,15 +117,21 @@ export function Scanner({ onScan }: ScannerProps) {
           ))}
         </select>
       )}
-      
+
       <div className="rounded-xl overflow-hidden bg-black aspect-video relative w-full shrink-0 min-h-[240px] flex items-center justify-center">
         {error ? (
           <p className="text-text-muted text-sm text-center px-4">{error}</p>
         ) : (
           <>
-            <video ref={videoRef} className="w-full h-full object-cover absolute inset-0" playsInline muted autoPlay />
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover absolute inset-0"
+              playsInline
+              muted
+              autoPlay
+            />
             <div className="absolute inset-0 border-2 border-accent m-8 rounded-xl opacity-50 pointer-events-none" />
-            
+
             {currentDeviceLabel && (
               <div className="absolute top-2 left-2 right-2 flex justify-center pointer-events-none">
                 <div className="bg-black/60 text-white text-[10px] px-sm py-0.5 rounded-full backdrop-blur-sm max-w-[80%] truncate">

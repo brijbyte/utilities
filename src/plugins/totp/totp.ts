@@ -27,11 +27,11 @@ export async function generateTotp(
   algorithm: "SHA-1" | "SHA-256" | "SHA-512" = "SHA-1",
   digits: number = 6,
   period: number = 30,
-  time: number = Date.now()
+  time: number = Date.now(),
 ): Promise<string> {
   const secretBytes = decodeBase32(secretBase32);
   let counter = Math.floor(time / 1000 / period);
-  
+
   // Convert counter to 8-byte buffer (big-endian)
   const counterBytes = new Uint8Array(8);
   for (let i = 7; i >= 0; i--) {
@@ -45,7 +45,7 @@ export async function generateTotp(
     secretBytes.buffer as ArrayBuffer,
     { name: "HMAC", hash: algorithm },
     false,
-    ["sign"]
+    ["sign"],
   );
 
   // Sign counter
