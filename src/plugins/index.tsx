@@ -1,9 +1,10 @@
-import { Braces, Binary, Hash, Workflow } from "lucide-react";
+import { Braces, Binary, Hash, Workflow, Link } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
 import { operations as jsonOps } from "./json-formatter/operations";
 import { operations as base64Ops } from "./base64/operations";
 import { operations as hashOps } from "./hash-generator/operations";
+import { operations as urlOps } from "./url-encoder/operations";
 
 export const plugins: Plugin[] = [
   {
@@ -54,5 +55,18 @@ export const plugins: Plugin[] = [
     load: () => import("./hash-generator/App"),
     skeleton: () => <TwoPanelSkeleton />,
     operations: hashOps,
+  },
+  {
+    id: "url-encoder",
+    name: "URL Encoder/Decoder",
+    icon: <Link size={24} />,
+    meta: {
+      description:
+        "Encode and decode URL components with full UTF-8 support",
+      keywords: ["url", "encode", "decode", "percent", "uri", "encodeURIComponent"],
+    },
+    load: () => import("./url-encoder/App"),
+    skeleton: () => <TwoPanelSkeleton />,
+    operations: urlOps,
   },
 ];
