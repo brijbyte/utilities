@@ -112,7 +112,7 @@ export function AccountItem({ account, onDelete }: AccountItemProps) {
 
       <Button
         variant="ghost"
-        className="opacity-0 group-hover:opacity-100 text-danger shrink-0 transition-opacity"
+        className="sm:opacity-0 sm:group-hover:opacity-100 text-danger shrink-0 transition-opacity"
         onClick={(e) => {
           e.stopPropagation();
           onDelete(account.id);
