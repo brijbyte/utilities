@@ -32,7 +32,6 @@ export function GoogleSyncButton() {
     isGoogleLinked,
     isGoogleAuthenticated,
     googleLoading,
-    googleUser,
     linkGoogle,
     syncNow,
     syncing,
@@ -58,12 +57,8 @@ export function GoogleSyncButton() {
         ) : (
           <CloudOff size={14} className="text-text-muted" />
         )}
-        <span className="text-xs text-text-muted truncate max-w-24 sm:max-w-32">
-          {syncing
-            ? "Syncing…"
-            : isGoogleAuthenticated
-              ? (googleUser ?? "Synced")
-              : "Offline"}
+        <span className="text-xs text-text-muted">
+          {syncing ? "Syncing…" : isGoogleAuthenticated ? "Synced" : "Offline"}
         </span>
         {!isGoogleAuthenticated ? (
           online && (
