@@ -1,15 +1,16 @@
 import { Toast } from "@base-ui/react/toast";
-import { useCallback, useContext, useEffect, useState, useRef } from "react";
+import { useState } from "react";
 import type { TotpAccount } from "./db";
 import { parseUri, decodeQrFromImage, isImportError } from "./qr-import";
-import { BgSyncContext } from "./storage-ctx";
 import { StorageProvider } from "./StorageContext";
 import { useStorage } from "./useStorage";
 import { TotpToolbar } from "./TotpToolbar";
 import { ScanDialog } from "./ScanDialog";
 import { AccountList } from "./AccountList";
-
-const SYNC_INTERVAL = 5 * 60_000; // 5 minutes
+import { SetupScreen } from "./SetupScreen";
+import { LockScreen } from "./LockScreen";
+import { SettingsDialog } from "./SettingsDialog";
+import { TotpGridSkeleton } from "./Skeleton";
 
 export default function TotpApp() {
   return (
@@ -20,56 +21,45 @@ export default function TotpApp() {
 }
 
 function TotpAppInner() {
-  const [accounts, setAccounts] = useState<TotpAccount[]>([]);
   const [isScanning, setIsScanning] = useState(false);
-  const [syncState, setSyncState] = useState<"initial" | "syncing" | "idle">(
-    "initial",
-  );
+  const [showSettings, setShowSettings] = useState(false);
   const toastManager = Toast.useToastManager();
-  const { adapter, adapterVersion } = useStorage();
-  const bgSyncRef = useContext(BgSyncContext);
+  const { vaultState, accounts, addAccount, removeAccount } = useStorage();
 
-  const nextSyncRef = useRef(0);
+  // ── State-based rendering ────────────────────────────────────────
 
-  const loadAccounts = useCallback(async () => {
-    setSyncState((s) => (s === "idle" ? "syncing" : s));
-    try {
-      setAccounts(await adapter.getAll());
-    } finally {
-      setSyncState("idle");
-    }
-    nextSyncRef.current = Date.now() + SYNC_INTERVAL;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adapter, adapterVersion]);
-
-  useEffect(() => {
-    void loadAccounts();
-    const interval = setInterval(() => {
-      if (Date.now() >= nextSyncRef.current) {
-        loadAccounts();
-      }
-    }, SYNC_INTERVAL);
-    return () => clearInterval(interval);
-  }, [loadAccounts]);
-
-  useEffect(() => {
-    bgSyncRef.current = (synced) => setAccounts(synced);
-    return () => {
-      bgSyncRef.current = null;
-    };
-  }, [bgSyncRef]);
-
-  async function addAccount(account: TotpAccount) {
-    const prev = accounts;
-    setAccounts((s) => [...s, account]);
-    try {
-      await adapter.add(account);
-      nextSyncRef.current = Date.now() + SYNC_INTERVAL;
-    } catch {
-      setAccounts(prev);
-      toastManager.add({ title: "Failed to sync new account." });
-    }
+  if (vaultState === "loading") {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
+          <div className="w-24 h-4 bg-bg-hover animate-pulse" />
+          <div className="ml-auto flex gap-tb">
+            <div className="w-16 h-6 bg-bg-hover animate-pulse" />
+            <div className="w-20 h-6 bg-bg-hover animate-pulse" />
+          </div>
+        </div>
+        <TotpGridSkeleton />
+      </div>
+    );
   }
+
+  if (vaultState === "fresh") {
+    return (
+      <div className="h-full flex flex-col">
+        <SetupScreen />
+      </div>
+    );
+  }
+
+  if (vaultState === "locked") {
+    return (
+      <div className="h-full flex flex-col">
+        <LockScreen />
+      </div>
+    );
+  }
+
+  // ── Unlocked state ───────────────────────────────────────────────
 
   async function handleScan(uri: string) {
     const result = parseUri(uri);
@@ -79,7 +69,7 @@ function TotpAppInner() {
     }
     const { account } = result;
     const exists = accounts.some(
-      (a) =>
+      (a: TotpAccount) =>
         a.secret === account.secret &&
         a.issuer === account.issuer &&
         a.label === account.label,
@@ -106,37 +96,25 @@ function TotpAppInner() {
 
   async function handleDelete(id: string) {
     if (confirm("Delete this account?")) {
-      const prev = accounts;
-      setAccounts((s) => s.filter((a) => a.id !== id));
-      try {
-        await adapter.remove(id);
-        nextSyncRef.current = Date.now() + SYNC_INTERVAL;
-      } catch {
-        setAccounts(prev);
-        toastManager.add({ title: "Failed to delete account." });
-      }
+      await removeAccount(id);
     }
   }
 
   return (
     <div className="h-full flex flex-col">
       <TotpToolbar
-        syncing={syncState === "syncing"}
         onScanClick={() => setIsScanning(true)}
         onFileUpload={handleFileUpload}
-        onRefresh={loadAccounts}
+        onSettingsClick={() => setShowSettings(true)}
       />
       <ScanDialog
         open={isScanning}
         onOpenChange={setIsScanning}
         onScan={handleScan}
       />
+      <SettingsDialog open={showSettings} onOpenChange={setShowSettings} />
       <div className="flex-1 p-pn-y px-pn-x overflow-auto flex flex-col gap-md mx-auto w-full">
-        <AccountList
-          accounts={accounts}
-          syncState={syncState}
-          onDelete={handleDelete}
-        />
+        <AccountList accounts={accounts} onDelete={handleDelete} />
       </div>
     </div>
   );

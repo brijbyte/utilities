@@ -136,6 +136,129 @@ Custom reset styles MUST be in `@layer base` to avoid overriding Tailwind utilit
 - Inline "copied!" feedback with 1.5s timeout on copy actions.
 - Progress bar with shimmer animation during file processing.
 
+### TOTP Authenticator Plugin
+
+Offline-first TOTP authenticator with encrypted storage and optional Google Drive sync.
+
+#### File Structure
+
+```
+plugins/totp/
+  App.tsx               Entry point. Wraps in StorageProvider, renders state-based UI.
+  StorageContext.tsx     Core state machine + React context. Manages vault lifecycle, accounts, sync.
+  storage-ctx.ts        Context object (split out to avoid circular imports).
+  useStorage.ts         Hook to consume StorageContextValue.
+  crypto.ts             Encryption layer. Password → PBKDF2 → MK → AES-256-GCM.
+  biometrics.ts         WebAuthn PRF convenience unlock. Derives wrapping key, NOT root of trust.
+  drive-sync.ts         Google Drive appDataFolder upload/download of encrypted blobs.
+  google-auth.ts        Google Identity Services token management (implicit grant, no backend).
+  google-auth.d.ts      Type declarations for GIS SDK.
+  db.ts                 Legacy plaintext IndexedDB store (migrated on vault creation).
+  totp.ts               TOTP code generation via crypto.subtle HMAC.
+  qr.ts                 OTPAuth URI parser + image QR scanner.
+  qr-import.ts          QR import orchestration (URI parse + image decode).
+  SetupScreen.tsx       First-launch: "Start Fresh" or "Restore from Google Drive".
+  LockScreen.tsx        Password entry + biometric unlock button.
+  SettingsDialog.tsx     Biometric toggle, vault info, lock button.
+  TotpToolbar.tsx       Toolbar: Google sync status, settings, scan/upload buttons.
+  GoogleSyncButton.tsx  Google Drive link/unlink/sync UI.
+  ScanDialog.tsx        Camera QR scanner dialog.
+  Scanner.tsx           Camera access + jsQR frame scanning loop.
+  AccountList.tsx       Grid of account cards (empty state or grid).
+  AccountItem.tsx       Single account: issuer icon, TOTP code, countdown, copy, delete.
+  Skeleton.tsx          Loading skeletons for the TOTP grid and full app.
+```
+
+#### Security Architecture
+
+**Password-first model.** The password is the root of trust. Biometrics is a per-device convenience layer.
+
+```
+Password → PBKDF2 (600k iterations, SHA-256) → Master Key (MK)
+  │
+  ├── MK encrypts/decrypts accounts via AES-256-GCM (random 12-byte IV per write)
+  ├── MK verified via encrypted known-plaintext verifier (not stored raw)
+  └── MK optionally wrapped with biometric PRF key for quick unlock
+```
+
+**Key design decisions:**
+
+- MK is extractable (needed for bio wrapping export) but never persisted in plaintext.
+- MK only lives in JS memory while the vault is unlocked.
+- Password change re-derives MK, re-encrypts all data, invalidates biometric wrapping.
+- Biometric key wraps MK with AES-GCM (not AES-KW) using the PRF-derived key.
+
+#### Vault State Machine
+
+```
+LOADING → check IndexedDB for vault meta
+  ├─ No vault found → FRESH (SetupScreen)
+  │   ├─ "Start Fresh" → set password → encrypt → UNLOCKED
+  │   └─ "Restore from Drive" → OAuth → find blob → enter password → decrypt → UNLOCKED
+  └─ Vault exists → LOCKED (LockScreen)
+      ├─ Enter password → PBKDF2 → verify → UNLOCKED
+      └─ Biometric tap (if enabled) → PRF → unwrap MK → UNLOCKED
+      │
+      UNLOCKED → can add/remove accounts, enable bio, enable sync, lock
+```
+
+State is managed in `StorageContext.tsx` via `vaultState: "loading" | "fresh" | "locked" | "unlocked"`.
+
+#### IndexedDB Layout
+
+Two databases:
+
+- **`totp-authenticator`** (legacy): plaintext `accounts` store. Migrated on vault creation, then cleared.
+- **`totp-vault`**: encrypted vault with two object stores:
+  - `meta` store:
+    - `vault-meta` → `{ salt, verifierIv, verifier, accountCount, updatedAt }`
+    - `vault-bio` → `{ iv, wrappedMK }` (optional, per-device)
+  - `data` store:
+    - `vault-data` → `{ iv, ciphertext }` (AES-256-GCM encrypted accounts JSON)
+
+#### Biometric Unlock Flow
+
+1. `registerBiometrics()` → WebAuthn `navigator.credentials.create()` with PRF extension
+2. PRF output → HKDF → AES-256-GCM wrapping key
+3. Export MK raw bytes → AES-GCM encrypt with wrapping key → store as `vault-bio`
+4. On unlock: `authenticateBiometrics()` → PRF → same wrapping key → decrypt `vault-bio` → MK
+
+**PRF not supported?** Biometric toggle shows error. Password remains the only unlock method.
+Each device creates its own passkey + wrapping. The password is the cross-device universal fallback.
+
+#### Google Drive Sync
+
+- Uses `appDataFolder` scope (hidden app-specific folder, not visible to user).
+- Stores a single JSON file (`totp-vault.json`) containing the `EncryptedBlob`.
+- `EncryptedBlob` format: `{ version, salt, verifierIv, verifier, dataIv, ciphertext, accountCount, updatedAt }` — all binary fields are base64-encoded.
+- The blob includes the PBKDF2 salt and verifier, so a new device can re-derive MK from the password alone.
+- On link: if remote blob exists and is newer, attempts merge (decrypt remote with current MK, dedupe by issuer+label+secret, re-upload merged).
+- On each account add/remove: local vault is written first, then blob is exported and uploaded.
+- Google auth uses GIS implicit grant (no backend). Token stored in localStorage with expiry tracking. Silent refresh attempted on mount.
+
+#### Restore Flow (New Device)
+
+1. User picks "Restore from Google Drive" on SetupScreen.
+2. OAuth consent → fetch `totp-vault.json` from `appDataFolder`.
+3. Show backup metadata (account count, last sync date) — readable without password.
+4. User enters password → PBKDF2 with stored salt → verify against verifier → decrypt accounts.
+5. Store vault locally in IndexedDB → mark sync enabled → transition to UNLOCKED.
+
+#### TOTP Generation
+
+- RFC 6238 compliant. Supports SHA-1, SHA-256, SHA-512 algorithms.
+- 6 or 8 digit codes. Configurable period (default 30s).
+- Uses `crypto.subtle.sign("HMAC", ...)` — no external TOTP library.
+- Base32 decoding for secrets (standard otpauth format).
+- Countdown progress bar per account (CSS width transition, updated every 1s).
+
+#### QR Code Handling
+
+- Camera scanning: `getUserMedia` → canvas frame capture → `jsQR` library.
+- Image upload: `File` → `Image` → canvas → `jsQR`.
+- Parses `otpauth://totp/...` URIs. Extracts issuer, label, secret, algorithm, digits, period.
+- Deduplication on import: checks (secret + issuer + label) triple.
+
 ## Conventions
 
 - All files use `.tsx` extension if they contain JSX (including plugin registration).

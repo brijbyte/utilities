@@ -1,17 +1,13 @@
 import { Plus } from "lucide-react";
 import type { TotpAccount } from "./db";
 import { AccountItem } from "./AccountItem";
-import { TotpGridSkeleton } from "./Skeleton";
 
 interface Props {
   accounts: TotpAccount[];
-  syncState: "initial" | "syncing" | "idle";
   onDelete: (id: string) => void;
 }
 
-export function AccountList({ accounts, syncState, onDelete }: Props) {
-  if (syncState === "initial") return <TotpGridSkeleton />;
-
+export function AccountList({ accounts, onDelete }: Props) {
   if (accounts.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-text-muted gap-md">

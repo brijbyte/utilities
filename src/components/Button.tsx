@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from "react";
 
-type Variant = "primary" | "secondary" | "danger" | "ghost" | "outline";
+export type Variant = "primary" | "secondary" | "danger" | "ghost" | "outline";
 
 const variantClasses: Record<Variant, string> = {
   primary:

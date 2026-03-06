@@ -32,12 +32,7 @@ function GoogleIcon() {
   );
 }
 
-interface Props {
-  syncing?: boolean;
-  onRefresh?: () => void;
-}
-
-export function GoogleSyncButton({ syncing, onRefresh }: Props) {
+export function GoogleSyncButton() {
   const {
     isGoogleLinked,
     isGoogleAuthenticated,
@@ -45,25 +40,15 @@ export function GoogleSyncButton({ syncing, onRefresh }: Props) {
     googleUser,
     linkGoogle,
     unlinkGoogle,
+    syncNow,
+    syncing,
   } = useStorage();
-
-  async function handleToggle() {
-    try {
-      if (isGoogleLinked) {
-        await unlinkGoogle();
-      } else {
-        await linkGoogle();
-      }
-    } catch (e) {
-      console.error("Google sync error:", e);
-    }
-  }
 
   if (googleLoading) {
     return (
       <Button variant="ghost" disabled>
         <Loader2 size={14} className="animate-spin" />
-        <span className="text-xs ml-xs">Syncing…</span>
+        <span className="text-xs ml-xs">Connecting…</span>
       </Button>
     );
   }
@@ -98,9 +83,9 @@ export function GoogleSyncButton({ syncing, onRefresh }: Props) {
         ) : (
           <Button
             variant="ghost"
-            onClick={onRefresh}
+            onClick={syncNow}
             disabled={syncing}
-            title="Refresh from Google Drive"
+            title="Sync to Google Drive"
             className="text-text-muted"
           >
             <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
@@ -108,12 +93,11 @@ export function GoogleSyncButton({ syncing, onRefresh }: Props) {
         )}
         <Button
           variant="ghost"
-          onClick={handleToggle}
-          title="Sign out and disconnect Google Drive sync"
+          onClick={unlinkGoogle}
+          title="Disconnect Google Drive sync"
           className="text-text-muted"
         >
           <LogOut size={14} />
-          <span className="text-xs ml-xs">Sign out</span>
         </Button>
       </div>
     );
@@ -122,7 +106,7 @@ export function GoogleSyncButton({ syncing, onRefresh }: Props) {
   return (
     <Button
       variant="outline"
-      onClick={handleToggle}
+      onClick={linkGoogle}
       title="Sync with Google Drive"
     >
       <GoogleIcon />

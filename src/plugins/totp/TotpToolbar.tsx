@@ -1,27 +1,40 @@
 import { useRef } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
-import { Camera, Image as ImageIcon } from "lucide-react";
+import { Camera, Image as ImageIcon, Settings } from "lucide-react";
 import { Button } from "../../components/Button";
 import { GoogleSyncButton } from "./GoogleSyncButton";
 
 interface Props {
-  syncing: boolean;
   onScanClick: () => void;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onRefresh?: () => void;
+  onSettingsClick: () => void;
 }
 
 export function TotpToolbar({
-  syncing,
   onScanClick,
   onFileUpload,
-  onRefresh,
+  onSettingsClick,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <Toolbar.Root className="flex flex-wrap items-center gap-x-tb gap-y-xs px-tb-x py-tb-y border-b border-border bg-bg-surface">
-      <GoogleSyncButton syncing={syncing} onRefresh={onRefresh} />
+      <GoogleSyncButton />
+
+      <Toolbar.Button
+        render={(props) => (
+          <Button
+            {...props}
+            variant="ghost"
+            onClick={onSettingsClick}
+            title="Settings"
+            className="text-text-muted"
+          >
+            <Settings size={14} />
+          </Button>
+        )}
+      />
+
       <Toolbar.Group className="ml-auto flex items-center gap-tb shrink-0">
         <input
           type="file"

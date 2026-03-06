@@ -1,6 +1,14 @@
 /**
- * Storage context — manages active adapter and Google sync state.
- * Wraps the TOTP app to provide transparent storage switching.
+ * Storage context — manages vault state, encryption, and sync.
+ *
+ * State machine:
+ *   LOADING → check if vault exists
+ *   FRESH   → no vault, no accounts (or has plaintext accounts in old IDB)
+ *   LOCKED  → vault exists, needs password/biometric to unlock
+ *   UNLOCKED → MK in memory, can read/write accounts
+ *
+ * Sync is layered on top: when enabled + authenticated, writes go to
+ * both local vault and Drive (as encrypted blob).
  */
 
 import {
@@ -8,13 +16,29 @@ import {
   useEffect,
   useCallback,
   useMemo,
-  useRef,
   type ReactNode,
 } from "react";
-import { type StorageAdapter, indexedDBAdapter } from "./storage";
-import { createCachedDriveAdapter } from "./cached-drive-adapter";
-import { readCache, writeCache, destroyCache } from "./crypto-cache";
-import { mergeAccounts } from "./merge";
+import {
+  isVaultSetUp,
+  setupVault,
+  unlockVault,
+  readVaultData,
+  writeVaultData,
+  exportVaultBlob,
+  importVaultBlob,
+  hasBioWrappedMK,
+  saveBioWrappedMK,
+  unlockWithBioKey,
+  removeBioWrappedMK,
+  type EncryptedBlob,
+} from "./crypto";
+import {
+  isBiometricsSupported,
+  hasBioCredential,
+  registerBiometrics,
+  authenticateBiometrics,
+  clearBioCredential,
+} from "./biometrics";
 import {
   getStoredToken,
   getStoredUser,
@@ -25,34 +49,97 @@ import {
   isGoogleSyncEnabled,
   setGoogleSyncEnabled,
 } from "./google-auth";
-import { StorageCtx, BgSyncContext } from "./storage-ctx";
+import { downloadBlob, uploadBlob } from "./drive-sync";
+import { getAllAccounts, deleteAccount as idbDeleteAccount } from "./db";
 import type { TotpAccount } from "./db";
+import { StorageCtx } from "./storage-ctx";
+
+// ── Types ──────────────────────────────────────────────────────────
+
+export type VaultState = "loading" | "fresh" | "locked" | "unlocked";
 
 export interface StorageContextValue {
-  adapter: StorageAdapter;
-  /** Increments on link/unlink to signal consumers to re-fetch. */
-  adapterVersion: number;
+  // Vault state
+  vaultState: VaultState;
+  mk: CryptoKey | null;
+
+  // Vault operations
+  createVault: (password: string) => Promise<void>;
+  unlock: (password: string) => Promise<boolean>;
+  unlockWithBio: () => Promise<boolean>;
+  lock: () => void;
+
+  // Biometrics
+  bioSupported: boolean;
+  bioEnabled: boolean;
+  enableBio: () => Promise<boolean>;
+  disableBio: () => Promise<void>;
+
+  // Account CRUD (encrypted)
+  accounts: TotpAccount[];
+  addAccount: (account: TotpAccount) => Promise<void>;
+  removeAccount: (id: string) => Promise<void>;
+  refreshAccounts: () => Promise<void>;
+
+  // Google Drive sync
   isGoogleLinked: boolean;
   isGoogleAuthenticated: boolean;
   googleLoading: boolean;
   googleUser: string | null;
   linkGoogle: () => Promise<void>;
   unlinkGoogle: () => Promise<void>;
+  syncNow: () => Promise<void>;
+  syncing: boolean;
+
+  // Restore from Drive (for new device)
+  checkDriveBackup: () => Promise<EncryptedBlob | null>;
+  restoreFromDrive: (blob: EncryptedBlob, password: string) => Promise<boolean>;
 }
 
+// ── Provider ───────────────────────────────────────────────────────
+
 export function StorageProvider({ children }: { children: ReactNode }) {
+  const [vaultState, setVaultState] = useState<VaultState>("loading");
+  const [mk, setMK] = useState<CryptoKey | null>(null);
+  const [accounts, setAccounts] = useState<TotpAccount[]>([]);
+
+  // Biometrics
+  const [bioSupported, setBioSupported] = useState(false);
+  const [bioEnabled, setBioEnabled] = useState(false);
+
+  // Google sync
   const [token, setToken] = useState<string | null>(null);
   const [isLinked, setIsLinked] = useState(isGoogleSyncEnabled);
-  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [user, setUser] = useState<string | null>(getStoredUser);
-  const [adapterVersion, setAdapterVersion] = useState(0);
-
-  // Ref for background sync callback — avoids stale closure in adapter
-  const bgSyncRef = useRef<((accounts: TotpAccount[]) => void) | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const hasToken = !!(token || getStoredToken());
 
-  // On mount, if sync enabled, restore or silently refresh token
+  // ── Init: check vault state + biometric support ──────────────────
+
+  useEffect(() => {
+    async function init() {
+      const [vaultExists, bioSup] = await Promise.all([
+        isVaultSetUp(),
+        isBiometricsSupported(),
+      ]);
+      setBioSupported(bioSup);
+
+      if (vaultExists) {
+        const hasBio = hasBioCredential() && (await hasBioWrappedMK());
+        setBioEnabled(hasBio);
+        setVaultState("locked");
+      } else {
+        // Check for legacy plaintext accounts
+        setVaultState("fresh");
+      }
+    }
+    init();
+  }, []);
+
+  // ── Init: restore Google token ───────────────────────────────────
+
   useEffect(() => {
     if (!isGoogleSyncEnabled()) return;
     const stored = getStoredToken();
@@ -61,11 +148,8 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setIsLinked(true);
       setUser(getStoredUser());
     } else {
-      // Token expired locally — show as linked (data in cache)
       setIsLinked(true);
       setUser(getStoredUser());
-
-      // 1. Try validating the raw token (might still be valid on Google's side)
       tryRefreshToken()
         .then((t) => {
           if (t) {
@@ -73,48 +157,166 @@ export function StorageProvider({ children }: { children: ReactNode }) {
             setUser(getStoredUser());
             return;
           }
-          // 2. Token truly expired — try silent GIS refresh (no popup)
           return requestTokenSilent().then((t2) => {
             setToken(t2);
             setUser(getStoredUser());
           });
         })
         .catch(() => {
-          // All methods failed — stay in offline cache mode
+          // Stay in offline mode
         });
     }
   }, []);
 
-  const cachedDriveAdapter = useMemo(
-    () =>
-      createCachedDriveAdapter(
-        () => token ?? getStoredToken(),
-        (accounts) => bgSyncRef.current?.(accounts),
-      ),
-    [token],
+  // ── Vault operations ─────────────────────────────────────────────
+
+  const loadAccounts = useCallback(async (key: CryptoKey) => {
+    const data = await readVaultData(key);
+    setAccounts(data);
+  }, []);
+
+  const createVault = useCallback(
+    async (password: string) => {
+      // Migrate any existing plaintext accounts
+      let existing: TotpAccount[] = [];
+      try {
+        existing = await getAllAccounts();
+      } catch {
+        // No legacy data
+      }
+
+      const key = await setupVault(password, existing);
+      setMK(key);
+      setAccounts(existing);
+      setVaultState("unlocked");
+
+      // Clean up plaintext IDB
+      for (const a of existing) {
+        try {
+          await idbDeleteAccount(a.id);
+        } catch {
+          // ignore
+        }
+      }
+
+      // If Google sync is active, upload the encrypted blob
+      if (isLinked && hasToken) {
+        try {
+          const blob = await exportVaultBlob();
+          if (blob) {
+            const t = token ?? getStoredToken();
+            if (t) await uploadBlob(t, blob);
+          }
+        } catch (e) {
+          console.error("Failed to sync after vault creation:", e);
+        }
+      }
+    },
+    [isLinked, hasToken, token],
   );
 
-  const adapter: StorageAdapter = useMemo(() => {
-    if (!isLinked) return indexedDBAdapter;
-    if (hasToken) return cachedDriveAdapter;
-    // Offline — no token but sync enabled: read/write encrypted cache only
-    return {
-      async getAll() {
-        return readCache();
-      },
-      async add(account) {
-        const cached = await readCache();
-        const idx = cached.findIndex((a) => a.id === account.id);
-        if (idx >= 0) cached[idx] = account;
-        else cached.push(account);
-        await writeCache(cached);
-      },
-      async remove(id) {
-        const cached = await readCache();
-        await writeCache(cached.filter((a) => a.id !== id));
-      },
-    };
-  }, [isLinked, hasToken, cachedDriveAdapter]);
+  const unlock = useCallback(
+    async (password: string): Promise<boolean> => {
+      const key = await unlockVault(password);
+      if (!key) return false;
+      setMK(key);
+      setVaultState("unlocked");
+      await loadAccounts(key);
+      return true;
+    },
+    [loadAccounts],
+  );
+
+  const unlockWithBio = useCallback(async (): Promise<boolean> => {
+    try {
+      const bioKey = await authenticateBiometrics();
+      if (!bioKey) return false;
+      const key = await unlockWithBioKey(bioKey);
+      if (!key) return false;
+      setMK(key);
+      setVaultState("unlocked");
+      await loadAccounts(key);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [loadAccounts]);
+
+  const lock = useCallback(() => {
+    setMK(null);
+    setAccounts([]);
+    setVaultState("locked");
+  }, []);
+
+  // ── Account CRUD ─────────────────────────────────────────────────
+
+  const persistAndSync = useCallback(
+    async (key: CryptoKey, updated: TotpAccount[]) => {
+      await writeVaultData(key, updated);
+
+      // Sync to Drive if enabled
+      if (isLinked) {
+        const t = token ?? getStoredToken();
+        if (t) {
+          try {
+            const blob = await exportVaultBlob();
+            if (blob) await uploadBlob(t, blob);
+          } catch (e) {
+            console.error("Drive sync failed:", e);
+          }
+        }
+      }
+    },
+    [isLinked, token],
+  );
+
+  const addAccount = useCallback(
+    async (account: TotpAccount) => {
+      if (!mk) return;
+      const updated = [...accounts, account];
+      setAccounts(updated);
+      await persistAndSync(mk, updated);
+    },
+    [mk, accounts, persistAndSync],
+  );
+
+  const removeAccount = useCallback(
+    async (id: string) => {
+      if (!mk) return;
+      const updated = accounts.filter((a) => a.id !== id);
+      setAccounts(updated);
+      await persistAndSync(mk, updated);
+    },
+    [mk, accounts, persistAndSync],
+  );
+
+  const refreshAccounts = useCallback(async () => {
+    if (!mk) return;
+    await loadAccounts(mk);
+  }, [mk, loadAccounts]);
+
+  // ── Biometrics ───────────────────────────────────────────────────
+
+  const enableBio = useCallback(async (): Promise<boolean> => {
+    if (!mk) return false;
+    try {
+      const bioKey = await registerBiometrics();
+      if (!bioKey) return false;
+      await saveBioWrappedMK(mk, bioKey);
+      setBioEnabled(true);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [mk]);
+
+  const disableBio = useCallback(async () => {
+    await removeBioWrappedMK();
+    clearBioCredential();
+    setBioEnabled(false);
+  }, []);
+
+  // ── Google Drive sync ────────────────────────────────────────────
 
   const ensureToken = useCallback(async (): Promise<string> => {
     const existing = getStoredToken();
@@ -128,94 +330,203 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const linkGoogle = useCallback(async () => {
-    setLoading(true);
+    if (!mk) return;
+    setGoogleLoading(true);
     try {
       const t = await ensureToken();
 
-      // Collect local accounts before clearing
-      const localAccounts = await indexedDBAdapter.getAll();
-
-      // Fetch remote accounts from Drive
-      const { createGoogleDriveAdapter } = await import("./storage");
-      const tempDrive = createGoogleDriveAdapter(() => t);
-      const remoteAccounts = await tempDrive.getAll();
-
-      // Merge: dedupe by (issuer + label + secret), prefer remote for conflicts
-      const merged = mergeAccounts(remoteAccounts, localAccounts);
-
-      // Write merged set to Drive
-      // We need to do a full write — use the raw Drive functions via the adapter
-      // Clear and rewrite: remove all then add merged
-      if (merged.length > 0) {
-        // Write all at once — clear remote first if it existed, then write merged
-        for (const acc of merged) {
-          await tempDrive.add(acc);
+      // Upload current vault to Drive
+      const blob = await exportVaultBlob();
+      if (blob) {
+        // Check if there's existing data on Drive
+        const remote = await downloadBlob(t);
+        if (remote && remote.updatedAt > blob.updatedAt) {
+          // Remote is newer — import it (user already has the password since vault is unlocked)
+          const remoteAccounts = await decryptBlobWithMK(remote, mk);
+          if (remoteAccounts) {
+            // Merge: remote wins for conflicts, add local-only
+            const merged = mergeAccountSets(remoteAccounts, accounts);
+            await writeVaultData(mk, merged);
+            setAccounts(merged);
+            // Re-export the merged blob
+            const mergedBlob = await exportVaultBlob();
+            if (mergedBlob) await uploadBlob(t, mergedBlob);
+          } else {
+            // Can't decrypt remote (different password) — upload local
+            await uploadBlob(t, blob);
+          }
+        } else {
+          await uploadBlob(t, blob);
         }
       }
-
-      // Encrypt and cache locally
-      await writeCache(merged);
-
-      // Clear plaintext local data
-      await indexedDBAdapter.clear!();
 
       setGoogleSyncEnabled(true);
       setIsLinked(true);
       setUser(getStoredUser());
-      setAdapterVersion((v) => v + 1);
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
-  }, [ensureToken]);
+  }, [mk, accounts, ensureToken]);
 
   const unlinkGoogle = useCallback(async () => {
-    setLoading(true);
+    setGoogleLoading(true);
     try {
-      // Prevent stale background sync from overwriting state
-      bgSyncRef.current = null;
-
-      // Destroy encrypted cache and key
-      await destroyCache();
-
-      // Clear local IDB data (data lives in Google Drive)
-      await indexedDBAdapter.clear!();
-
       googleLogout();
       setToken(null);
       setUser(null);
       setIsLinked(false);
-      setAdapterVersion((v) => v + 1);
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   }, []);
 
+  const syncNow = useCallback(async () => {
+    if (!mk || !isLinked) return;
+    const t = token ?? getStoredToken();
+    if (!t) return;
+    setSyncing(true);
+    try {
+      const blob = await exportVaultBlob();
+      if (blob) await uploadBlob(t, blob);
+    } catch (e) {
+      console.error("Sync failed:", e);
+    } finally {
+      setSyncing(false);
+    }
+  }, [mk, isLinked, token]);
+
+  // ── Restore from Drive ───────────────────────────────────────────
+
+  const checkDriveBackup =
+    useCallback(async (): Promise<EncryptedBlob | null> => {
+      try {
+        const t = await ensureToken();
+        return await downloadBlob(t);
+      } catch {
+        return null;
+      }
+    }, [ensureToken]);
+
+  const restoreFromDrive = useCallback(
+    async (blob: EncryptedBlob, password: string): Promise<boolean> => {
+      const key = await importVaultBlob(blob, password);
+      if (!key) return false;
+      setMK(key);
+      await loadAccounts(key);
+      setVaultState("unlocked");
+      setGoogleSyncEnabled(true);
+      setIsLinked(true);
+      setUser(getStoredUser());
+      return true;
+    },
+    [loadAccounts],
+  );
+
+  // ── Context value ────────────────────────────────────────────────
+
   const value = useMemo<StorageContextValue>(
     () => ({
-      adapter,
-      adapterVersion,
+      vaultState,
+      mk,
+      createVault,
+      unlock,
+      unlockWithBio,
+      lock,
+      bioSupported,
+      bioEnabled,
+      enableBio,
+      disableBio,
+      accounts,
+      addAccount,
+      removeAccount,
+      refreshAccounts,
       isGoogleLinked: isLinked,
       isGoogleAuthenticated: hasToken,
-      googleLoading: loading,
+      googleLoading,
       googleUser: user,
       linkGoogle,
       unlinkGoogle,
+      syncNow,
+      syncing,
+      checkDriveBackup,
+      restoreFromDrive,
     }),
     [
-      adapter,
-      adapterVersion,
+      vaultState,
+      mk,
+      createVault,
+      unlock,
+      unlockWithBio,
+      lock,
+      bioSupported,
+      bioEnabled,
+      enableBio,
+      disableBio,
+      accounts,
+      addAccount,
+      removeAccount,
+      refreshAccounts,
       isLinked,
       hasToken,
-      loading,
+      googleLoading,
       user,
       linkGoogle,
       unlinkGoogle,
+      syncNow,
+      syncing,
+      checkDriveBackup,
+      restoreFromDrive,
     ],
   );
 
-  return (
-    <BgSyncContext.Provider value={bgSyncRef}>
-      <StorageCtx value={value}>{children}</StorageCtx>
-    </BgSyncContext.Provider>
-  );
+  return <StorageCtx value={value}>{children}</StorageCtx>;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+
+/** Try to decrypt a remote blob with the current MK (same password). */
+async function decryptBlobWithMK(
+  blob: EncryptedBlob,
+  mk: CryptoKey,
+): Promise<TotpAccount[] | null> {
+  if (!blob.ciphertext) return [];
+  try {
+    const iv = base64ToBuf(blob.dataIv);
+    const ciphertext = base64ToBuf(blob.ciphertext);
+    const plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      mk,
+      ciphertext,
+    );
+    return JSON.parse(new TextDecoder().decode(plain));
+  } catch {
+    return null; // Different password
+  }
+}
+
+function base64ToBuf(b64: string): ArrayBuffer {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer as ArrayBuffer;
+}
+
+function mergeAccountSets(
+  primary: TotpAccount[],
+  secondary: TotpAccount[],
+): TotpAccount[] {
+  const seen = new Set<string>();
+  const result: TotpAccount[] = [];
+  for (const a of primary) {
+    seen.add(`${a.issuer}\0${a.label}\0${a.secret}`);
+    result.push(a);
+  }
+  for (const a of secondary) {
+    const key = `${a.issuer}\0${a.label}\0${a.secret}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(a);
+    }
+  }
+  return result;
 }
