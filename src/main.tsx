@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router";
 
 import App from "./App";
 import { getPersistedRoute, isPwa } from "./pwa";
+import { initServiceWorker } from "./sw-update";
 
 import "./index.css";
 
@@ -25,6 +26,8 @@ const app = (
     </BrowserRouter>
   </StrictMode>
 );
+
+initServiceWorker();
 
 // Only the home page is pre-rendered (SSG), so only hydrate on "/"
 if (root.children.length > 0 && window.location.pathname === "/") {

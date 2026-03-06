@@ -148,3 +148,26 @@
     transform: translateX(100%);
   }
 }
+
+@keyframes shake {
+  0%,
+  10% {
+    transform: rotate(0deg);
+  }
+  2% {
+    transform: rotate(-12deg);
+  }
+  4% {
+    transform: rotate(12deg);
+  }
+  6% {
+    transform: rotate(-8deg);
+  }
+  8% {
+    transform: rotate(8deg);
+  }
+}
+
+@utility animate-shake {
+  animation: shake 4s ease-in-out infinite;
+}
