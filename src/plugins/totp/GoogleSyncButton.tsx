@@ -1,11 +1,4 @@
-import {
-  Cloud,
-  LogOut,
-  Loader2,
-  RefreshCw,
-  CloudOff,
-  LogIn,
-} from "lucide-react";
+import { Cloud, Loader2, RefreshCw, CloudOff, LogIn } from "lucide-react";
 import { Button } from "../../components/Button";
 import { useStorage } from "./useStorage";
 
@@ -39,7 +32,6 @@ export function GoogleSyncButton() {
     googleLoading,
     googleUser,
     linkGoogle,
-    unlinkGoogle,
     syncNow,
     syncing,
   } = useStorage();
@@ -91,14 +83,6 @@ export function GoogleSyncButton() {
             <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
           </Button>
         )}
-        <Button
-          variant="ghost"
-          onClick={unlinkGoogle}
-          title="Disconnect Google Drive sync"
-          className="text-text-muted"
-        >
-          <LogOut size={14} />
-        </Button>
       </div>
     );
   }

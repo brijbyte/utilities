@@ -1,10 +1,18 @@
 /**
- * Settings panel — biometric unlock, lock, and info.
+ * Settings panel — biometric unlock, Google sync, and vault info.
  */
 
 import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { X, Fingerprint, Lock, Loader2, Check, Shield } from "lucide-react";
+import {
+  X,
+  Fingerprint,
+  Loader2,
+  Check,
+  Shield,
+  Cloud,
+  LogOut,
+} from "lucide-react";
 import { Button } from "../../components/Button";
 import { useStorage } from "./useStorage";
 
@@ -14,8 +22,16 @@ interface Props {
 }
 
 export function SettingsDialog({ open, onOpenChange }: Props) {
-  const { bioSupported, bioEnabled, enableBio, disableBio, lock, accounts } =
-    useStorage();
+  const {
+    bioSupported,
+    bioEnabled,
+    enableBio,
+    disableBio,
+    accounts,
+    isGoogleLinked,
+    googleUser,
+    unlinkGoogle,
+  } = useStorage();
 
   const [bioLoading, setBioLoading] = useState(false);
   const [bioError, setBioError] = useState("");
@@ -42,10 +58,9 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
     }
   }
 
-  function handleLock() {
+  async function handleSignOut() {
+    await unlinkGoogle();
     onOpenChange(false);
-    // Small delay so dialog animation completes
-    setTimeout(lock, 150);
   }
 
   return (
@@ -115,15 +130,30 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 
             {bioError && <p className="text-xs text-danger">{bioError}</p>}
 
-            {/* Lock vault */}
-            <Button
-              variant="outline"
-              onClick={handleLock}
-              className="w-full justify-center gap-sm"
-            >
-              <Lock size={14} />
-              Lock Vault
-            </Button>
+            {/* Google Drive sync */}
+            {isGoogleLinked && (
+              <div className="flex items-center justify-between p-md bg-bg border border-border-muted rounded-lg">
+                <div className="flex items-center gap-sm">
+                  <Cloud size={16} className="text-success" />
+                  <div>
+                    <div className="text-xs font-medium text-text">
+                      Google Drive Sync
+                    </div>
+                    <div className="text-[10px] text-text-muted truncate max-w-48">
+                      {googleUser ?? "Connected"}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleSignOut}
+                  className="shrink-0 text-danger"
+                >
+                  <LogOut size={14} />
+                  Sign out
+                </Button>
+              </div>
+            )}
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

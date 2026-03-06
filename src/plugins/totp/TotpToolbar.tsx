@@ -1,8 +1,9 @@
 import { useRef } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
-import { Camera, Image as ImageIcon, Settings } from "lucide-react";
+import { Camera, Image as ImageIcon, Settings, Lock } from "lucide-react";
 import { Button } from "../../components/Button";
 import { GoogleSyncButton } from "./GoogleSyncButton";
+import { useStorage } from "./useStorage";
 
 interface Props {
   onScanClick: () => void;
@@ -16,6 +17,7 @@ export function TotpToolbar({
   onSettingsClick,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { lock } = useStorage();
 
   return (
     <Toolbar.Root className="flex flex-wrap items-center gap-x-tb gap-y-xs px-tb-x py-tb-y border-b border-border bg-bg-surface">
@@ -31,6 +33,20 @@ export function TotpToolbar({
             className="text-text-muted"
           >
             <Settings size={14} />
+          </Button>
+        )}
+      />
+
+      <Toolbar.Button
+        render={(props) => (
+          <Button
+            {...props}
+            variant="ghost"
+            onClick={lock}
+            title="Lock vault"
+            className="text-text-muted"
+          >
+            <Lock size={14} />
           </Button>
         )}
       />
