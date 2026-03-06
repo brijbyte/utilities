@@ -61,10 +61,12 @@ export function AppInfo() {
                   <Radio.Root
                     key={opt.value}
                     value={opt.value}
-                    className="flex items-center gap-xs px-sm py-xs rounded-lg cursor-pointer transition-colors data-checked:bg-primary data-checked:text-bg data-unchecked:text-text-muted data-unchecked:hover:bg-bg-hover data-unchecked:hover:text-text"
+                    className="flex flex-col items-center gap-0.5 px-sm py-xs rounded-lg cursor-pointer transition-colors data-checked:bg-primary data-checked:text-bg data-unchecked:text-text-muted data-unchecked:hover:bg-bg-hover data-unchecked:hover:text-text"
                   >
                     <opt.icon size={13} />
-                    <span className="text-xs">{opt.label}</span>
+                    <span className="text-[10px] leading-none">
+                      {opt.label}
+                    </span>
                   </Radio.Root>
                 ))}
               </RadioGroup>
