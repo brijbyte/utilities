@@ -20,6 +20,7 @@ import {
   getStoredUser,
   requestToken,
   requestTokenSilent,
+  tryRefreshToken,
   logout as googleLogout,
   isGoogleSyncEnabled,
   setGoogleSyncEnabled,
@@ -57,16 +58,26 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setIsLinked(true);
       setUser(getStoredUser());
     } else {
-      // Token expired — try silent re-auth
-      setIsLinked(true); // show as linked (data in cache)
+      // Token expired locally — show as linked (data in cache)
+      setIsLinked(true);
       setUser(getStoredUser());
-      requestTokenSilent()
+
+      // 1. Try validating the raw token (might still be valid on Google's side)
+      tryRefreshToken()
         .then((t) => {
-          setToken(t);
-          setUser(getStoredUser());
+          if (t) {
+            setToken(t);
+            setUser(getStoredUser());
+            return;
+          }
+          // 2. Token truly expired — try silent GIS refresh (no popup)
+          return requestTokenSilent().then((t2) => {
+            setToken(t2);
+            setUser(getStoredUser());
+          });
         })
         .catch(() => {
-          // Silent + interactive both failed — stay in offline cache mode
+          // All methods failed — stay in offline cache mode
         });
     }
   }, []);

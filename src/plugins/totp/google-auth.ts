@@ -35,7 +35,7 @@ function loadGis(): Promise<void> {
   return gisLoaded;
 }
 
-/** Get stored token if still valid. */
+/** Get stored token if still valid (by local expiry check). */
 export function getStoredToken(): string | null {
   const token = sessionStorage.getItem(TOKEN_KEY);
   const expiry = sessionStorage.getItem(EXPIRY_KEY);
@@ -44,6 +44,34 @@ export function getStoredToken(): string | null {
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(EXPIRY_KEY);
   return null;
+}
+
+/** Get the raw stored token without checking expiry. */
+function getRawToken(): string | null {
+  return sessionStorage.getItem(TOKEN_KEY);
+}
+
+/**
+ * Try to validate a token by making a lightweight API call.
+ * If the token is still accepted by Google, re-store it and return it.
+ */
+export async function tryRefreshToken(): Promise<string | null> {
+  const token = getRawToken();
+  if (!token) return null;
+  try {
+    const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const email: string = data.email ?? null;
+    if (email) sessionStorage.setItem(USER_KEY, email);
+    // Token is still valid — re-store with a fresh 5-minute window
+    storeToken(token, 300);
+    return token;
+  } catch {
+    return null;
+  }
 }
 
 function storeToken(token: string, expiresIn: number) {
