@@ -1,11 +1,12 @@
 import { Popover } from "@base-ui/react/popover";
-import { RadioGroup } from "@base-ui/react/radio-group";
 import { Radio } from "@base-ui/react/radio";
-import { Info, Github, Globe, Sun, Moon, Monitor } from "lucide-react";
-import { useSwUpdate } from "../useSwUpdate";
-import { applyUpdate } from "../sw-update";
+import { RadioGroup } from "@base-ui/react/radio-group";
+import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
+import { Github, Globe, Info, Monitor, Moon, Sun } from "lucide-react";
 import { isPwa } from "../pwa";
+import { applyUpdate } from "../sw-update";
 import { useTheme, type Theme } from "../theme";
+import { useSwUpdate } from "../useSwUpdate";
 import { PopoverArrow } from "./PopoverArrow";
 
 const themeOptions: { value: Theme; icon: typeof Sun; label: string }[] = [
@@ -34,34 +35,50 @@ export function AppInfo() {
               <div className="font-medium text-sm">⚙ utilities</div>
               <p className="text-text-muted leading-relaxed">
                 Free, open-source developer tools that run entirely in your
-                browser. No data leaves your device.
+                browser. No data leaves your device, unless you explicitly share
+                it.
               </p>
             </div>
 
             <div className="border-t border-border px-lg py-sm flex flex-col gap-xs text-text-muted">
               <div className="flex items-center justify-between">
                 <span>Release</span>
-                <span className="font-mono text-text">{__COMMIT_HASH__}</span>
+                <a
+                  href={`https://github.com/brijbyte/utilities/commit/${__COMMIT_HASH__}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono underline text-primary"
+                >
+                  {__COMMIT_HASH__}
+                </a>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Mode</span>
-                <span className="text-text">{isPwa ? "PWA" : "Browser"}</span>
-              </div>
+              {__COMMIT_DATE__ && (
+                <div className="flex items-center justify-between">
+                  <span className="font-mono">
+                    {formatDistanceToNow(__COMMIT_DATE__)} ago
+                  </span>
+                </div>
+              )}
+              {isPwa && (
+                <div className="flex items-center justify-between">
+                  <span>Mode</span>
+                  <span className="text-text">PWA</span>
+                </div>
+              )}
             </div>
 
-            <div className="border-t border-border px-lg py-sm flex items-center justify-between">
-              <span className="text-text-muted">Theme</span>
+            <div className="border-t border-border px-lg py-sm">
               <RadioGroup
                 value={theme}
                 onValueChange={(v) => setTheme(v as Theme)}
-                className="flex items-center gap-xs"
+                className="flex justify-between gap-xs w-full"
                 aria-label="Theme"
               >
                 {themeOptions.map((opt) => (
                   <Radio.Root
                     key={opt.value}
                     value={opt.value}
-                    className="flex flex-col items-center gap-0.5 px-sm py-xs rounded-lg cursor-pointer transition-colors data-checked:bg-primary data-checked:text-bg data-unchecked:text-text-muted data-unchecked:hover:bg-bg-hover data-unchecked:hover:text-text"
+                    className="flex flex-col grow items-center gap-0.5 px-sm py-xs rounded-lg cursor-pointer transition-colors data-checked:bg-primary data-checked:text-bg data-unchecked:text-text-muted data-unchecked:hover:bg-bg-hover data-unchecked:hover:text-text"
                   >
                     <opt.icon size={13} />
                     <span className="text-[10px] leading-none">
@@ -86,7 +103,7 @@ export function AppInfo() {
               </div>
             )}
 
-            <div className="border-t border-border px-lg py-sm flex items-center gap-md">
+            <div className="border-t border-border px-lg py-sm flex items-center justify-end gap-md">
               <a
                 href="https://github.com/brijbyte/utilities"
                 target="_blank"
