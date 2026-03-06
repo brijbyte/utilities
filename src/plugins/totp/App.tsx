@@ -95,9 +95,7 @@ function TotpAppInner() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Delete this account?")) {
-      await removeAccount(id);
-    }
+    await removeAccount(id);
   }
 
   return (

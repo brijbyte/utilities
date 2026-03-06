@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Trash2, Copy, Check, ShieldCheck } from "lucide-react";
+import { Popover } from "@base-ui/react/popover";
 import { Button } from "../../components/Button";
+import { PopoverArrow } from "../../shell/PopoverArrow";
 import type { TotpAccount } from "./db";
 import { generateTotp } from "./totp";
 
@@ -13,6 +15,7 @@ export function AccountItem({ account, onDelete }: AccountItemProps) {
   const [code, setCode] = useState<string>("");
   const [progress, setProgress] = useState<number>(0);
   const [copied, setCopied] = useState<boolean>(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -110,17 +113,47 @@ export function AccountItem({ account, onDelete }: AccountItemProps) {
         </div>
       </div>
 
-      <Button
-        variant="ghost"
-        className="sm:opacity-0 sm:group-hover:opacity-100 text-danger shrink-0 transition-opacity"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(account.id);
-        }}
-        title="Delete account"
-      >
-        <Trash2 size={16} />
-      </Button>
+      <Popover.Root open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <Popover.Trigger
+          className={`${confirmOpen ? "opacity-100" : "sm:opacity-0 sm:group-hover:opacity-100"} text-danger shrink-0 transition-opacity inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs leading-none border border-transparent bg-transparent hover:bg-bg-hover cursor-pointer`}
+          onClick={(e) => e.stopPropagation()}
+          title="Delete account"
+        >
+          <Trash2 size={16} />
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Positioner sideOffset={6} side="bottom" align="end">
+            <Popover.Popup className="bg-bg-surface border border-border rounded-lg shadow-lg p-md text-xs w-52 outline-none transition-[transform,opacity] origin-(--transform-origin) data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
+              <PopoverArrow />
+              <p className="text-text mb-sm">Delete this account?</p>
+              <p className="text-text-muted mb-md">
+                This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-sm">
+                <Button
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmOpen(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmOpen(false);
+                    onDelete(account.id);
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
     </div>
   );
 }
