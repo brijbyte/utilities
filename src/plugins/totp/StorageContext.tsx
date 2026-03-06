@@ -33,6 +33,7 @@ export interface StorageContextValue {
   /** Increments on link/unlink to signal consumers to re-fetch. */
   adapterVersion: number;
   isGoogleLinked: boolean;
+  isGoogleAuthenticated: boolean;
   googleLoading: boolean;
   googleUser: string | null;
   linkGoogle: () => Promise<void>;
@@ -48,6 +49,8 @@ export function StorageProvider({ children }: { children: ReactNode }) {
 
   // Ref for background sync callback — avoids stale closure in adapter
   const bgSyncRef = useRef<((accounts: TotpAccount[]) => void) | null>(null);
+
+  const hasToken = !!(token || getStoredToken());
 
   // On mount, if sync enabled, restore or silently refresh token
   useEffect(() => {
@@ -91,7 +94,6 @@ export function StorageProvider({ children }: { children: ReactNode }) {
     [token],
   );
 
-  const hasToken = !!(token || getStoredToken());
   const adapter: StorageAdapter = useMemo(() => {
     if (!isLinked) return indexedDBAdapter;
     if (hasToken) return cachedDriveAdapter;
@@ -193,6 +195,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       adapter,
       adapterVersion,
       isGoogleLinked: isLinked,
+      isGoogleAuthenticated: hasToken,
       googleLoading: loading,
       googleUser: user,
       linkGoogle,
@@ -202,6 +205,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       adapter,
       adapterVersion,
       isLinked,
+      hasToken,
       loading,
       user,
       linkGoogle,

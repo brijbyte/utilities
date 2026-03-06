@@ -10,9 +10,9 @@ const CLIENT_ID =
   "655924708327-188epndo2r7l9fotkhjgtg7jjque1skl.apps.googleusercontent.com";
 const SCOPES =
   "https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email";
-const TOKEN_KEY = "totp-google-token";
-const EXPIRY_KEY = "totp-google-token-expiry";
-const USER_KEY = "totp-google-user";
+const TOKEN_KEY = "totp-google-token-v2";
+const EXPIRY_KEY = "totp-google-token-expiry-v2";
+const USER_KEY = "totp-google-user-v2";
 
 let gisLoaded: Promise<void> | null = null;
 
@@ -37,18 +37,18 @@ function loadGis(): Promise<void> {
 
 /** Get stored token if still valid (by local expiry check). */
 export function getStoredToken(): string | null {
-  const token = sessionStorage.getItem(TOKEN_KEY);
-  const expiry = sessionStorage.getItem(EXPIRY_KEY);
+  const token = localStorage.getItem(TOKEN_KEY);
+  const expiry = localStorage.getItem(EXPIRY_KEY);
   if (token && expiry && Date.now() < Number(expiry)) return token;
   // Expired — clean up
-  sessionStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(EXPIRY_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(EXPIRY_KEY);
   return null;
 }
 
 /** Get the raw stored token without checking expiry. */
 function getRawToken(): string | null {
-  return sessionStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 /**
@@ -65,7 +65,7 @@ export async function tryRefreshToken(): Promise<string | null> {
     if (!res.ok) return null;
     const data = await res.json();
     const email: string = data.email ?? null;
-    if (email) sessionStorage.setItem(USER_KEY, email);
+    if (email) localStorage.setItem(USER_KEY, email);
     // Token is still valid — re-store with a fresh 5-minute window
     storeToken(token, 300);
     return token;
@@ -75,9 +75,9 @@ export async function tryRefreshToken(): Promise<string | null> {
 }
 
 function storeToken(token: string, expiresIn: number) {
-  sessionStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(TOKEN_KEY, token);
   // Store with 60s buffer
-  sessionStorage.setItem(
+  localStorage.setItem(
     EXPIRY_KEY,
     String(Date.now() + (expiresIn - 60) * 1000),
   );
@@ -102,7 +102,7 @@ async function fetchAndStoreUser(token: string): Promise<string | null> {
     if (!res.ok) return null;
     const data = await res.json();
     const email: string = data.email ?? null;
-    if (email) sessionStorage.setItem(USER_KEY, email);
+    if (email) localStorage.setItem(USER_KEY, email);
     return email;
   } catch {
     return null;
@@ -111,7 +111,7 @@ async function fetchAndStoreUser(token: string): Promise<string | null> {
 
 /** Get stored user email. */
 export function getStoredUser(): string | null {
-  return sessionStorage.getItem(USER_KEY);
+  return localStorage.getItem(USER_KEY);
 }
 
 /** Request an access token interactively. Returns the token. */
@@ -137,9 +137,9 @@ export async function requestToken(): Promise<string> {
 }
 
 /**
- * Silently refresh the token using a hidden iframe (no popup).
+ * Silently refresh the token.
  * Only works if user previously granted consent.
- * Falls back to interactive prompt if silent refresh fails.
+ * Does NOT fall back to interactive prompt.
  */
 export async function requestTokenSilent(): Promise<string> {
   await loadGis();
@@ -150,31 +150,25 @@ export async function requestTokenSilent(): Promise<string> {
       scope: SCOPES,
       callback: async (resp: google.accounts.oauth2.TokenResponse) => {
         if (resp.error) {
-          // Silent failed — fall back to interactive
-          try {
-            resolve(await requestToken());
-          } catch (e) {
-            reject(e);
-          }
+          reject(new Error(resp.error_description || resp.error));
           return;
         }
         storeToken(resp.access_token, Number(resp.expires_in));
         await fetchAndStoreUser(resp.access_token);
         resolve(resp.access_token);
       },
-      error_callback: () => {
-        // GIS error (e.g. popup blocked) — fall back to interactive
-        requestToken().then(resolve, reject);
+      error_callback: (err: any) => {
+        reject(err);
       },
     });
-    client.requestAccessToken({ prompt: "" });
+    client.requestAccessToken({ prompt: "none" });
   });
 }
 
 /** Revoke token and clear storage. */
 export function logout() {
-  sessionStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(EXPIRY_KEY);
-  sessionStorage.removeItem(USER_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(EXPIRY_KEY);
+  localStorage.removeItem(USER_KEY);
   setGoogleSyncEnabled(false);
 }

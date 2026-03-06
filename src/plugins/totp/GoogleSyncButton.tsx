@@ -1,4 +1,11 @@
-import { Cloud, LogOut, Loader2, RefreshCw } from "lucide-react";
+import {
+  Cloud,
+  LogOut,
+  Loader2,
+  RefreshCw,
+  CloudOff,
+  LogIn,
+} from "lucide-react";
 import { Button } from "../../components/Button";
 import { useStorage } from "./useStorage";
 
@@ -33,13 +40,14 @@ interface Props {
 export function GoogleSyncButton({ syncing, onRefresh }: Props) {
   const {
     isGoogleLinked,
+    isGoogleAuthenticated,
     googleLoading,
     googleUser,
     linkGoogle,
     unlinkGoogle,
   } = useStorage();
 
-  async function handleClick() {
+  async function handleToggle() {
     try {
       if (isGoogleLinked) {
         await unlinkGoogle();
@@ -65,24 +73,42 @@ export function GoogleSyncButton({ syncing, onRefresh }: Props) {
       <div className="flex items-center gap-sm">
         {syncing ? (
           <Loader2 size={14} className="animate-spin text-text-muted" />
-        ) : (
+        ) : isGoogleAuthenticated ? (
           <Cloud size={14} className="text-success" />
+        ) : (
+          <CloudOff size={14} className="text-text-muted" />
         )}
         <span className="text-xs text-text-muted truncate max-w-24 sm:max-w-32">
-          {syncing ? "Syncing…" : (googleUser ?? "Synced")}
+          {syncing
+            ? "Syncing…"
+            : isGoogleAuthenticated
+              ? (googleUser ?? "Synced")
+              : "Offline"}
         </span>
+        {!isGoogleAuthenticated ? (
+          <Button
+            variant="ghost"
+            onClick={linkGoogle}
+            title="Reconnect to Google Drive"
+            className="text-text-muted"
+          >
+            <LogIn size={14} />
+            <span className="text-xs ml-xs">Sign in</span>
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            onClick={onRefresh}
+            disabled={syncing}
+            title="Refresh from Google Drive"
+            className="text-text-muted"
+          >
+            <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+          </Button>
+        )}
         <Button
           variant="ghost"
-          onClick={onRefresh}
-          disabled={syncing}
-          title="Refresh from Google Drive"
-          className="text-text-muted"
-        >
-          <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
-        </Button>
-        <Button
-          variant="ghost"
-          onClick={handleClick}
+          onClick={handleToggle}
           title="Sign out and disconnect Google Drive sync"
           className="text-text-muted"
         >
@@ -96,7 +122,7 @@ export function GoogleSyncButton({ syncing, onRefresh }: Props) {
   return (
     <Button
       variant="outline"
-      onClick={handleClick}
+      onClick={handleToggle}
       title="Sync with Google Drive"
     >
       <GoogleIcon />

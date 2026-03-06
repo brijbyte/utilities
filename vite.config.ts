@@ -27,7 +27,6 @@ const commitDateRaw =
     .toString()
     .trim();
 
-console.log({ commitDateRaw });
 const commitDate = parseToUTC(commitDateRaw).toISOString();
 
 const DEFINE = {
