@@ -1,18 +1,23 @@
-const VERSION = "__SW_VERSION__";
+/// <reference lib="webworker" />
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference path="./env.d.ts" />
+
+const sw = self as unknown as ServiceWorkerGlobalScope;
+
+const VERSION = __COMMIT_HASH__;
 const CACHE_NAME = `utilities-${VERSION}`;
 
-// Static assets to precache (shell)
 const PRECACHE = ["/", "/manifest.webmanifest", "/icon.svg"];
 
 // Install: precache shell. Do NOT skipWaiting here — wait for user to confirm.
-self.addEventListener("install", (event) => {
+sw.addEventListener("install", (event: ExtendableEvent) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)),
   );
 });
 
 // Activate: clean old caches, claim clients
-self.addEventListener("activate", (event) => {
+sw.addEventListener("activate", (event: ExtendableEvent) => {
   event.waitUntil(
     caches
       .keys()
@@ -24,16 +29,16 @@ self.addEventListener("activate", (event) => {
         ),
       ),
   );
-  self.clients.claim();
+  sw.clients.claim();
 });
 
 // Fetch: network-first for navigation, cache-first for assets
-self.addEventListener("fetch", (event) => {
+sw.addEventListener("fetch", (event: FetchEvent) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // Skip non-GET and cross-origin
-  if (request.method !== "GET" || url.origin !== self.location.origin) return;
+  if (request.method !== "GET" || url.origin !== sw.location.origin) return;
 
   // Navigation requests (SPA): network-first, fallback to cached /index.html
   if (request.mode === "navigate") {
@@ -44,7 +49,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put("/", clone));
           return response;
         })
-        .catch(() => caches.match("/")),
+        .catch(() => caches.match("/") as Promise<Response>),
     );
     return;
   }
@@ -79,8 +84,8 @@ self.addEventListener("fetch", (event) => {
 });
 
 // Listen for messages from the app
-self.addEventListener("message", (event) => {
+sw.addEventListener("message", (event: ExtendableMessageEvent) => {
   if (event.data === "SKIP_WAITING") {
-    self.skipWaiting();
+    sw.skipWaiting();
   }
 });
