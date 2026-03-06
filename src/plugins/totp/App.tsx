@@ -27,6 +27,8 @@ function TotpAppInner() {
   const { adapter, adapterVersion } = useStorage();
   const bgSyncRef = useContext(BgSyncContext);
 
+  const nextSyncRef = useRef(0);
+
   const loadAccounts = useCallback(async () => {
     setSyncState((s) => (s === "idle" ? "syncing" : s));
     try {
@@ -34,12 +36,17 @@ function TotpAppInner() {
     } finally {
       setSyncState("idle");
     }
+    nextSyncRef.current = Date.now() + 5 * 60_000;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adapter, adapterVersion]);
 
   useEffect(() => {
     void loadAccounts();
-    const interval = setInterval(loadAccounts, 5 * 60 * 1000);
+    const interval = setInterval(() => {
+      if (Date.now() >= nextSyncRef.current) {
+        loadAccounts();
+      }
+    }, 5 * 60_000);
     return () => clearInterval(interval);
   }, [loadAccounts]);
 
@@ -55,6 +62,7 @@ function TotpAppInner() {
     setAccounts((s) => [...s, account]);
     try {
       await adapter.add(account);
+      nextSyncRef.current = Date.now() + 5 * 60_000;
     } catch {
       setAccounts(prev);
       toastManager.add({ title: "Failed to sync new account." });
@@ -100,6 +108,7 @@ function TotpAppInner() {
       setAccounts((s) => s.filter((a) => a.id !== id));
       try {
         await adapter.remove(id);
+        nextSyncRef.current = Date.now() + 5 * 60_000;
       } catch {
         setAccounts(prev);
         toastManager.add({ title: "Failed to delete account." });
