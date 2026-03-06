@@ -47,7 +47,7 @@ export function AppGrid({ onSelect, compact }: AppGridProps) {
                   {p.icon}
                 </div>
                 <span
-                  className={`text-center leading-tight transition-colors ${compact ? "max-w-20 truncate text-[10px]" : "max-w-20 text-[11px] wrap-break-word"} ${active ? "text-accent" : "text-text-muted group-hover:text-text"}`}
+                  className={`text-center leading-tight transition-colors ${compact ? "max-w-20 truncate text-[10px]" : "max-w-20 text-xs font-medium wrap-break-word"} ${active ? "text-accent" : "text-text-muted group-hover:text-text"}`}
                 >
                   {p.name}
                 </span>
