@@ -1,5 +1,5 @@
 import { Toast } from "@base-ui/react/toast";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState, useRef } from "react";
 import type { TotpAccount } from "./db";
 import { parseUri, decodeQrFromImage, isImportError } from "./qr-import";
 import { BgSyncContext } from "./storage-ctx";
@@ -8,6 +8,8 @@ import { useStorage } from "./useStorage";
 import { TotpToolbar } from "./TotpToolbar";
 import { ScanDialog } from "./ScanDialog";
 import { AccountList } from "./AccountList";
+
+const SYNC_INTERVAL = 5 * 60_000; // 5 minutes
 
 export default function TotpApp() {
   return (
@@ -36,7 +38,7 @@ function TotpAppInner() {
     } finally {
       setSyncState("idle");
     }
-    nextSyncRef.current = Date.now() + 5 * 60_000;
+    nextSyncRef.current = Date.now() + SYNC_INTERVAL;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adapter, adapterVersion]);
 
@@ -46,7 +48,7 @@ function TotpAppInner() {
       if (Date.now() >= nextSyncRef.current) {
         loadAccounts();
       }
-    }, 5 * 60_000);
+    }, SYNC_INTERVAL);
     return () => clearInterval(interval);
   }, [loadAccounts]);
 
@@ -62,7 +64,7 @@ function TotpAppInner() {
     setAccounts((s) => [...s, account]);
     try {
       await adapter.add(account);
-      nextSyncRef.current = Date.now() + 5 * 60_000;
+      nextSyncRef.current = Date.now() + SYNC_INTERVAL;
     } catch {
       setAccounts(prev);
       toastManager.add({ title: "Failed to sync new account." });
@@ -108,7 +110,7 @@ function TotpAppInner() {
       setAccounts((s) => s.filter((a) => a.id !== id));
       try {
         await adapter.remove(id);
-        nextSyncRef.current = Date.now() + 5 * 60_000;
+        nextSyncRef.current = Date.now() + SYNC_INTERVAL;
       } catch {
         setAccounts(prev);
         toastManager.add({ title: "Failed to delete account." });

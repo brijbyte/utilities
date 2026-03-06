@@ -108,6 +108,41 @@ export async function requestToken(): Promise<string> {
   });
 }
 
+/**
+ * Silently refresh the token using a hidden iframe (no popup).
+ * Only works if user previously granted consent.
+ * Falls back to interactive prompt if silent refresh fails.
+ */
+export async function requestTokenSilent(): Promise<string> {
+  await loadGis();
+
+  return new Promise<string>((resolve, reject) => {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (resp: google.accounts.oauth2.TokenResponse) => {
+        if (resp.error) {
+          // Silent failed — fall back to interactive
+          try {
+            resolve(await requestToken());
+          } catch (e) {
+            reject(e);
+          }
+          return;
+        }
+        storeToken(resp.access_token, Number(resp.expires_in));
+        await fetchAndStoreUser(resp.access_token);
+        resolve(resp.access_token);
+      },
+      error_callback: () => {
+        // GIS error (e.g. popup blocked) — fall back to interactive
+        requestToken().then(resolve, reject);
+      },
+    });
+    client.requestAccessToken({ prompt: "" });
+  });
+}
+
 /** Revoke token and clear storage. */
 export function logout() {
   sessionStorage.removeItem(TOKEN_KEY);

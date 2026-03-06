@@ -19,6 +19,7 @@ import {
   getStoredToken,
   getStoredUser,
   requestToken,
+  requestTokenSilent,
   logout as googleLogout,
   isGoogleSyncEnabled,
   setGoogleSyncEnabled,
@@ -47,7 +48,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   // Ref for background sync callback — avoids stale closure in adapter
   const bgSyncRef = useRef<((accounts: TotpAccount[]) => void) | null>(null);
 
-  // On mount, if sync enabled, try to restore token silently
+  // On mount, if sync enabled, restore or silently refresh token
   useEffect(() => {
     if (!isGoogleSyncEnabled()) return;
     const stored = getStoredToken();
@@ -55,6 +56,18 @@ export function StorageProvider({ children }: { children: ReactNode }) {
       setToken(stored);
       setIsLinked(true);
       setUser(getStoredUser());
+    } else {
+      // Token expired — try silent re-auth
+      setIsLinked(true); // show as linked (data in cache)
+      setUser(getStoredUser());
+      requestTokenSilent()
+        .then((t) => {
+          setToken(t);
+          setUser(getStoredUser());
+        })
+        .catch(() => {
+          // Silent + interactive both failed — stay in offline cache mode
+        });
     }
   }, []);
 
