@@ -1,12 +1,11 @@
 import { AppGrid } from "./AppGrid";
-import { ThemeSwitcher } from "./ThemeSwitcher";
 import { AppInfo } from "./AppInfo";
 
 export function HomePage() {
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-end p-md">
-        <ThemeSwitcher />
+        <AppInfo />
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-2xl pb-3xl">
         <div className="text-center mb-3xl">
@@ -17,9 +16,6 @@ export function HomePage() {
         </div>
         <AppGrid />
       </div>
-      <footer className="flex items-center justify-end gap-xs pb-md pe-md">
-        <AppInfo />
-      </footer>
     </div>
   );
 }

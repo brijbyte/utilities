@@ -5,7 +5,6 @@ import { Popover } from "@base-ui/react/popover";
 import { useParams } from "react-router";
 import { usePlugin } from "../registry";
 import { AppGrid } from "./AppGrid";
-import { ThemeSwitcher } from "./ThemeSwitcher";
 import { AppInfo } from "./AppInfo";
 
 export function Header() {
@@ -60,10 +59,7 @@ export function Header() {
         </span>
       </div>
 
-      <div className="flex items-center gap-md">
-        <AppInfo />
-        <ThemeSwitcher />
-      </div>
+      <AppInfo />
     </header>
   );
 }

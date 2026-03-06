@@ -1,11 +1,20 @@
 import { Popover } from "@base-ui/react/popover";
-import { Info, Github, Globe } from "lucide-react";
+import { Info, Github, Globe, Sun, Moon, Monitor } from "lucide-react";
 import { useSwUpdate } from "../useSwUpdate";
 import { applyUpdate } from "../sw-update";
 import { isPwa } from "../pwa";
+import { useTheme, type Theme } from "../theme";
+import { PopoverArrow } from "./PopoverArrow";
+
+const themeOptions: { value: Theme; icon: typeof Sun; label: string }[] = [
+  { value: "light", icon: Sun, label: "Light" },
+  { value: "dark", icon: Moon, label: "Dark" },
+  { value: "system", icon: Monitor, label: "System" },
+];
 
 export function AppInfo() {
   const updateAvailable = useSwUpdate();
+  const { theme, setTheme } = useTheme();
 
   return (
     <Popover.Root>
@@ -17,18 +26,8 @@ export function AppInfo() {
       <Popover.Portal>
         <Popover.Positioner sideOffset={6}>
           <Popover.Popup className="bg-bg-surface border border-border text-text text-xs rounded-xl shadow-lg w-56">
-            <Popover.Arrow className="data-[side=bottom]:-top-1.75 data-[side=top]:-bottom-1.75 data-[side=top]:rotate-180 data-[side=left]:-right-3.25 data-[side=left]:rotate-90 data-[side=right]:-left-3.25 data-[side=right]:-rotate-90">
-              <svg width="20" height="10" viewBox="0 0 20 10" fill="none">
-                <path
-                  d="M9.66437 2.60207L4.80758 6.97318C4.07308 7.63423 3.11989 8 2.13172 8H0V10H20V8H18.5349C17.5468 8 16.5936 7.63423 15.8591 6.97318L11.0023 2.60207C10.622 2.2598 10.0447 2.25979 9.66437 2.60207Z"
-                  className="fill-bg-surface"
-                />
-                <path
-                  d="M8.99542 1.85876C9.75604 1.17425 10.9106 1.17422 11.6713 1.85878L16.5281 6.22989C17.0789 6.72568 17.7938 7.00001 18.5349 7.00001L15.89 7L11.0023 2.60207C10.622 2.2598 10.0447 2.2598 9.66436 2.60207L4.77734 7L2.13171 7.00001C2.87284 7.00001 3.58774 6.72568 4.13861 6.22989L8.99542 1.85876Z"
-                  className="fill-border"
-                />
-              </svg>
-            </Popover.Arrow>
+            <PopoverArrow />
+
             <div className="px-lg py-md flex flex-col gap-sm">
               <div className="font-medium text-sm">⚙ utilities</div>
               <p className="text-text-muted leading-relaxed">
@@ -45,6 +44,26 @@ export function AppInfo() {
               <div className="flex items-center justify-between">
                 <span>Mode</span>
                 <span className="text-text">{isPwa ? "PWA" : "Browser"}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-border px-lg py-sm flex items-center justify-between">
+              <span className="text-text-muted">Theme</span>
+              <div className="flex items-center gap-xs">
+                {themeOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setTheme(opt.value)}
+                    title={opt.label}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer transition-colors ${
+                      theme === opt.value
+                        ? "bg-primary text-bg"
+                        : "text-text-muted hover:bg-bg-hover hover:text-text"
+                    }`}
+                  >
+                    <opt.icon size={13} />
+                  </button>
+                ))}
               </div>
             </div>
 
