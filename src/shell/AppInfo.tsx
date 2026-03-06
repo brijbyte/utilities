@@ -58,15 +58,14 @@ export function AppInfo() {
                 aria-label="Theme"
               >
                 {themeOptions.map((opt) => (
-                  <Radio
+                  <Radio.Root
                     key={opt.value}
                     value={opt.value}
-                    title={opt.label}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer transition-colors data-[checked]:bg-primary data-[checked]:text-bg data-[unchecked]:text-text-muted data-[unchecked]:hover:bg-bg-hover data-[unchecked]:hover:text-text"
-                    render={<button />}
+                    className="flex items-center gap-xs px-sm py-xs rounded-lg cursor-pointer transition-colors data-checked:bg-primary data-checked:text-bg data-unchecked:text-text-muted data-unchecked:hover:bg-bg-hover data-unchecked:hover:text-text"
                   >
                     <opt.icon size={13} />
-                  </Radio>
+                    <span className="text-xs">{opt.label}</span>
+                  </Radio.Root>
                 ))}
               </RadioGroup>
             </div>
