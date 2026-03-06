@@ -1,4 +1,4 @@
-import { Tooltip } from "@base-ui/react/tooltip";
+import { Popover } from "@base-ui/react/popover";
 import { Info } from "lucide-react";
 import { AppGrid } from "./AppGrid";
 import { ThemeSwitcher } from "./ThemeSwitcher";
@@ -19,20 +19,18 @@ export function HomePage() {
         <AppGrid />
       </div>
       <footer className="flex items-center justify-center gap-xs pb-md text-text-muted">
-        <Tooltip.Provider>
-          <Tooltip.Root>
-            <Tooltip.Trigger className="flex items-center gap-xs text-text-muted cursor-default">
-              <Info size={12} />
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Positioner sideOffset={6}>
-                <Tooltip.Popup className="bg-bg-surface border border-border text-text text-xs px-md py-sm rounded-lg shadow-lg">
-                  Release {__COMMIT_HASH__}
-                </Tooltip.Popup>
-              </Tooltip.Positioner>
-            </Tooltip.Portal>
-          </Tooltip.Root>
-        </Tooltip.Provider>
+        <Popover.Root>
+          <Popover.Trigger className="flex items-center gap-xs text-text-muted cursor-pointer hover:text-text transition-colors">
+            <Info size={12} />
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Positioner sideOffset={6}>
+              <Popover.Popup className="bg-bg-surface border border-border text-text text-xs px-md py-sm rounded-lg shadow-lg">
+                Release {__COMMIT_HASH__}
+              </Popover.Popup>
+            </Popover.Positioner>
+          </Popover.Portal>
+        </Popover.Root>
       </footer>
     </div>
   );
