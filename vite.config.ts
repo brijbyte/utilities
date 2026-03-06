@@ -3,8 +3,8 @@ import { execSync } from "child_process";
 import { build } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import path from "path";
-import fs from "fs";
+import * as path from "node:path";
+import * as fs from "node:fs/promises";
 
 function parseToUTC(dateStr: string): Date {
   const iso = dateStr
@@ -39,16 +39,21 @@ const DEFINE = {
  * Read the Vite manifest and scan dist/assets/ for any files the manifest
  * missed (e.g. web workers emitted via `new URL()` + `new Worker()`).
  */
-function collectAssets(distDir: string): string[] {
+async function collectAssets(distDir: string): Promise<string[]> {
   const files = new Set<string>();
 
   // 1. Manifest: covers all modules in the import graph
   const manifestPath = path.join(distDir, ".vite", "manifest.json");
-  if (fs.existsSync(manifestPath)) {
+  if (
+    await fs
+      .access(manifestPath)
+      .then(() => true)
+      .catch(() => false)
+  ) {
     const manifest: Record<
       string,
       { file: string; css?: string[]; assets?: string[] }
-    > = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+    > = JSON.parse(await fs.readFile(manifestPath, "utf-8"));
     for (const entry of Object.values(manifest)) {
       files.add(`/${entry.file}`);
       entry.css?.forEach((f) => files.add(`/${f}`));
@@ -58,8 +63,13 @@ function collectAssets(distDir: string): string[] {
 
   // 2. Directory scan: catches workers and other assets not in the manifest
   const assetsDir = path.join(distDir, "assets");
-  if (fs.existsSync(assetsDir)) {
-    for (const f of fs.readdirSync(assetsDir)) {
+  if (
+    await fs
+      .access(assetsDir)
+      .then(() => true)
+      .catch(() => false)
+  ) {
+    for (const f of await fs.readdir(assetsDir)) {
       if (/\.(js|css)$/.test(f)) {
         files.add(`/assets/${f}`);
       }
@@ -82,7 +92,7 @@ function buildServiceWorker(): Plugin {
       sequential: true,
       async handler() {
         const distDir = path.resolve(__dirname, "dist");
-        const assets = collectAssets(distDir);
+        const assets = await collectAssets(distDir);
 
         await build({
           configFile: false,
@@ -99,6 +109,10 @@ function buildServiceWorker(): Plugin {
             },
             outDir: "dist",
           },
+        });
+        await fs.rm(path.join(distDir, ".vite"), {
+          recursive: true,
+          force: true,
         });
       },
     },
