@@ -386,6 +386,22 @@ export function StorageProvider({ children }: { children: ReactNode }) {
     if (!t) return;
     setSyncing(true);
     try {
+      // Download remote blob and merge
+      const remote = await downloadBlob(t);
+      if (remote) {
+        const remoteAccounts = await decryptBlobWithMK(remote, mk);
+        if (remoteAccounts) {
+          const localAccounts = await readVaultData(mk);
+          const merged = mergeAccountSets(remoteAccounts, localAccounts);
+          await writeVaultData(mk, merged);
+          setAccounts(merged);
+          // Upload merged result back
+          const blob = await exportVaultBlob();
+          if (blob) await uploadBlob(t, blob);
+          return;
+        }
+      }
+      // No remote data or can't decrypt — just upload local
       const blob = await exportVaultBlob();
       if (blob) await uploadBlob(t, blob);
     } catch (e) {
