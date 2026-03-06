@@ -7,9 +7,15 @@ const sw = self as unknown as ServiceWorkerGlobalScope;
 const VERSION = __COMMIT_HASH__;
 const CACHE_NAME = `utilities-${VERSION}`;
 
-const PRECACHE = ["/", "/manifest.webmanifest", "/icon.svg"];
+// Static shell + all hashed assets (injected at build time)
+const PRECACHE = [
+  "/",
+  "/manifest.webmanifest",
+  "/icon.svg",
+  ...__PRECACHE_ASSETS__,
+];
 
-// Install: precache shell. Do NOT skipWaiting here — wait for user to confirm.
+// Install: precache everything so the app works fully offline.
 sw.addEventListener("install", (event: ExtendableEvent) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)),

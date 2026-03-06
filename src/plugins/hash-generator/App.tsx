@@ -96,9 +96,13 @@ export default function HashGenerator() {
   );
 
   const addFiles = useCallback((fileList: FileWithPath[]) => {
-    if (!abortRef.current) {
+    if (!abortRef.current || abortRef.current.signal.aborted) {
       abortRef.current = new AbortController();
     }
+
+    // Cancel any pending text hash debounce
+    textAbortRef.current?.abort();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
 
     setInput("");
     setTextHashes(null);
