@@ -1,6 +1,8 @@
 import { Cloud, Loader2, RefreshCw, CloudOff, LogIn } from "lucide-react";
 import { Button } from "../../components/Button";
+import { useOnline } from "../../useOnline";
 import { useStorage } from "./useStorage";
+import { Toolbar } from "@base-ui/react/toolbar";
 
 function GoogleIcon() {
   return (
@@ -35,6 +37,7 @@ export function GoogleSyncButton() {
     syncNow,
     syncing,
   } = useStorage();
+  const online = useOnline();
 
   if (googleLoading) {
     return (
@@ -63,38 +66,60 @@ export function GoogleSyncButton() {
               : "Offline"}
         </span>
         {!isGoogleAuthenticated ? (
-          <Button
-            variant="ghost"
-            onClick={linkGoogle}
-            title="Reconnect to Google Drive"
-            className="text-text-muted"
-          >
-            <LogIn size={14} />
-            <span className="text-xs ml-xs">Sign in</span>
-          </Button>
+          online && (
+            <Toolbar.Button
+              render={(props) => (
+                <Button
+                  {...props}
+                  variant="ghost"
+                  onClick={linkGoogle}
+                  title="Reconnect to Google Drive"
+                  className="text-text-muted"
+                >
+                  <LogIn size={14} />
+                  <span className="text-xs ml-xs">Sign in</span>
+                </Button>
+              )}
+            />
+          )
         ) : (
-          <Button
-            variant="ghost"
-            onClick={syncNow}
-            disabled={syncing}
-            title="Sync to Google Drive"
-            className="text-text-muted"
-          >
-            <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
-          </Button>
+          <Toolbar.Button
+            render={(props) => (
+              <Button
+                {...props}
+                variant="ghost"
+                onClick={syncNow}
+                disabled={syncing}
+                title="Sync to Google Drive"
+                className="text-text-muted"
+              >
+                <RefreshCw
+                  size={14}
+                  className={syncing ? "animate-spin" : ""}
+                />
+              </Button>
+            )}
+          />
         )}
       </div>
     );
   }
 
+  if (!online) return null;
+
   return (
-    <Button
-      variant="outline"
-      onClick={linkGoogle}
-      title="Sync with Google Drive"
-    >
-      <GoogleIcon />
-      <span className="text-xs ml-xs">Sync to Drive</span>
-    </Button>
+    <Toolbar.Button
+      render={(props) => (
+        <Button
+          {...props}
+          variant="outline"
+          onClick={linkGoogle}
+          title="Sync with Google Drive"
+        >
+          <GoogleIcon />
+          <span className="text-xs ml-xs">Sync to Drive</span>
+        </Button>
+      )}
+    />
   );
 }

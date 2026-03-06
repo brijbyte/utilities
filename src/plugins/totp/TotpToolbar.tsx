@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
-import { Camera, Image as ImageIcon, Settings, Lock } from "lucide-react";
+import { Camera, QrCode, Settings, Lock } from "lucide-react";
 import { Button } from "../../components/Button";
 import { GoogleSyncButton } from "./GoogleSyncButton";
 import { useStorage } from "./useStorage";
@@ -22,20 +22,6 @@ export function TotpToolbar({
   return (
     <Toolbar.Root className="flex flex-wrap items-center gap-x-tb gap-y-xs px-tb-x py-tb-y border-b border-border bg-bg-surface">
       <GoogleSyncButton />
-
-      <Toolbar.Button
-        render={(props) => (
-          <Button
-            {...props}
-            variant="ghost"
-            onClick={onSettingsClick}
-            title="Settings"
-            className="text-text-muted"
-          >
-            <Settings size={14} />
-          </Button>
-        )}
-      />
 
       <Toolbar.Button
         render={(props) => (
@@ -67,7 +53,7 @@ export function TotpToolbar({
               onClick={() => fileInputRef.current?.click()}
               title="Upload QR Image"
             >
-              <ImageIcon size={14} /> Upload
+              <QrCode size={14} /> Upload
             </Button>
           )}
         />
@@ -76,6 +62,19 @@ export function TotpToolbar({
             <Button {...props} variant="primary" onClick={onScanClick}>
               <Camera size={14} className="mr-sm" />
               Scan QR
+            </Button>
+          )}
+        />
+        <Toolbar.Button
+          render={(props) => (
+            <Button
+              {...props}
+              variant="ghost"
+              onClick={onSettingsClick}
+              title="Settings"
+              className="text-text-muted"
+            >
+              <Settings size={14} />
             </Button>
           )}
         />

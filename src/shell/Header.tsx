@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid, WifiOff } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { useParams } from "react-router";
 import { usePlugin } from "../registry";
+import { useOnline } from "../useOnline";
 import { AppGrid } from "./AppGrid";
 import { AppInfo } from "./AppInfo";
 
@@ -11,6 +12,7 @@ export function Header() {
   const { id } = useParams<{ id: string }>();
   const plugin = usePlugin(id ?? "");
   const [open, setOpen] = useState(false);
+  const online = useOnline();
 
   return (
     <header className="h-hdr border-b border-border flex items-center justify-between px-hdr-x bg-bg-surface">
@@ -59,7 +61,15 @@ export function Header() {
         </span>
       </div>
 
-      <AppInfo />
+      <div className="flex items-center gap-md">
+        {!online && (
+          <span className="flex items-center gap-xs text-danger text-xs">
+            <WifiOff size={14} />
+            <span className="hidden sm:inline">Offline</span>
+          </span>
+        )}
+        <AppInfo />
+      </div>
     </header>
   );
 }
