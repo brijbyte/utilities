@@ -6,6 +6,7 @@ import { useParams } from "react-router";
 import { usePlugin } from "../registry";
 import { AppGrid } from "./AppGrid";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { AppInfo } from "./AppInfo";
 
 export function Header() {
   const { id } = useParams<{ id: string }>();
@@ -59,7 +60,10 @@ export function Header() {
         </span>
       </div>
 
-      <ThemeSwitcher />
+      <div className="flex items-center gap-md">
+        <AppInfo />
+        <ThemeSwitcher />
+      </div>
     </header>
   );
 }
