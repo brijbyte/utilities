@@ -1,8 +1,10 @@
 {
+  "$schema": "https://www.schemastore.org/web-manifest-combined.json",
   "name": "utilities by BrijByte",
   "short_name": "utilities",
   "description": "Developer tools in the browser, completely offline and secure.",
-  "start_url": "/",
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#f5f5f4",
   "theme_color": "#1c1917",
@@ -12,6 +14,22 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "TOTP Authenticator",
+      "short_name": "Authy",
+      "description": "Generate TOTP codes for your accounts.",
+      "url": "/id/totp-authenticator?source=pwa",
+      "icons": [
+        {
+          "src": "/totp.svg",
+          "sizes": "any",
+          "type": "image/svg+xml",
+          "purpose": "any maskable"
+        }
+      ]
     }
   ]
 }
