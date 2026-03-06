@@ -123,11 +123,18 @@ export function AccountItem({ account, onDelete }: AccountItemProps) {
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner sideOffset={6} side="bottom" align="end">
-            <Popover.Popup className="bg-bg-surface border border-border rounded-lg shadow-lg p-md text-xs w-52 outline-none transition-[transform,opacity] origin-(--transform-origin) data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
+            <Popover.Popup className="bg-bg-surface border border-border rounded-lg shadow-lg p-md text-xs w-64 outline-none transition-[transform,opacity] origin-(--transform-origin) data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
               <PopoverArrow />
-              <p className="text-text mb-sm">Delete this account?</p>
-              <p className="text-text-muted mb-md">
-                This action cannot be undone.
+              <p className="text-text font-medium mb-sm">
+                Delete this account?
+              </p>
+              <p className="text-text-muted mb-md leading-relaxed">
+                If two-factor authentication is still enabled on{" "}
+                <span className="text-text">
+                  {account.issuer || "this service"}
+                </span>
+                , you may lose access to your account. Disable 2FA or switch to
+                another method on the website before deleting.
               </p>
               <div className="flex justify-end gap-sm">
                 <Button
