@@ -4,12 +4,11 @@ const CACHE_NAME = `utilities-${VERSION}`;
 // Static assets to precache (shell)
 const PRECACHE = ["/", "/manifest.webmanifest", "/icon.svg"];
 
-// Install: precache shell, skip waiting to activate immediately
+// Install: precache shell. Do NOT skipWaiting here — wait for user to confirm.
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)),
   );
-  self.skipWaiting();
 });
 
 // Activate: clean old caches, claim clients
