@@ -16,7 +16,7 @@ export function Header() {
     <header className="h-hdr border-b border-border flex items-center justify-between px-hdr-x bg-bg-surface">
       <div className="flex items-center gap-md shrink-0">
         <Popover.Root open={open} onOpenChange={setOpen}>
-          <Popover.Trigger className="w-8 h-8 flex items-center justify-center border border-border bg-bg-surface hover:bg-bg-hover cursor-pointer text-text-muted hover:text-text transition-colors">
+          <Popover.Trigger className="w-8 h-8 flex items-center justify-center border border-border rounded bg-bg-surface hover:bg-bg-hover cursor-pointer text-text-muted hover:text-text transition-colors">
             <LayoutGrid size={14} />
           </Popover.Trigger>
           <Popover.Portal>

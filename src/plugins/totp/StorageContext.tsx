@@ -335,28 +335,31 @@ export function StorageProvider({ children }: { children: ReactNode }) {
     try {
       const t = await ensureToken();
 
-      // Upload current vault to Drive
-      const blob = await exportVaultBlob();
-      if (blob) {
-        // Check if there's existing data on Drive
-        const remote = await downloadBlob(t);
-        if (remote && remote.updatedAt > blob.updatedAt) {
-          // Remote is newer — import it (user already has the password since vault is unlocked)
+      const localBlob = await exportVaultBlob();
+      const remote = await downloadBlob(t);
+
+      if (remote && localBlob) {
+        if (remote.updatedAt > localBlob.updatedAt) {
+          // Remote is newer — accept remote
           const remoteAccounts = await decryptBlobWithMK(remote, mk);
           if (remoteAccounts) {
-            // Merge: remote wins for conflicts, add local-only
-            const merged = mergeAccountSets(remoteAccounts, accounts);
-            await writeVaultData(mk, merged);
-            setAccounts(merged);
-            // Re-export the merged blob
-            const mergedBlob = await exportVaultBlob();
-            if (mergedBlob) await uploadBlob(t, mergedBlob);
+            await writeVaultData(mk, remoteAccounts);
+            setAccounts(remoteAccounts);
           } else {
             // Can't decrypt remote (different password) — upload local
-            await uploadBlob(t, blob);
+            await uploadBlob(t, localBlob);
           }
         } else {
-          await uploadBlob(t, blob);
+          // Local is newer or equal — upload local
+          await uploadBlob(t, localBlob);
+        }
+      } else if (localBlob) {
+        await uploadBlob(t, localBlob);
+      } else if (remote) {
+        const remoteAccounts = await decryptBlobWithMK(remote, mk);
+        if (remoteAccounts) {
+          await writeVaultData(mk, remoteAccounts);
+          setAccounts(remoteAccounts);
         }
       }
 
@@ -366,7 +369,7 @@ export function StorageProvider({ children }: { children: ReactNode }) {
     } finally {
       setGoogleLoading(false);
     }
-  }, [mk, accounts, ensureToken]);
+  }, [mk, ensureToken]);
 
   const unlinkGoogle = useCallback(async () => {
     setGoogleLoading(true);
@@ -386,24 +389,33 @@ export function StorageProvider({ children }: { children: ReactNode }) {
     if (!t) return;
     setSyncing(true);
     try {
-      // Download remote blob and merge
+      const localBlob = await exportVaultBlob();
       const remote = await downloadBlob(t);
-      if (remote) {
+
+      if (remote && localBlob) {
+        if (remote.updatedAt > localBlob.updatedAt) {
+          // Remote is newer — accept remote
+          const remoteAccounts = await decryptBlobWithMK(remote, mk);
+          if (remoteAccounts) {
+            await writeVaultData(mk, remoteAccounts);
+            setAccounts(remoteAccounts);
+          }
+        } else if (localBlob.updatedAt > remote.updatedAt) {
+          // Local is newer — push to remote
+          await uploadBlob(t, localBlob);
+        }
+        // Equal timestamps — already in sync, nothing to do
+      } else if (localBlob && !remote) {
+        // No remote — upload local
+        await uploadBlob(t, localBlob);
+      } else if (remote && !localBlob) {
+        // No local — accept remote
         const remoteAccounts = await decryptBlobWithMK(remote, mk);
         if (remoteAccounts) {
-          const localAccounts = await readVaultData(mk);
-          const merged = mergeAccountSets(remoteAccounts, localAccounts);
-          await writeVaultData(mk, merged);
-          setAccounts(merged);
-          // Upload merged result back
-          const blob = await exportVaultBlob();
-          if (blob) await uploadBlob(t, blob);
-          return;
+          await writeVaultData(mk, remoteAccounts);
+          setAccounts(remoteAccounts);
         }
       }
-      // No remote data or can't decrypt — just upload local
-      const blob = await exportVaultBlob();
-      if (blob) await uploadBlob(t, blob);
     } catch (e) {
       console.error("Sync failed:", e);
     } finally {
@@ -525,24 +537,4 @@ function base64ToBuf(b64: string): ArrayBuffer {
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes.buffer as ArrayBuffer;
-}
-
-function mergeAccountSets(
-  primary: TotpAccount[],
-  secondary: TotpAccount[],
-): TotpAccount[] {
-  const seen = new Set<string>();
-  const result: TotpAccount[] = [];
-  for (const a of primary) {
-    seen.add(`${a.issuer}\0${a.label}\0${a.secret}`);
-    result.push(a);
-  }
-  for (const a of secondary) {
-    const key = `${a.issuer}\0${a.label}\0${a.secret}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(a);
-    }
-  }
-  return result;
 }
