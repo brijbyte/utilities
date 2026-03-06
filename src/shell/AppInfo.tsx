@@ -1,4 +1,6 @@
 import { Popover } from "@base-ui/react/popover";
+import { RadioGroup } from "@base-ui/react/radio-group";
+import { Radio } from "@base-ui/react/radio";
 import { Info, Github, Globe, Sun, Moon, Monitor } from "lucide-react";
 import { useSwUpdate } from "../useSwUpdate";
 import { applyUpdate } from "../sw-update";
@@ -49,22 +51,24 @@ export function AppInfo() {
 
             <div className="border-t border-border px-lg py-sm flex items-center justify-between">
               <span className="text-text-muted">Theme</span>
-              <div className="flex items-center gap-xs">
+              <RadioGroup
+                value={theme}
+                onValueChange={(v) => setTheme(v as Theme)}
+                className="flex items-center gap-xs"
+                aria-label="Theme"
+              >
                 {themeOptions.map((opt) => (
-                  <button
+                  <Radio
                     key={opt.value}
-                    onClick={() => setTheme(opt.value)}
+                    value={opt.value}
                     title={opt.label}
-                    className={`w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer transition-colors ${
-                      theme === opt.value
-                        ? "bg-primary text-bg"
-                        : "text-text-muted hover:bg-bg-hover hover:text-text"
-                    }`}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer transition-colors data-[checked]:bg-primary data-[checked]:text-bg data-[unchecked]:text-text-muted data-[unchecked]:hover:bg-bg-hover data-[unchecked]:hover:text-text"
+                    render={<button />}
                   >
                     <opt.icon size={13} />
-                  </button>
+                  </Radio>
                 ))}
-              </div>
+              </RadioGroup>
             </div>
 
             {updateAvailable && (
