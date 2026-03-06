@@ -16,6 +16,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import {
@@ -96,6 +97,8 @@ export interface StorageContextValue {
   restoreFromDrive: (blob: EncryptedBlob, password: string) => Promise<boolean>;
 }
 
+const SYNC_INTERVAL = 5 * 60_000; // 5 minutes
+
 // ── Provider ───────────────────────────────────────────────────────
 
 export function StorageProvider({ children }: { children: ReactNode }) {
@@ -115,6 +118,9 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const [syncing, setSyncing] = useState(false);
 
   const hasToken = !!(token || getStoredToken());
+
+  /** Timestamp of last successful sync. Used to throttle and schedule auto-sync. */
+  const lastSyncRef = useRef(0);
 
   // ── Init: check vault state + biometric support ──────────────────
 
@@ -254,13 +260,16 @@ export function StorageProvider({ children }: { children: ReactNode }) {
     async (key: CryptoKey, updated: TotpAccount[]) => {
       await writeVaultData(key, updated);
 
-      // Sync to Drive if enabled
+      // Sync to Drive if enabled and not synced very recently
       if (isLinked) {
         const t = token ?? getStoredToken();
         if (t) {
           try {
             const blob = await exportVaultBlob();
-            if (blob) await uploadBlob(t, blob);
+            if (blob) {
+              await uploadBlob(t, blob);
+              lastSyncRef.current = Date.now();
+            }
           } catch (e) {
             console.error("Drive sync failed:", e);
           }
@@ -416,12 +425,25 @@ export function StorageProvider({ children }: { children: ReactNode }) {
           setAccounts(remoteAccounts);
         }
       }
+      lastSyncRef.current = Date.now();
     } catch (e) {
       console.error("Sync failed:", e);
     } finally {
       setSyncing(false);
     }
   }, [mk, isLinked, token]);
+
+  // ── Auto-sync on interval ────────────────────────────────────────
+
+  useEffect(() => {
+    if (!mk || !isLinked) return;
+    const id = setInterval(() => {
+      if (Date.now() - lastSyncRef.current >= SYNC_INTERVAL) {
+        syncNow();
+      }
+    }, 60_000); // check every minute
+    return () => clearInterval(id);
+  }, [mk, isLinked, syncNow]);
 
   // ── Restore from Drive ───────────────────────────────────────────
 
