@@ -4,7 +4,12 @@ import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { Github, Globe, Info, Monitor, Moon, Sun } from "lucide-react";
 import { isPwa } from "../pwa";
 import { applyUpdate } from "../sw-update";
-import { useTheme, type Theme } from "../theme";
+import {
+  useTheme,
+  FONT_SIZE_PRESETS,
+  type Theme,
+  type FontSize,
+} from "../theme";
 import { useSwUpdate } from "../useSwUpdate";
 import { Popover } from "../components/Popover";
 import { Button } from "../components/Button";
@@ -17,7 +22,7 @@ const themeOptions: { value: Theme; icon: typeof Sun; label: string }[] = [
 
 export function AppInfo() {
   const updateAvailable = useSwUpdate();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, fontSize, setFontSize } = useTheme();
 
   return (
     <Popover.Root>
@@ -102,6 +107,33 @@ export function AppInfo() {
                       <opt.icon size={13} />
                       <span className="text-[10px] leading-none">
                         {opt.label}
+                      </span>
+                    </Radio.Root>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              <div className="border-t border-border px-4 py-2">
+                <RadioGroup
+                  value={fontSize}
+                  onValueChange={(v) => setFontSize(v as FontSize)}
+                  className="flex justify-between gap-1 w-full"
+                  aria-label="Font Size"
+                >
+                  {FONT_SIZE_PRESETS.map((preset) => (
+                    <Radio.Root
+                      key={preset.id}
+                      value={preset.id}
+                      className="flex flex-col grow items-center gap-0.5 px-1 py-1 rounded-lg cursor-pointer transition-colors data-checked:bg-secondary data-checked:text-bg data-unchecked:text-text-muted data-unchecked:hover:bg-bg-hover data-unchecked:hover:text-text"
+                    >
+                      <span
+                        className="font-medium leading-none"
+                        style={{ fontSize: `${preset.px - 2}px` }}
+                      >
+                        A
+                      </span>
+                      <span className="text-[9px] leading-none">
+                        {preset.label}
                       </span>
                     </Radio.Root>
                   ))}
