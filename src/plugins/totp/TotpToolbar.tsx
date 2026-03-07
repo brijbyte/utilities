@@ -1,11 +1,12 @@
 import { useRef } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
-import { Camera, QrCode, Settings, Lock } from "lucide-react";
+import { Camera, QrCode, Settings, Lock, Loader2 } from "lucide-react";
 import { Button } from "../../components/Button";
 import { GoogleSyncButton } from "./GoogleSyncButton";
 import { useStorage } from "./useStorage";
 
 interface Props {
+  addSource: "image" | "camera" | null;
   onScanClick: () => void;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSettingsClick: () => void;
@@ -15,6 +16,7 @@ export function TotpToolbar({
   onScanClick,
   onFileUpload,
   onSettingsClick,
+  addSource,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { lock } = useStorage();
@@ -53,15 +55,33 @@ export function TotpToolbar({
               onClick={() => fileInputRef.current?.click()}
               title="Upload QR Image"
             >
-              <QrCode size={14} /> Upload
+              {addSource === "image" ? (
+                <>
+                  <Loader2 size={14} className="mr-sm animate-spin" /> Adding
+                </>
+              ) : (
+                <>
+                  <QrCode size={14} className="mr-sm" /> Upload QR
+                </>
+              )}
             </Button>
           )}
         />
         <Toolbar.Button
+          disabled={addSource !== null}
           render={(props) => (
             <Button {...props} variant="primary" onClick={onScanClick}>
-              <Camera size={14} className="mr-sm" />
-              Scan QR
+              {addSource === "camera" ? (
+                <>
+                  <Loader2 size={14} className="mr-sm animate-spin" />
+                  Scanning
+                </>
+              ) : (
+                <>
+                  <Camera size={14} className="mr-sm" />
+                  Scan QR
+                </>
+              )}
             </Button>
           )}
         />

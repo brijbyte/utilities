@@ -23,6 +23,8 @@ export default function TotpApp() {
 function TotpAppInner() {
   const [isScanning, setIsScanning] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [addSource, setAddSource] =
+    useState<React.ComponentProps<typeof TotpToolbar>["addSource"]>(null);
   const toastManager = Toast.useToastManager();
   const { vaultState, accounts, addAccount, removeAccount } = useStorage();
 
@@ -31,7 +33,10 @@ function TotpAppInner() {
   // then process it once the vault reaches the "unlocked" state.
   const pendingRef = useRef<string | null>(consumePendingUri());
 
-  async function handleScan(uri: string) {
+  async function handleScan(
+    uri: string,
+    addingSource: "image" | "camera" = "camera",
+  ) {
     const result = parseUri(uri);
     if (isImportError(result)) {
       toastManager.add({ title: result.error });
@@ -39,6 +44,7 @@ function TotpAppInner() {
     }
     const { account } = result;
     setIsScanning(false);
+    setAddSource(addingSource);
 
     try {
       await addAccount(account);
@@ -46,6 +52,8 @@ function TotpAppInner() {
       if (e instanceof Error && e.message === "EXISTS") {
         toastManager.add({ title: "Account already exists." });
       }
+    } finally {
+      setAddSource(null);
     }
   }
 
@@ -54,7 +62,7 @@ function TotpAppInner() {
     if (!file) return;
     const data = await decodeQrFromImage(file);
     if (data) {
-      handleScan(data);
+      handleScan(data, "image");
     } else {
       toastManager.add({ title: "No QR code found in image." });
     }
@@ -69,7 +77,7 @@ function TotpAppInner() {
     const uri = pendingRef.current;
     pendingRef.current = null;
 
-    handleScan(uri);
+    handleScan(uri, "camera");
     // Run only when vaultState transitions to "unlocked"
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vaultState]);
@@ -115,6 +123,7 @@ function TotpAppInner() {
         onScanClick={() => setIsScanning(true)}
         onFileUpload={handleFileUpload}
         onSettingsClick={() => setShowSettings(true)}
+        addSource={addSource}
       />
       <ScanDialog
         open={isScanning}

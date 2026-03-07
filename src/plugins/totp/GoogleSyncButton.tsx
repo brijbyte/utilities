@@ -1,4 +1,4 @@
-import { Cloud, Loader2, RefreshCw, CloudOff, LogIn } from "lucide-react";
+import { Loader2, RefreshCw, LogIn } from "lucide-react";
 import { Button } from "../../components/Button";
 import { useOnline } from "../../useOnline";
 import { useStorage } from "./useStorage";
@@ -50,13 +50,6 @@ export function GoogleSyncButton() {
   if (isGoogleLinked) {
     return (
       <div className="flex items-center gap-sm">
-        {syncing ? (
-          <Loader2 size={14} className="animate-spin text-text-muted" />
-        ) : isGoogleAuthenticated ? (
-          <Cloud size={14} className="text-success" />
-        ) : (
-          <CloudOff size={14} className="text-text-muted" />
-        )}
         {!isGoogleAuthenticated ? (
           online && (
             <Toolbar.Button
