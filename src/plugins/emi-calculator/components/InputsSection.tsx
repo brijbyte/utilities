@@ -1,4 +1,6 @@
-import { ArrowUpDown } from "lucide-react";
+import { ToggleGroup } from "@base-ui/react/toggle-group";
+import { Toggle } from "@base-ui/react/toggle";
+import { Banknote, CalendarClock } from "lucide-react";
 import { Select } from "../../../components/Select";
 import type { Fmt } from "../utils/format";
 import { PRESETS } from "../utils/format";
@@ -49,29 +51,30 @@ export function InputsSection({
     <>
       {/* Solve mode toggle + currency picker */}
       <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={() => setSolveMode("emi")}
-          className={`flex items-center gap-1 px-2 py-1 text-xs rounded border cursor-pointer transition-colors ${
-            solveMode === "emi"
-              ? "bg-primary text-primary-text border-primary"
-              : "bg-bg-surface text-text-muted border-border hover:bg-bg-hover"
-          }`}
-        >
-          <ArrowUpDown size={11} /> Compute EMI
-        </button>
-        <button
-          onClick={() => {
-            setSolveMode("tenure");
-            if (fixedEmi === 0) setFixedEmi(Math.round(resultEmi));
+        <ToggleGroup
+          value={[solveMode]}
+          onValueChange={(value) => {
+            const next = value[0] as "emi" | "tenure" | undefined;
+            if (!next || next === solveMode) return;
+            if (next === "tenure" && fixedEmi === 0)
+              setFixedEmi(Math.round(resultEmi));
+            setSolveMode(next);
           }}
-          className={`flex items-center gap-1 px-2 py-1 text-xs rounded border cursor-pointer transition-colors ${
-            solveMode === "tenure"
-              ? "bg-primary text-primary-text border-primary"
-              : "bg-bg-surface text-text-muted border-border hover:bg-bg-hover"
-          }`}
+          className="flex gap-0.5 rounded-lg border border-border bg-bg-surface p-0.5"
         >
-          <ArrowUpDown size={11} /> Compute Tenure
-        </button>
+          <Toggle
+            value="emi"
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded cursor-pointer transition-colors text-text-muted hover:bg-bg-hover data-pressed:bg-primary data-pressed:text-primary-text"
+          >
+            <Banknote size={11} /> Compute EMI
+          </Toggle>
+          <Toggle
+            value="tenure"
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded cursor-pointer transition-colors text-text-muted hover:bg-bg-hover data-pressed:bg-primary data-pressed:text-primary-text"
+          >
+            <CalendarClock size={11} /> Compute Tenure
+          </Toggle>
+        </ToggleGroup>
 
         <span className="ml-auto flex items-center gap-1.5">
           <label className="text-[10px] text-text-muted uppercase tracking-wider">

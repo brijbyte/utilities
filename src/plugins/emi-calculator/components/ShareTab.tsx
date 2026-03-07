@@ -11,6 +11,7 @@ import {
   type SavedScenario,
   type SecondaryView,
 } from "../utils/types";
+import { PrintButton, type PrintData } from "./PrintView";
 
 interface ShareTabProps {
   effectivePrincipal: number;
@@ -38,6 +39,7 @@ interface ShareTabProps {
   setPropertyPrice: (v: number) => void;
   setDownPaymentPct: (v: number) => void;
   setSecondaryView: (v: SecondaryView | null) => void;
+  printData: PrintData;
   fmt: Fmt;
 }
 
@@ -66,6 +68,7 @@ export function ShareTab({
   setPropertyPrice,
   setDownPaymentPct,
   setSecondaryView,
+  printData,
   fmt,
 }: ShareTabProps) {
   const shareUrl = encodeShareURL({
@@ -211,6 +214,16 @@ export function ShareTab({
             {summaryText}
           </div>
           <CopyBtn text={summaryText} label="Copy to Clipboard" />
+        </div>
+
+        {/* Print report */}
+        <div className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium text-text">Print Report</h3>
+          <p className="text-[10px] text-text-muted">
+            Open a printable report with charts, summary, and full amortisation
+            schedule.
+          </p>
+          <PrintButton data={printData} />
         </div>
       </div>
     </Section>

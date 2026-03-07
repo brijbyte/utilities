@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { EmiResult } from "../utils/emi";
 import type { Fmt } from "../utils/format";
 import { SummaryCard } from "./ui";
@@ -16,6 +17,7 @@ interface Props {
     tenureReduced: number;
   } | null;
   fmt: Fmt;
+  actions?: ReactNode;
 }
 
 export function ResultsSection({
@@ -29,11 +31,18 @@ export function ResultsSection({
   rate,
   prepaymentSavings,
   fmt,
+  actions,
 }: Props) {
   if (result.emi <= 0) return null;
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs text-text-muted uppercase tracking-wider">
+          Results
+        </h2>
+        {actions}
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <SummaryCard
           label="Monthly EMI"

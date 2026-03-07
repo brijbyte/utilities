@@ -47,6 +47,7 @@ src/
         FormatContext.tsx   React context for locale-aware formatting. FormatProvider wraps the calculator, useFormat() hook returns { fmt, setLocale }. Persists choice in localStorage.
         ui.tsx              Shared UI primitives: SliderField, NumberField, MonthYearField, DonutChart, SummaryCard, CollapsibleGroup, Collapsible, TabBtn, Section, CopyBtn.
         charts.tsx          Pure SVG chart components: BalanceLineChart (with prepayment comparison overlay), PrincipalInterestChart (stacked bars by year).
+        PrintView.tsx       Printable report: opens new window with self-contained HTML (inline styles, hardcoded colors). Donut, balance line, stacked bar charts + full schedule table. PrintButton component triggers it.
         InputsSection.tsx   Solve-mode toggle, currency/locale Select (Base UI), loan sliders, start date.
         ResultsSection.tsx  Donut chart, summary cards, prepayment savings, fees summary.
         ChartsSection.tsx   Balance-over-time and principal-vs-interest chart wrappers.

@@ -5,7 +5,7 @@ function Bar({ className = "" }: { className?: string }) {
 export function EmiSkeleton() {
   return (
     <div className="h-full overflow-auto">
-      <div className="max-w-4xl mx-auto px-pn-x py-6 flex flex-col gap-6">
+      <div className="max-w-6xl mx-auto px-pn-x py-6 flex flex-col gap-6">
         {/* Solve mode toggle + currency picker */}
         <div className="flex items-center gap-2">
           <Bar className="w-28 h-7 rounded" />

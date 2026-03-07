@@ -46,6 +46,7 @@ import { FeesPanel } from "./components/FeesPanel";
 import { AffordabilityTab } from "./components/AffordabilityTab";
 import { CompareTab } from "./components/CompareTab";
 import { ShareTab } from "./components/ShareTab";
+import { PrintButton, type PrintData } from "./components/PrintView";
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -242,6 +243,45 @@ function EmiCalculatorInner() {
   const prepayCount = lumpSums.length + recurringPrepayments.length;
   const hasFees = totalFees > 0;
 
+  const printData: PrintData = useMemo(
+    () => ({
+      effectivePrincipal,
+      rate,
+      activeTenure,
+      startMonth,
+      startYear,
+      result,
+      baselineSchedule: baselineResult?.schedule,
+      yearData,
+      hasFees,
+      totalFees,
+      effectiveApr,
+      prepaymentSavings,
+      homeMode,
+      propertyPrice,
+      downPaymentPct,
+      fmt,
+    }),
+    [
+      effectivePrincipal,
+      rate,
+      activeTenure,
+      startMonth,
+      startYear,
+      result,
+      baselineResult?.schedule,
+      yearData,
+      hasFees,
+      totalFees,
+      effectiveApr,
+      prepaymentSavings,
+      homeMode,
+      propertyPrice,
+      downPaymentPct,
+      fmt,
+    ],
+  );
+
   // ═══════════════════════════════════════════════════════════════
   // Secondary views
   // ═══════════════════════════════════════════════════════════════
@@ -249,7 +289,7 @@ function EmiCalculatorInner() {
   if (secondaryView) {
     return (
       <div className="h-full overflow-auto">
-        <div className="max-w-4xl mx-auto px-pn-x py-6 flex flex-col gap-6">
+        <div className="max-w-6xl mx-auto px-pn-x py-6 flex flex-col gap-6">
           <button
             onClick={() => setSecondaryView(null)}
             className="self-start inline-flex items-center gap-1 text-xs text-text-muted hover:text-primary transition-colors cursor-pointer"
@@ -301,6 +341,7 @@ function EmiCalculatorInner() {
               setPropertyPrice={setPropertyPrice}
               setDownPaymentPct={setDownPaymentPct}
               setSecondaryView={setSecondaryView}
+              printData={printData}
               fmt={fmt}
             />
           )}
@@ -315,7 +356,7 @@ function EmiCalculatorInner() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="max-w-4xl mx-auto px-pn-x py-6 flex flex-col gap-6">
+      <div className="max-w-6xl mx-auto px-pn-x py-6 flex flex-col gap-6">
         <InputsSection
           solveMode={solveMode}
           setSolveMode={setSolveMode}
@@ -426,6 +467,7 @@ function EmiCalculatorInner() {
           rate={rate}
           prepaymentSavings={prepaymentSavings}
           fmt={fmt}
+          actions={<PrintButton data={printData} />}
         />
 
         <ChartsSection
