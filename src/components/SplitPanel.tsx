@@ -28,7 +28,7 @@ export function SplitPanel({
         className="flex flex-col min-h-0"
       >
         <div className="px-pn-x py-pn-lbl border-b border-border-muted">
-          <span className="text-[10px] uppercase tracking-widest text-text-muted">
+          <span className="text-[0.625rem] uppercase tracking-widest text-text-muted">
             {leftLabel}
           </span>
         </div>
@@ -41,7 +41,7 @@ export function SplitPanel({
         className="flex flex-col min-h-0"
       >
         <div className="px-pn-x py-pn-lbl border-b border-border-muted">
-          <span className="text-[10px] uppercase tracking-widest text-text-muted">
+          <span className="text-[0.625rem] uppercase tracking-widest text-text-muted">
             {rightLabel}
           </span>
         </div>

@@ -165,18 +165,18 @@ export function ShareTab({
                   <span className="text-xs font-medium text-text">
                     {sc.name}
                   </span>
-                  <span className="text-[10px] text-text-muted">
+                  <span className="text-[0.625rem] text-text-muted">
                     {fmt.compact(sc.principal)} @ {sc.rate}% for{" "}
                     {fmt.tenure(sc.tenure)}
                   </span>
-                  <span className="text-[10px] text-text-muted">
+                  <span className="text-[0.625rem] text-text-muted">
                     {new Date(sc.savedAt).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleLoad(sc)}
-                    className="text-[10px] text-primary hover:text-primary-hover cursor-pointer px-1.5 py-0.5 rounded hover:bg-bg-hover transition-colors"
+                    className="text-[0.625rem] text-primary hover:text-primary-hover cursor-pointer px-1.5 py-0.5 rounded hover:bg-bg-hover transition-colors"
                   >
                     Load
                   </button>
@@ -198,7 +198,7 @@ export function ShareTab({
             <Link2 size={12} /> Share via URL
           </h3>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-[10px] text-text-muted bg-bg-inset px-2 py-1.5 rounded font-mono overflow-hidden text-ellipsis whitespace-nowrap">
+            <code className="flex-1 text-[0.625rem] text-text-muted bg-bg-inset px-2 py-1.5 rounded font-mono overflow-hidden text-ellipsis whitespace-nowrap">
               {shareUrl}
             </code>
             <CopyBtn text={shareUrl} label="Copy URL" />
@@ -210,7 +210,7 @@ export function ShareTab({
           <h3 className="text-xs font-medium text-text flex items-center gap-1">
             <Copy size={12} /> Copy Summary
           </h3>
-          <div className="p-2 bg-bg-inset rounded-lg text-[10px] text-text-muted font-mono whitespace-pre-line">
+          <div className="p-2 bg-bg-inset rounded-lg text-[0.625rem] text-text-muted font-mono whitespace-pre-line">
             {summaryText}
           </div>
           <CopyBtn text={summaryText} label="Copy to Clipboard" />
@@ -219,7 +219,7 @@ export function ShareTab({
         {/* Print report */}
         <div className="flex flex-col gap-2">
           <h3 className="text-xs font-medium text-text">Print Report</h3>
-          <p className="text-[10px] text-text-muted">
+          <p className="text-[0.625rem] text-text-muted">
             Open a printable report with charts, summary, and full amortisation
             schedule.
           </p>

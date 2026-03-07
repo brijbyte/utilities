@@ -91,11 +91,11 @@ export function EmiSkeleton() {
           <Bar className="w-12 h-3" />
           <div className="flex flex-col gap-2">
             <Bar className="w-28 h-3" />
-            <Bar className="w-full h-[200px] rounded-lg" />
+            <Bar className="w-full h-50 rounded-lg" />
           </div>
           <div className="flex flex-col gap-2">
             <Bar className="w-40 h-3" />
-            <Bar className="w-full h-[200px] rounded-lg" />
+            <Bar className="w-full h-50 rounded-lg" />
           </div>
         </div>
 

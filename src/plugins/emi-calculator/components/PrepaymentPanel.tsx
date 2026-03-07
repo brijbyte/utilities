@@ -80,7 +80,7 @@ export function PrepaymentPanel({
             onClick={() =>
               setLumpSums((prev) => [...prev, { month: 12, amount: 100000 }])
             }
-            className="inline-flex items-center gap-1 text-[10px] text-primary hover:text-primary-hover cursor-pointer transition-colors"
+            className="inline-flex items-center gap-1 text-[0.625rem] text-primary hover:text-primary-hover cursor-pointer transition-colors"
           >
             <Plus size={10} /> Add
           </button>
@@ -136,7 +136,7 @@ export function PrepaymentPanel({
                 { amount: 10000, frequency: "annually", startMonth: 12 },
               ])
             }
-            className="inline-flex items-center gap-1 text-[10px] text-primary hover:text-primary-hover cursor-pointer transition-colors"
+            className="inline-flex items-center gap-1 text-[0.625rem] text-primary hover:text-primary-hover cursor-pointer transition-colors"
           >
             <Plus size={10} /> Add
           </button>

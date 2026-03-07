@@ -270,7 +270,7 @@ export function BalanceLineChart({
           </Tooltip.Trigger>
           <Tooltip.Portal>
             <Tooltip.Positioner sideOffset={10} className="z-50">
-              <Tooltip.Popup className="bg-bg-surface border border-border rounded-lg px-3 py-2 shadow-lg text-[10px] flex flex-col gap-1">
+              <Tooltip.Popup className="bg-bg-surface border border-border rounded-lg px-3 py-2 shadow-lg text-[0.625rem] flex flex-col gap-1">
                 {hoverInfo && (
                   <>
                     <span className="font-medium text-text text-xs">
@@ -294,7 +294,7 @@ export function BalanceLineChart({
 
       {/* Legend */}
       {compareSchedule && (
-        <div className="flex items-center gap-4 justify-center mt-1 text-[10px] text-text-muted">
+        <div className="flex items-center gap-4 justify-center mt-1 text-[0.625rem] text-text-muted">
           <span className="flex items-center gap-1">
             <span className="inline-block w-4 h-0.5 bg-primary" />
             With prepayments
@@ -448,7 +448,7 @@ export function PrincipalInterestChart({
                 </Tooltip.Trigger>
                 <Tooltip.Portal>
                   <Tooltip.Positioner sideOffset={6} className="z-50">
-                    <Tooltip.Popup className="bg-bg-surface border border-border rounded-lg px-3 py-2 shadow-lg text-[10px] flex flex-col gap-1 origin-(--transform-origin) transition-[transform,scale,opacity] data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
+                    <Tooltip.Popup className="bg-bg-surface border border-border rounded-lg px-3 py-2 shadow-lg text-[0.625rem] flex flex-col gap-1 origin-(--transform-origin) transition-[transform,scale,opacity] data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
                       <span className="font-medium text-text text-xs">
                         {yr.label}
                       </span>
@@ -476,7 +476,7 @@ export function PrincipalInterestChart({
       </Tooltip.Provider>
 
       {/* Legend */}
-      <div className="flex items-center gap-3 justify-center mt-1 text-[10px] text-text-muted">
+      <div className="flex items-center gap-3 justify-center mt-1 text-[0.625rem] text-text-muted">
         <span className="flex items-center gap-1">
           <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary" />
           Principal

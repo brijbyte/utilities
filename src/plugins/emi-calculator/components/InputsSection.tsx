@@ -77,7 +77,7 @@ export function InputsSection({
         </ToggleGroup>
 
         <span className="ml-auto flex items-center gap-1.5">
-          <label className="text-[10px] text-text-muted uppercase tracking-wider">
+          <label className="text-[0.625rem] text-text-muted uppercase tracking-wider">
             Currency
           </label>
           <Select

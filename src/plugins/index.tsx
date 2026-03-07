@@ -7,11 +7,13 @@ import {
   KeyRound,
   ShieldCheck,
   Calculator,
+  Film,
 } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
 import { TotpAppSkeleton } from "./totp/components/Skeleton";
 import { EmiSkeleton } from "./emi-calculator/components/Skeleton";
+import { VideoEditorSkeleton } from "./video-editor/components/Skeleton";
 import { operations as jsonOps } from "./json-formatter/operations";
 import { operations as base64Ops } from "./base64/operations";
 import { operations as hashOps } from "./hash-generator/operations";
@@ -119,6 +121,28 @@ export const plugins: Plugin[] = [
     },
     load: () => import("./emi-calculator/App"),
     skeleton: () => <EmiSkeleton />,
+  },
+  {
+    id: "video-editor",
+    name: "Video Editor",
+    icon: <Film size={24} />,
+    meta: {
+      description:
+        "Compress, trim, resize, convert, and transform videos with FFmpeg — entirely in the browser",
+      keywords: [
+        "video",
+        "compress",
+        "trim",
+        "resize",
+        "convert",
+        "ffmpeg",
+        "editor",
+        "rotate",
+        "audio",
+      ],
+    },
+    load: () => import("./video-editor/App"),
+    skeleton: () => <VideoEditorSkeleton />,
   },
   {
     id: "totp-authenticator",

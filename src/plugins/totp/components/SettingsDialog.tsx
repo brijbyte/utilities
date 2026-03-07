@@ -105,7 +105,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
                     <div className="text-xs font-medium text-text">
                       Biometric Unlock
                     </div>
-                    <div className="text-[10px] text-text-muted">
+                    <div className="text-[0.625rem] text-text-muted">
                       {bioEnabled
                         ? "Enabled — unlock with FaceID / fingerprint"
                         : "Use FaceID / fingerprint instead of password"}
@@ -147,7 +147,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
                     <div className="text-xs font-medium text-text">
                       Google Drive Sync
                     </div>
-                    <div className="text-[10px] text-text-muted truncate max-w-48">
+                    <div className="text-[0.625rem] text-text-muted truncate max-w-48">
                       {googleUser ?? "Connected"}
                     </div>
                   </div>

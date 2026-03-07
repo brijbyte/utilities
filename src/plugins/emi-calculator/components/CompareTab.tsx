@@ -151,7 +151,7 @@ export function CompareTab({
       {/* Difference from scenario 1 */}
       {scenarioResults.length > 1 && (
         <div className="flex flex-col gap-1">
-          <h3 className="text-[10px] text-text-muted uppercase tracking-wider">
+          <h3 className="text-[0.625rem] text-text-muted uppercase tracking-wider">
             Difference vs &ldquo;{scenarioResults[0].scenario.name}&rdquo;
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

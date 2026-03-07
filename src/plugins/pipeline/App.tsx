@@ -289,7 +289,7 @@ export default function PipelineBuilder() {
                               inspectIndex === i - 1 ? null : i - 1,
                             )
                           }
-                          className={`w-full flex items-center justify-center gap-1 px-pn-x py-1 text-[10px] cursor-pointer bg-transparent border-none ${
+                          className={`w-full flex items-center justify-center gap-1 px-pn-x py-1 text-[0.625rem] cursor-pointer bg-transparent border-none ${
                             !compatible
                               ? "text-danger"
                               : inspectIndex === i - 1
@@ -310,7 +310,7 @@ export default function PipelineBuilder() {
                       {/* Step card */}
                       <div className="border-b border-border">
                         <div className="flex items-center gap-2 px-pn-x py-pn-lbl bg-bg-surface">
-                          <span className="text-[10px] text-text-muted">
+                          <span className="text-[0.625rem] text-text-muted">
                             {i + 1}.
                           </span>
                           <span className="text-xs text-text flex-1 truncate">
@@ -320,7 +320,7 @@ export default function PipelineBuilder() {
                             type="button"
                             onClick={() => moveStep(step.id, -1)}
                             disabled={i === 0}
-                            className="text-[10px] text-text-muted hover:text-text disabled:opacity-30 cursor-pointer bg-transparent border-none p-0"
+                            className="text-[0.625rem] text-text-muted hover:text-text disabled:opacity-30 cursor-pointer bg-transparent border-none p-0"
                           >
                             ↑
                           </button>
@@ -328,14 +328,14 @@ export default function PipelineBuilder() {
                             type="button"
                             onClick={() => moveStep(step.id, 1)}
                             disabled={i === steps.length - 1}
-                            className="text-[10px] text-text-muted hover:text-text disabled:opacity-30 cursor-pointer bg-transparent border-none p-0"
+                            className="text-[0.625rem] text-text-muted hover:text-text disabled:opacity-30 cursor-pointer bg-transparent border-none p-0"
                           >
                             ↓
                           </button>
                           <button
                             type="button"
                             onClick={() => removeStep(step.id)}
-                            className="text-[10px] text-danger hover:text-danger cursor-pointer bg-transparent border-none p-0"
+                            className="text-[0.625rem] text-danger hover:text-danger cursor-pointer bg-transparent border-none p-0"
                           >
                             ✕
                           </button>
@@ -384,7 +384,7 @@ export default function PipelineBuilder() {
             {(output || inspectedData) && (
               <div className="border-t border-border">
                 <div className="px-pn-x py-pn-lbl bg-bg-surface border-b border-border-muted">
-                  <span className="text-[10px] uppercase tracking-widest text-text-muted">
+                  <span className="text-[0.625rem] uppercase tracking-widest text-text-muted">
                     {inspectIndex !== null
                       ? `step ${inspectIndex + 1} output`
                       : `output — ${stepResults.length > 0 ? `${stepResults[stepResults.length - 1].durationMs.toFixed(1)}ms` : ""}`}

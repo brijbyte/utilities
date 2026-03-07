@@ -134,7 +134,7 @@ export function Scanner({ onScan }: ScannerProps) {
 
             {currentDeviceLabel && (
               <div className="absolute top-2 left-2 right-2 flex justify-center pointer-events-none">
-                <div className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full backdrop-blur-sm max-w-[80%] truncate">
+                <div className="bg-black/60 text-white text-[0.625rem] px-2 py-0.5 rounded-full backdrop-blur-sm max-w-[80%] truncate">
                   {currentDeviceLabel}
                 </div>
               </div>

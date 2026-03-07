@@ -103,7 +103,7 @@ export function AffordabilityTab({
 
       {/* Visual bar */}
       <div className="flex flex-col gap-1">
-        <div className="flex justify-between text-[10px] text-text-muted">
+        <div className="flex justify-between text-[0.625rem] text-text-muted">
           <span>Income utilisation</span>
           <span>
             {fmt.percent(
@@ -126,7 +126,7 @@ export function AffordabilityTab({
             }}
           />
         </div>
-        <div className="flex gap-3 text-[10px] text-text-muted">
+        <div className="flex gap-3 text-[0.625rem] text-text-muted">
           <span className="flex items-center gap-1">
             <span className="inline-block w-2 h-2 rounded-sm bg-text-muted/30" />
             Existing obligations

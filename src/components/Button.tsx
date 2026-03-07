@@ -22,15 +22,21 @@ export function Button({
   variant = "outline",
   active,
   className = "",
+  disabled,
   ...props
 }: ButtonProps) {
   const activeClass = active
     ? "bg-accent-subtle border-accent text-accent ring-1 ring-accent/20"
     : "";
 
+  const disabledClass = disabled
+    ? "bg-bg-disabled text-text-disabled border-border-disabled pointer-events-none"
+    : "";
+
   return (
     <button
-      className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs leading-none border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${active ? activeClass : variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs leading-none border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${active ? activeClass : variantClasses[variant]} ${disabledClass} ${className}`}
+      disabled={disabled}
       {...props}
     />
   );

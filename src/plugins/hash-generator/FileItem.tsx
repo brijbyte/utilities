@@ -104,7 +104,7 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
   return (
     <div className="border-b border-border last:border-b-0">
       <div className="flex items-center gap-2 px-pn-x py-pn-lbl border-b border-border-muted bg-bg-surface">
-        <span className="text-[10px] tracking-widest text-text-muted truncate flex-1">
+        <span className="text-[0.625rem] tracking-widest text-text-muted truncate flex-1">
           {path}
           <span className="normal-case tracking-normal">
             {" "}
@@ -112,12 +112,12 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
           </span>
         </span>
         {phase === "reading" && (
-          <span className="text-[10px] text-text-muted whitespace-nowrap">
+          <span className="text-[0.625rem] text-text-muted whitespace-nowrap">
             reading {readProgress}%
           </span>
         )}
         {phase === "hashing" && (
-          <span className="text-[10px] text-text-muted whitespace-nowrap">
+          <span className="text-[0.625rem] text-text-muted whitespace-nowrap">
             hashing...
           </span>
         )}
@@ -125,13 +125,13 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
           <button
             type="button"
             onClick={handleCopyAll}
-            className="text-[10px] text-accent cursor-pointer bg-transparent border-none p-0 whitespace-nowrap hover:underline"
+            className="text-[0.625rem] text-accent cursor-pointer bg-transparent border-none p-0 whitespace-nowrap hover:underline"
           >
             {copied === "all" ? "copied!" : "copy all"}
           </button>
         )}
         {phase === "error" && (
-          <span className="text-[10px] text-danger whitespace-nowrap">
+          <span className="text-[0.625rem] text-danger whitespace-nowrap">
             error
           </span>
         )}

@@ -16,7 +16,7 @@ export function RateChangePanel({
 }: Props) {
   return (
     <>
-      <p className="text-[10px] text-text-muted">
+      <p className="text-[0.625rem] text-text-muted">
         Model floating-rate loans. EMI is recomputed at each rate change.
       </p>
 
@@ -82,7 +82,7 @@ export function RateChangePanel({
             },
           ])
         }
-        className="inline-flex items-center gap-1 text-[10px] text-primary hover:text-primary-hover cursor-pointer transition-colors self-start"
+        className="inline-flex items-center gap-1 text-[0.625rem] text-primary hover:text-primary-hover cursor-pointer transition-colors self-start"
       >
         <Plus size={10} /> Add Rate Change
       </button>

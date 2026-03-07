@@ -209,7 +209,7 @@ export function ScheduleSection({
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="inline-flex items-center gap-1 text-[10px] text-text-muted hover:text-primary transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 text-[0.625rem] text-text-muted hover:text-primary transition-colors cursor-pointer"
           >
             <Download size={10} /> CSV
           </button>
@@ -218,7 +218,7 @@ export function ScheduleSection({
     >
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[140px] max-w-[220px]">
+        <div className="relative flex-1 min-w-35 max-w-55">
           <Search
             size={12}
             className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted"
@@ -244,7 +244,7 @@ export function ScheduleSection({
       </div>
 
       {/* Sticky totals */}
-      <div className="grid grid-cols-4 gap-2 p-2 bg-bg-inset rounded-lg text-[10px] sticky top-0 z-10">
+      <div className="grid grid-cols-4 gap-2 p-2 bg-bg-inset rounded-lg text-[0.625rem] sticky top-0 z-10">
         <div>
           <span className="text-text-muted">Principal</span>
           <div className="text-primary font-medium tabular-nums">

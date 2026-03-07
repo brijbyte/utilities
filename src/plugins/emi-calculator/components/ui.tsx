@@ -1,9 +1,10 @@
 import { useState, useId, type ReactNode } from "react";
-import { Accordion } from "@base-ui/react/accordion";
 import { Slider } from "@base-ui/react/slider";
-import { Check, Copy, ChevronDown } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { Select } from "../../../components/Select";
 import type { Fmt } from "../utils/format";
+
+export { CollapsibleGroup, Collapsible } from "../../../components/Collapsible";
 
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -79,7 +80,7 @@ export function SliderField({
           </Slider.Track>
         </Slider.Control>
       </Slider.Root>
-      <div className="flex justify-between text-[10px] text-text-muted">
+      <div className="flex justify-between text-[0.625rem] text-text-muted">
         <span>
           {fmt.number(min)}
           {unit ? ` ${unit}` : ""}
@@ -167,7 +168,7 @@ export function MonthYearField({
       <span className="text-xs text-text-muted">{label}</span>
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-text-muted">Month</span>
+          <span className="text-[0.625rem] text-text-muted">Month</span>
           <Select
             value={String(month)}
             onValueChange={(v) => onMonthChange(Number(v))}
@@ -177,7 +178,7 @@ export function MonthYearField({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor={yearId} className="text-[10px] text-text-muted">
+          <label htmlFor={yearId} className="text-[0.625rem] text-text-muted">
             Year
           </label>
           <input
@@ -260,7 +261,7 @@ export function DonutChart({
         )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[10px] text-text-muted">Total</span>
+        <span className="text-[0.625rem] text-text-muted">Total</span>
         <span className="text-xs font-medium text-text">
           {fmt.compact(total)}
         </span>
@@ -284,73 +285,16 @@ export function SummaryCard({
 }) {
   return (
     <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-bg-inset min-w-0">
-      <span className="text-[10px] text-text-muted uppercase tracking-wider truncate">
+      <span className="text-[0.625rem] text-text-muted uppercase tracking-wider truncate">
         {label}
       </span>
       <span className={`text-sm font-medium truncate ${color ?? "text-text"}`}>
         {value}
       </span>
       {sub && (
-        <span className="text-[10px] text-text-muted truncate">{sub}</span>
+        <span className="text-[0.625rem] text-text-muted truncate">{sub}</span>
       )}
     </div>
-  );
-}
-
-// ── Collapsible accordion ────────────────────────────────────────────
-
-export function CollapsibleGroup({
-  children,
-  defaultValue,
-}: {
-  children: ReactNode;
-  defaultValue?: string[];
-}) {
-  return (
-    <Accordion.Root
-      multiple
-      defaultValue={defaultValue}
-      className="flex flex-col gap-2"
-    >
-      {children}
-    </Accordion.Root>
-  );
-}
-
-export function Collapsible({
-  value,
-  title,
-  icon,
-  badge,
-  children,
-}: {
-  value: string;
-  title: string;
-  icon: ReactNode;
-  badge?: string;
-  children: ReactNode;
-}) {
-  return (
-    <Accordion.Item
-      value={value}
-      className="border border-border rounded-lg overflow-hidden"
-    >
-      <Accordion.Header>
-        <Accordion.Trigger className="w-full flex items-center gap-2 px-3 py-2 bg-bg-surface hover:bg-bg-hover cursor-pointer transition-colors text-xs select-none [&>svg]:transition-transform [&>svg]:duration-200 [&>svg]:data-panel-open:rotate-180">
-          <ChevronDown size={13} className="text-text-muted shrink-0" />
-          {icon}
-          <span className="font-medium text-text">{title}</span>
-          {badge && (
-            <span className="ml-auto px-1.5 py-0.5 text-[10px] rounded-full bg-primary/10 text-primary font-medium">
-              {badge}
-            </span>
-          )}
-        </Accordion.Trigger>
-      </Accordion.Header>
-      <Accordion.Panel className="px-3 py-3 border-t border-border-muted flex flex-col gap-3">
-        {children}
-      </Accordion.Panel>
-    </Accordion.Item>
   );
 }
 
@@ -423,7 +367,7 @@ export function CopyBtn({
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="inline-flex items-center gap-1 text-[10px] text-text-muted hover:text-primary transition-colors cursor-pointer"
+      className="inline-flex items-center gap-1 text-[0.625rem] text-text-muted hover:text-primary transition-colors cursor-pointer"
     >
       {copied ? <Check size={10} /> : <Copy size={10} />}
       {copied ? "Copied" : label}

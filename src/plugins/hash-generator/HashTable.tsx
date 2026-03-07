@@ -29,7 +29,7 @@ export function HashTable({
                 onCopy(hashes[algo]!, copyKey);
               }}
             >
-              <td className="text-[10px] tracking-widest text-text-muted py-1 px-pn-x whitespace-nowrap align-middle w-0">
+              <td className="text-[0.625rem] tracking-widest text-text-muted py-1 px-pn-x whitespace-nowrap align-middle w-0">
                 {algo}
               </td>
               <td className="text-xs font-mono text-text break-all leading-relaxed py-1 px-2 group-hover:text-accent transition-colors">

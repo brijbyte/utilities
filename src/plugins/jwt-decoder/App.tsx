@@ -71,7 +71,7 @@ function Section({
   return (
     <div className="border-b border-border-muted last:border-b-0">
       <div className="flex items-center gap-2 px-pn-x py-1 bg-bg-inset border-b border-border-muted">
-        <span className="text-[10px] uppercase tracking-widest text-text-muted flex-1">
+        <span className="text-[0.625rem] uppercase tracking-widest text-text-muted flex-1">
           {title}
         </span>
         {extra}
@@ -175,7 +175,7 @@ function TokenBody({ decoded }: { decoded: DecodedJwt }) {
           <button
             type="button"
             onClick={() => copySection(decoded.header)}
-            className="text-[10px] text-accent cursor-pointer bg-transparent border-none p-0 hover:underline"
+            className="text-[0.625rem] text-accent cursor-pointer bg-transparent border-none p-0 hover:underline"
           >
             copy
           </button>
@@ -192,7 +192,7 @@ function TokenBody({ decoded }: { decoded: DecodedJwt }) {
           <button
             type="button"
             onClick={() => copySection(decoded.payload)}
-            className="text-[10px] text-accent cursor-pointer bg-transparent border-none p-0 hover:underline"
+            className="text-[0.625rem] text-accent cursor-pointer bg-transparent border-none p-0 hover:underline"
           >
             copy
           </button>
@@ -211,7 +211,7 @@ function TokenBody({ decoded }: { decoded: DecodedJwt }) {
         <p className="text-xs text-text font-mono break-all">
           {decoded.signature}
         </p>
-        <p className="text-[10px] text-text-muted mt-2">
+        <p className="text-[0.625rem] text-text-muted mt-2">
           algorithm: {String(decoded.header.alg ?? "unknown")}
         </p>
       </Section>
@@ -340,10 +340,10 @@ export default function JwtDecoder() {
         {/* Left: input */}
         <div className="flex-1 flex flex-col min-w-0 border-r border-border">
           <div className="flex items-center gap-2 px-pn-x py-pn-lbl bg-bg-surface border-b border-border-muted min-h-[32px]">
-            <span className="text-[10px] uppercase tracking-widest text-text-muted">
+            <span className="text-[0.625rem] uppercase tracking-widest text-text-muted">
               tokens — one per line
             </span>
-            <label className="ml-auto flex items-center gap-1 text-[10px] text-text-muted cursor-pointer select-none">
+            <label className="ml-auto flex items-center gap-1 text-[0.625rem] text-text-muted cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={autoFocus}
@@ -374,7 +374,7 @@ export default function JwtDecoder() {
         {/* Right: decoded */}
         <div className="flex-1 flex flex-col min-w-0 overflow-auto">
           <div className="flex items-center px-pn-x py-pn-lbl bg-bg-surface border-b border-border-muted min-h-[32px]">
-            <span className="text-[10px] uppercase tracking-widest text-text-muted">
+            <span className="text-[0.625rem] uppercase tracking-widest text-text-muted">
               decoded
             </span>
           </div>
@@ -413,20 +413,20 @@ export default function JwtDecoder() {
                           className="text-text-muted transition-transform duration-150 group-data-panel-open:rotate-90"
                         />
                         <span
-                          className={`text-[10px] uppercase tracking-widest flex-1 ${
+                          className={`text-[0.625rem] uppercase tracking-widest flex-1 ${
                             isFocused ? "text-accent" : "text-text-muted"
                           }`}
                         >
                           token #{entry.line}
                         </span>
                         {entry.error && (
-                          <span className="text-[10px] text-danger">
+                          <span className="text-[0.625rem] text-danger">
                             invalid
                           </span>
                         )}
                         {expStatus && (
                           <span
-                            className={`text-[10px] ${expStatus.className}`}
+                            className={`text-[0.625rem] ${expStatus.className}`}
                           >
                             {expStatus.label}
                           </span>

@@ -25,6 +25,7 @@ src/
 
   components/               Shared UI primitives.
     Button.tsx              Button with variants: primary, secondary, danger, ghost, outline. Supports active state.
+    Collapsible.tsx         CollapsibleGroup + Collapsible accordion components (Base UI Accordion). Icon, title, badge. Used by EMI calculator and video editor.
     ResizeHandle.tsx         Drag handle for resizable panels with GripVertical icon.
     Select.tsx              Generic Select dropdown wrapping Base UI Select. Props: value, onValueChange, options ({value, label}[]), align, triggerClassName, popupMinWidth.
     SplitPanel.tsx          Generic two-panel horizontal layout using react-resizable-panels. Labels accept ReactNode.
@@ -400,6 +401,60 @@ Each device creates its own passkey + wrapping. The password is the cross-device
 - Image upload: `File` → `Image` → canvas → `jsQR`.
 - Parses `otpauth://totp/...` URIs. Extracts issuer, label, secret, algorithm, digits, period.
 - Deduplication on import: checks (secret + issuer + label) triple.
+
+### Video Editor Plugin
+
+Client-side video processing powered by FFmpeg WASM. All processing happens in the browser — no server upload.
+
+#### File Structure
+
+```
+plugins/video-editor/
+  App.tsx                       Root component. Upload zone, video preview, collapsible operation panels, progress, output.
+  VIDEO_EDITOR.md               Feature roadmap and design notes.
+  utils/
+    types.ts                    Operation config interfaces (CompressConfig, TrimConfig, etc.), VideoMeta, ProcessingState, helpers.
+    ffmpeg.ts                   FFmpeg WASM singleton: lazy-load from CDN, write/read files, exec, cleanup, terminate.
+    commands.ts                 Build FFmpeg CLI argument arrays from operation configs. Handles codec selection, filters, bitrate math.
+  components/
+    UploadZone.tsx              Drag-and-drop + file picker for video upload.
+    FileInfo.tsx                Input file metadata cards (format, size, resolution, duration).
+    CompressPanel.tsx           Compression settings: format (MP4/WebM), CRF slider or target file size mode.
+    TrimPanel.tsx               Start/end time inputs with visual timeline bar.
+    ResizePanel.tsx             Resolution presets (1080p/720p/480p/360p/custom) + aspect ratio lock.
+    ConvertPanel.tsx            Output format selector (video + audio formats).
+    AudioPanel.tsx              Remove audio / extract audio (MP3/AAC/WAV/OGG).
+    RotatePanel.tsx             Rotation (0°/90°/180°/270°) + horizontal/vertical flip buttons.
+    ProgressBar.tsx             Processing progress bar with cancel button, error display.
+    OutputSection.tsx           Output preview (video/audio), download, before/after size comparison.
+    Skeleton.tsx                Loading skeleton.
+```
+
+#### Architecture
+
+- **Single-page scrollable layout** with collapsible operation panels (shared `Collapsible` component).
+- Each operation has an enable checkbox inside its panel. Only enabled operations contribute to the FFmpeg command.
+- **FFmpeg WASM** (`@ffmpeg/ffmpeg` + `@ffmpeg/util`) loaded lazily from CDN on first process. Single-threaded core (no COOP/COEP headers needed).
+- **Command builder** (`commands.ts`) composes FFmpeg CLI args from enabled operations: trim → rotate/flip → resize → codec/compression → audio → output format.
+- **Processing flow**: Load FFmpeg → write input to virtual FS → exec command → read output → create blob URL → display.
+- Progress tracked via FFmpeg's `onProgress` callback. Cancel terminates the FFmpeg instance.
+- **Size warning** shown for files >500MB (browser memory constraints).
+- **Output section** shows before/after file size comparison with percentage change, video/audio preview, and download button.
+
+#### Supported Operations (MVP)
+
+1. **Compress** — CRF quality slider (0–51) or target file size. H.264 (MP4) or VP9 (WebM).
+2. **Trim** — Start/end time inputs with visual timeline indicator. Accepts mm:ss.ms format.
+3. **Resize** — Preset resolutions or custom dimensions. Aspect ratio preservation with even-dimension padding.
+4. **Convert** — MP4, WebM, GIF, AVI, MOV, or audio-only (MP3, AAC, WAV, OGG).
+5. **Audio** — Remove audio track or extract audio to separate file.
+6. **Rotate/Flip** — 90°/180°/270° rotation via transpose filter + horizontal/vertical flip.
+
+#### Dependencies
+
+- `@ffmpeg/ffmpeg` — FFmpeg WASM JavaScript API.
+- `@ffmpeg/util` — `fetchFile` and `toBlobURL` helpers.
+- `@ffmpeg/core` — FFmpeg WASM binary (loaded from unpkg CDN at runtime, not bundled).
 
 ## Conventions
 
