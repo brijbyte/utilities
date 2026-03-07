@@ -16,6 +16,16 @@
       "purpose": "any maskable"
     }
   ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+otpauth",
+      "url": "/a/totp-authenticator?uri=%s"
+    },
+    {
+      "protocol": "otpauth",
+      "url": "/a/totp-authenticator?uri=%s"
+    }
+  ],
   "shortcuts": [
     {
       "name": "TOTP Authenticator",

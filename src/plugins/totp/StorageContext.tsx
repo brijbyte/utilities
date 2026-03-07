@@ -282,21 +282,34 @@ export function StorageProvider({ children }: { children: ReactNode }) {
   const addAccount = useCallback(
     async (account: TotpAccount) => {
       if (!mk) return;
-      const updated = [...accounts, account];
-      setAccounts(updated);
+      // Read current truth from IndexedDB, not React state
+      const current = await readVaultData(mk);
+      const exists = current.some(
+        (a: TotpAccount) =>
+          a.secret === account.secret &&
+          a.issuer === account.issuer &&
+          a.label === account.label,
+      );
+      if (exists) {
+        throw new Error("EXISTS");
+      }
+      const updated = [...current, account];
       await persistAndSync(mk, updated);
+      setAccounts(updated);
     },
-    [mk, accounts, persistAndSync],
+    [mk, persistAndSync],
   );
 
   const removeAccount = useCallback(
     async (id: string) => {
       if (!mk) return;
-      const updated = accounts.filter((a) => a.id !== id);
-      setAccounts(updated);
+      // Read current truth from IndexedDB, not React state
+      const current = await readVaultData(mk);
+      const updated = current.filter((a) => a.id !== id);
       await persistAndSync(mk, updated);
+      setAccounts(updated);
     },
-    [mk, accounts, persistAndSync],
+    [mk, persistAndSync],
   );
 
   const refreshAccounts = useCallback(async () => {

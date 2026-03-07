@@ -1,16 +1,16 @@
 import { Toast } from "@base-ui/react/toast";
-import { useState } from "react";
-import type { TotpAccount } from "./db";
-import { parseUri, decodeQrFromImage, isImportError } from "./qr-import";
-import { StorageProvider } from "./StorageContext";
-import { useStorage } from "./useStorage";
-import { TotpToolbar } from "./TotpToolbar";
-import { ScanDialog } from "./ScanDialog";
+import { useEffect, useRef, useState } from "react";
 import { AccountList } from "./AccountList";
-import { SetupScreen } from "./SetupScreen";
 import { LockScreen } from "./LockScreen";
+import { consumePendingUri } from "./pending-uri";
+import { decodeQrFromImage, isImportError, parseUri } from "./qr-import";
+import { ScanDialog } from "./ScanDialog";
 import { SettingsDialog } from "./SettingsDialog";
+import { SetupScreen } from "./SetupScreen";
 import { TotpGridSkeleton } from "./Skeleton";
+import { StorageProvider } from "./StorageContext";
+import { TotpToolbar } from "./TotpToolbar";
+import { useStorage } from "./useStorage";
 
 export default function TotpApp() {
   return (
@@ -25,6 +25,54 @@ function TotpAppInner() {
   const [showSettings, setShowSettings] = useState(false);
   const toastManager = Toast.useToastManager();
   const { vaultState, accounts, addAccount, removeAccount } = useStorage();
+
+  // ── Protocol handler: auto-import otpauth URI from URL ───────────
+  // Stash the URI immediately (before any re-render clears the URL),
+  // then process it once the vault reaches the "unlocked" state.
+  const pendingRef = useRef<string | null>(consumePendingUri());
+
+  async function handleScan(uri: string) {
+    const result = parseUri(uri);
+    if (isImportError(result)) {
+      toastManager.add({ title: result.error });
+      return;
+    }
+    const { account } = result;
+    setIsScanning(false);
+
+    try {
+      await addAccount(account);
+    } catch (e) {
+      if (e instanceof Error && e.message === "EXISTS") {
+        toastManager.add({ title: "Account already exists." });
+      }
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const data = await decodeQrFromImage(file);
+    if (data) {
+      handleScan(data);
+    } else {
+      toastManager.add({ title: "No QR code found in image." });
+    }
+  }
+
+  async function handleDelete(id: string) {
+    await removeAccount(id);
+  }
+
+  useEffect(() => {
+    if (vaultState !== "unlocked" || !pendingRef.current) return;
+    const uri = pendingRef.current;
+    pendingRef.current = null;
+
+    handleScan(uri);
+    // Run only when vaultState transitions to "unlocked"
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vaultState]);
 
   // ── State-based rendering ────────────────────────────────────────
 
@@ -60,43 +108,6 @@ function TotpAppInner() {
   }
 
   // ── Unlocked state ───────────────────────────────────────────────
-
-  async function handleScan(uri: string) {
-    const result = parseUri(uri);
-    if (isImportError(result)) {
-      toastManager.add({ title: result.error });
-      return;
-    }
-    const { account } = result;
-    const exists = accounts.some(
-      (a: TotpAccount) =>
-        a.secret === account.secret &&
-        a.issuer === account.issuer &&
-        a.label === account.label,
-    );
-    if (exists) {
-      toastManager.add({ title: "Account already exists." });
-      setIsScanning(false);
-      return;
-    }
-    setIsScanning(false);
-    await addAccount(account);
-  }
-
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const data = await decodeQrFromImage(file);
-    if (data) {
-      handleScan(data);
-    } else {
-      toastManager.add({ title: "No QR code found in image." });
-    }
-  }
-
-  async function handleDelete(id: string) {
-    await removeAccount(id);
-  }
 
   return (
     <div className="h-full flex flex-col">
