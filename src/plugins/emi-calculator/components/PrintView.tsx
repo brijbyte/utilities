@@ -284,6 +284,7 @@ function buildPrintHTML(d: PrintData): string {
       background: #f5f5f4;
       border-bottom: 1px solid #e7e5e4;
       font-size: 12px;
+      justify-content: space-between;
     }
     .print-toolbar label {
       display: flex;
@@ -325,7 +326,10 @@ function buildPrintHTML(d: PrintData): string {
       <input type="checkbox" checked onchange="document.body.classList.toggle('hide-charts', !this.checked)">
       Include Charts
     </label>
-    <button onclick="window.print()">Print</button>
+    <div style="display: flex; gap: 12px;">
+      <button onclick="window.close()">Close</button>
+      <button onclick="window.print()">Print</button>
+    </div>
   </div>
 
   <h1>EMI Amortisation Report</h1>
