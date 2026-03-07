@@ -80,16 +80,16 @@ export function SetupScreen() {
 
   if (mode === "create") {
     return (
-      <div className="flex-1 flex items-center justify-center p-xl">
-        <div className="w-full max-w-4xl flex flex-col gap-xl">
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-4xl flex flex-col gap-6">
           <button
             onClick={() => setMode("choose")}
-            className="self-start flex items-center gap-xs text-text-muted hover:text-text text-xs cursor-pointer bg-transparent border-none"
+            className="self-start flex items-center gap-1 text-text-muted hover:text-text text-xs cursor-pointer bg-transparent border-none"
           >
             <ArrowLeft size={14} /> Back
           </button>
 
-          <div className="flex flex-col gap-sm">
+          <div className="flex flex-col gap-2">
             <h2 className="text-lg font-medium text-text">Create Password</h2>
             <p className="text-xs text-text-muted leading-relaxed">
               This password encrypts your TOTP secrets. You'll need it to unlock
@@ -97,7 +97,7 @@ export function SetupScreen() {
             </p>
           </div>
 
-          <div className="flex items-start gap-sm p-md bg-bg border border-border rounded-lg">
+          <div className="flex items-start gap-2 p-3 bg-bg border border-border rounded-lg">
             <AlertTriangle size={16} className="text-danger shrink-0 mt-0.5" />
             <p className="text-xs text-text-muted leading-relaxed">
               If you forget this password, your secrets cannot be recovered.
@@ -105,19 +105,19 @@ export function SetupScreen() {
             </p>
           </div>
 
-          <form onSubmit={handleCreate} className="flex flex-col gap-md">
-            <div className="flex flex-col gap-xs">
+          <form onSubmit={handleCreate} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
               <label className="text-xs text-text-muted">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-bg-surface border border-border rounded-lg px-md py-sm text-sm text-text outline-none focus:border-accent transition-colors"
+                className="w-full bg-bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-accent transition-colors"
                 placeholder="Minimum 8 characters"
                 autoFocus
               />
             </div>
-            <div className="flex flex-col gap-xs">
+            <div className="flex flex-col gap-1">
               <label className="text-xs text-text-muted">
                 Confirm Password
               </label>
@@ -125,7 +125,7 @@ export function SetupScreen() {
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full bg-bg-surface border border-border rounded-lg px-md py-sm text-sm text-text outline-none focus:border-accent transition-colors"
+                className="w-full bg-bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-accent transition-colors"
                 placeholder="Re-enter password"
               />
             </div>
@@ -135,7 +135,7 @@ export function SetupScreen() {
             <Button
               variant="primary"
               disabled={loading}
-              className="w-full py-sm"
+              className="w-full py-2"
             >
               {loading ? (
                 <>
@@ -154,7 +154,7 @@ export function SetupScreen() {
 
   if (mode === "restore-loading") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-lg">
+      <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Loader2 size={32} className="animate-spin text-text-muted" />
         <p className="text-sm text-text-muted">Connecting to Google Drive…</p>
       </div>
@@ -164,8 +164,8 @@ export function SetupScreen() {
   if (mode === "restore-password" && blob) {
     const date = new Date(blob.updatedAt);
     return (
-      <div className="flex-1 flex items-center justify-center p-xl">
-        <div className="w-full max-w-4xl flex flex-col gap-xl">
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-4xl flex flex-col gap-6">
           <button
             onClick={() => {
               setMode("choose");
@@ -173,12 +173,12 @@ export function SetupScreen() {
               setPassword("");
               setError("");
             }}
-            className="self-start flex items-center gap-xs text-text-muted hover:text-text text-xs cursor-pointer bg-transparent border-none"
+            className="self-start flex items-center gap-1 text-text-muted hover:text-text text-xs cursor-pointer bg-transparent border-none"
           >
             <ArrowLeft size={14} /> Back
           </button>
 
-          <div className="flex flex-col gap-sm">
+          <div className="flex flex-col gap-2">
             <h2 className="text-lg font-medium text-text">Restore Backup</h2>
             <p className="text-xs text-text-muted leading-relaxed">
               Found a backup on Google Drive. Enter your encryption password to
@@ -186,7 +186,7 @@ export function SetupScreen() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-xs p-md bg-bg-surface border border-border rounded-lg">
+          <div className="flex flex-col gap-1 p-3 bg-bg-surface border border-border rounded-lg">
             <div className="flex justify-between text-xs">
               <span className="text-text-muted">Accounts</span>
               <span className="text-text">{blob.accountCount}</span>
@@ -199,8 +199,8 @@ export function SetupScreen() {
             </div>
           </div>
 
-          <form onSubmit={handleRestore} className="flex flex-col gap-md">
-            <div className="flex flex-col gap-xs">
+          <form onSubmit={handleRestore} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
               <label className="text-xs text-text-muted">
                 Encryption Password
               </label>
@@ -208,7 +208,7 @@ export function SetupScreen() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-bg-surface border border-border rounded-lg px-md py-sm text-sm text-text outline-none focus:border-accent transition-colors"
+                className="w-full bg-bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-accent transition-colors"
                 placeholder="Enter your password"
                 autoFocus
               />
@@ -219,7 +219,7 @@ export function SetupScreen() {
             <Button
               variant="primary"
               disabled={loading}
-              className="w-full py-sm"
+              className="w-full py-2"
             >
               {loading ? (
                 <>
@@ -238,9 +238,9 @@ export function SetupScreen() {
 
   // Default: choose mode
   return (
-    <div className="flex-1 flex items-center justify-center p-xl">
-      <div className="w-full max-w-4xl flex flex-col gap-xl">
-        <div className="flex flex-col items-center gap-sm text-center">
+    <div className="flex-1 flex items-center justify-center p-6">
+      <div className="w-full max-w-4xl flex flex-col gap-6">
+        <div className="flex flex-col items-center gap-2 text-center">
           <h2 className="text-lg font-medium text-text">Authenticator</h2>
           <p className="text-xs text-text-muted leading-relaxed">
             Your TOTP secrets are encrypted with a password. Set one up to get
@@ -250,13 +250,13 @@ export function SetupScreen() {
 
         {error && <p className="text-xs text-danger text-center">{error}</p>}
 
-        <div className="flex flex-col gap-md">
+        <div className="flex flex-col gap-3">
           <button
             onClick={() => {
               setMode("create");
               setError("");
             }}
-            className="flex items-center gap-md p-lg bg-bg-surface border border-border rounded-xl hover:border-accent cursor-pointer transition-colors text-left"
+            className="flex items-center gap-3 p-4 bg-bg-surface border border-border rounded-xl hover:border-accent cursor-pointer transition-colors text-left"
           >
             <div className="w-10 h-10 rounded-lg bg-accent-subtle flex items-center justify-center shrink-0">
               <Plus size={20} className="text-accent" />
@@ -271,7 +271,7 @@ export function SetupScreen() {
 
           <button
             onClick={handleCheckDrive}
-            className="flex items-center gap-md p-lg bg-bg-surface border border-border rounded-xl hover:border-accent cursor-pointer transition-colors text-left"
+            className="flex items-center gap-3 p-4 bg-bg-surface border border-border rounded-xl hover:border-accent cursor-pointer transition-colors text-left"
           >
             <div className="w-10 h-10 rounded-lg bg-accent-subtle flex items-center justify-center shrink-0">
               <Cloud size={20} className="text-accent" />

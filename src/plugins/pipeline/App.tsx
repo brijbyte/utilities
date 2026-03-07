@@ -206,7 +206,7 @@ export default function PipelineBuilder() {
           )}
         />
 
-        <Toolbar.Separator className="w-px h-5 bg-border-muted mx-xs" />
+        <Toolbar.Separator className="w-px h-5 bg-border-muted mx-1" />
 
         {output && (
           <Toolbar.Button
@@ -289,7 +289,7 @@ export default function PipelineBuilder() {
                               inspectIndex === i - 1 ? null : i - 1,
                             )
                           }
-                          className={`w-full flex items-center justify-center gap-xs px-pn-x py-xs text-[10px] cursor-pointer bg-transparent border-none ${
+                          className={`w-full flex items-center justify-center gap-1 px-pn-x py-1 text-[10px] cursor-pointer bg-transparent border-none ${
                             !compatible
                               ? "text-danger"
                               : inspectIndex === i - 1
@@ -300,7 +300,7 @@ export default function PipelineBuilder() {
                           ↓ {schemaLabel(prevOp.output)}
                           {!compatible && " ⚠ type mismatch"}
                           {stepResult && (
-                            <span className="text-text-muted ml-xs">
+                            <span className="text-text-muted ml-1">
                               {stepResults[i - 1]?.durationMs.toFixed(1)}ms
                             </span>
                           )}
@@ -309,7 +309,7 @@ export default function PipelineBuilder() {
 
                       {/* Step card */}
                       <div className="border-b border-border">
-                        <div className="flex items-center gap-sm px-pn-x py-pn-lbl bg-bg-surface">
+                        <div className="flex items-center gap-2 px-pn-x py-pn-lbl bg-bg-surface">
                           <span className="text-[10px] text-text-muted">
                             {i + 1}.
                           </span>
@@ -341,7 +341,7 @@ export default function PipelineBuilder() {
                           </button>
                         </div>
                         {hasConfigFields(op) && (
-                          <div className="px-pn-x py-xs border-t border-border-muted">
+                          <div className="px-pn-x py-1 border-t border-border-muted">
                             <ConfigEditor
                               schema={op.config}
                               value={step.config}
@@ -364,7 +364,7 @@ export default function PipelineBuilder() {
                   onChange={(e) => {
                     if (e.target.value) addStep(e.target.value);
                   }}
-                  className="border border-border bg-bg-surface text-text px-sm py-xs text-xs cursor-pointer w-full"
+                  className="border border-border bg-bg-surface text-text px-2 py-1 text-xs cursor-pointer w-full"
                 >
                   <option value="">+ add step...</option>
                   {groupedOps.map(([pluginId, group]) => (

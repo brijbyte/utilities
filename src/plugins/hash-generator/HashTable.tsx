@@ -29,10 +29,10 @@ export function HashTable({
                 onCopy(hashes[algo]!, copyKey);
               }}
             >
-              <td className="text-[10px] tracking-widest text-text-muted py-xs px-pn-x whitespace-nowrap align-middle w-0">
+              <td className="text-[10px] tracking-widest text-text-muted py-1 px-pn-x whitespace-nowrap align-middle w-0">
                 {algo}
               </td>
-              <td className="text-xs font-mono text-text break-all leading-relaxed py-xs px-sm group-hover:text-accent transition-colors">
+              <td className="text-xs font-mono text-text break-all leading-relaxed py-1 px-2 group-hover:text-accent transition-colors">
                 {hashes[algo] ? (
                   hashes[algo]
                 ) : (
@@ -41,7 +41,7 @@ export function HashTable({
                   </span>
                 )}
               </td>
-              <td className="py-xs px-pn-x w-0 align-middle">
+              <td className="py-1 px-pn-x w-0 align-middle">
                 {hashes[algo] &&
                   (copied === copyKey ? (
                     <Check size={14} className="text-accent" />

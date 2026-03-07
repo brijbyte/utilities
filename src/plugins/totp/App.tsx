@@ -131,7 +131,7 @@ function TotpAppInner() {
         onScan={handleScan}
       />
       <SettingsDialog open={showSettings} onOpenChange={setShowSettings} />
-      <div className="flex-1 p-pn-y px-pn-x overflow-auto flex flex-col gap-md mx-auto w-full">
+      <div className="flex-1 p-pn-y px-pn-x overflow-auto flex flex-col gap-3 mx-auto w-full">
         <AccountList accounts={accounts} onDelete={handleDelete} />
       </div>
     </div>

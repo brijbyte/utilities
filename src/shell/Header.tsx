@@ -15,8 +15,8 @@ export function Header() {
   const online = useOnline();
 
   return (
-    <header className="h-hdr border-b border-border flex items-center justify-between px-md bg-bg-surface">
-      <div className="flex items-center gap-md shrink-0">
+    <header className="h-hdr border-b border-border flex items-center justify-between px-3 bg-bg-surface">
+      <div className="flex items-center gap-3 shrink-0">
         <Popover.Root open={open} onOpenChange={setOpen}>
           <Popover.Trigger className="w-8 h-8 flex items-center justify-center border border-border rounded bg-bg-surface hover:bg-bg-hover cursor-pointer text-text-muted hover:text-text transition-colors">
             <LayoutGrid size={14} />
@@ -41,7 +41,7 @@ export function Header() {
           </Link>
           <span className="text-xs">&nbsp;/</span>
           {plugin && (
-            <span className="flex items-center gap-sm text-xs text-text-muted">
+            <span className="flex items-center gap-2 text-xs text-text-muted">
               &nbsp;
               <span className="text-text [&>svg]:size-3.5">{plugin.icon}</span>
               <span className="text-text">{plugin.name}</span>
@@ -50,9 +50,9 @@ export function Header() {
         </span>
       </div>
 
-      <div className="flex items-center gap-md">
+      <div className="flex items-center gap-3">
         {!online && (
-          <span className="flex items-center gap-xs text-danger text-xs">
+          <span className="flex items-center gap-1 text-danger text-xs">
             <WifiOff size={14} />
             <span className="hidden sm:inline">Offline</span>
           </span>

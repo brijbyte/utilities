@@ -20,7 +20,7 @@ export function ThemeSwitcher() {
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner sideOffset={6} align="end" className="outline-none">
-          <Menu.Popup className="bg-bg-surface border border-border py-xs min-w-35 origin-(--transform-origin) transition-[transform,scale,opacity] data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
+          <Menu.Popup className="bg-bg-surface border border-border py-1 min-w-35 origin-(--transform-origin) transition-[transform,scale,opacity] data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
             <Menu.RadioGroup
               value={theme}
               onValueChange={(v) => setTheme(v as Theme)}
@@ -29,12 +29,12 @@ export function ThemeSwitcher() {
                 <Menu.RadioItem
                   key={opt.value}
                   value={opt.value}
-                  className="grid grid-cols-[1rem_1fr] items-center gap-sm py-mi-y px-mi-x text-xs cursor-default outline-none select-none text-text data-highlighted:bg-bg-hover"
+                  className="grid grid-cols-[1rem_1fr] items-center gap-2 py-mi-y px-mi-x text-xs cursor-default outline-none select-none text-text data-highlighted:bg-bg-hover"
                 >
                   <Menu.RadioItemIndicator className="col-start-1 text-accent">
                     ✓
                   </Menu.RadioItemIndicator>
-                  <span className="col-start-2 flex items-center gap-sm">
+                  <span className="col-start-2 flex items-center gap-2">
                     <span className="text-text-muted">{opt.icon}</span>
                     {opt.label}
                   </span>

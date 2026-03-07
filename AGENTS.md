@@ -84,15 +84,20 @@ The same Plugin interface supports remote plugins. Just point `load` at a remote
 ### Theming
 
 - All colors use semantic CSS custom properties (e.g., `--color-bg-surface`, `--color-primary`).
+- Semantic tokens reference Tailwind v4 built-in palette via `var(--color-stone-*)`, `var(--color-blue-*)`, etc.
+- Base palette: **stone** (neutrals), **blue** (primary/accent), **red** (danger), **green** (success).
 - Dark mode: `.dark` class on `<html>` overrides all color variables. Managed by `ThemeProvider`.
 - Custom Tailwind v4 variant: `@custom-variant dark (&:where(.dark, .dark *))`.
 - Never use raw color values (e.g., `text-red-500`). Always use token aliases (`text-danger`).
-- Spacing uses `--spacing-*` tokens in Tailwind's `@theme` so they work as utilities: `p-sm`, `gap-tb`, `px-pn-x`, `h-hdr`, etc.
+- Never hardcode hex/oklch in `@theme` when a Tailwind built-in color exists — use `var(--color-stone-*)` etc.
+- Spacing uses Tailwind v4's built-in numeric multiplier (`--spacing: 0.25rem`) for the base scale: `p-1` (4px), `gap-2` (8px), `p-3` (12px), `m-4` (16px), `gap-6` (24px), `p-8` (32px), `m-10` (40px).
+- Custom semantic `--spacing-*` tokens in `@theme` for app-specific shortcuts: `gap-tb`, `px-pn-x`, `h-hdr`, etc.
+- **Do NOT define `--spacing-xs/sm/md/lg/xl/2xl/3xl`** in `@theme` — these names collide with built-in Tailwind tokens (radius, shadow, text size, containers all share these suffixes). Use numeric values instead.
 
 ### Spacing Token Naming
 
-Base scale: `xs` (4px), `sm` (8px), `md` (12px), `lg` (16px), `xl` (24px), `2xl` (32px), `3xl` (40px).
-Semantic shortcuts:
+Numeric scale (Tailwind built-in): `1` (4px), `2` (8px), `3` (12px), `4` (16px), `6` (24px), `8` (32px), `10` (40px).
+Semantic shortcuts (custom `--spacing-*` in `@theme`):
 
 - `hdr` / `hdr-x` — header height / inline padding
 - `tb-x` / `tb-y` / `tb` — toolbar padding / gap

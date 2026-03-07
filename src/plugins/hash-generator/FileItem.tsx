@@ -103,7 +103,7 @@ export const FileItem = memo(function FileItem({ file, path }: FileItemProps) {
 
   return (
     <div className="border-b border-border last:border-b-0">
-      <div className="flex items-center gap-sm px-pn-x py-pn-lbl border-b border-border-muted bg-bg-surface">
+      <div className="flex items-center gap-2 px-pn-x py-pn-lbl border-b border-border-muted bg-bg-surface">
         <span className="text-[10px] tracking-widest text-text-muted truncate flex-1">
           {path}
           <span className="normal-case tracking-normal">

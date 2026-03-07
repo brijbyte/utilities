@@ -14,7 +14,7 @@ import { PluginPage } from "./shell/PluginPage";
 function Toaster() {
   return (
     <Toast.Portal>
-      <Toast.Viewport className="fixed top-hdr left-1/2 -translate-x-1/2 z-100 flex flex-col gap-sm p-sm w-75 max-w-[90vw]">
+      <Toast.Viewport className="fixed top-hdr left-1/2 -translate-x-1/2 z-100 flex flex-col gap-2 p-2 w-75 max-w-[90vw]">
         <GlobalToasts />
       </Toast.Viewport>
     </Toast.Portal>

@@ -202,7 +202,7 @@ export default function HashGenerator() {
           className="hidden"
         />
 
-        <Toolbar.Separator className="w-px h-5 bg-border-muted mx-xs" />
+        <Toolbar.Separator className="w-px h-5 bg-border-muted mx-1" />
 
         {textHashes && (
           <Toolbar.Button

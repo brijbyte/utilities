@@ -53,16 +53,16 @@ export function LockScreen() {
 
   function PasswordForm({ variant }: { variant: Variant }) {
     return (
-      <form onSubmit={handleSubmit} className="w-full flex flex-col gap-md">
+      <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3">
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full bg-bg-surface border border-border rounded-lg px-md py-sm text-sm text-text outline-none focus:border-accent transition-colors text-center"
+          className="w-full bg-bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-accent transition-colors text-center"
           placeholder="Enter password"
           autoFocus
         />
-        <Button variant={variant} disabled={loading} className="w-full py-sm">
+        <Button variant={variant} disabled={loading} className="w-full py-2">
           {loading ? <Loader2 size={14} className="animate-spin" /> : "Unlock"}
         </Button>
       </form>
@@ -70,13 +70,13 @@ export function LockScreen() {
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center p-xl">
-      <div className="w-full max-w-64 flex flex-col items-center gap-xl">
-        <div className="bg-bg-surface p-xl rounded-full border border-border shadow-sm">
+    <div className="flex-1 flex items-center justify-center p-6">
+      <div className="w-full max-w-64 flex flex-col items-center gap-6">
+        <div className="bg-bg-surface p-6 rounded-full border border-border shadow-sm">
           <Lock size={40} className="text-text-muted" />
         </div>
 
-        <div className="flex flex-col items-center gap-xs text-center">
+        <div className="flex flex-col items-center gap-1 text-center">
           <h2 className="text-lg font-medium text-text">Vault Locked</h2>
           <p className="text-xs text-text-muted">
             {bioEnabled
@@ -93,7 +93,7 @@ export function LockScreen() {
               variant="primary"
               onClick={handleBioUnlock}
               disabled={bioLoading}
-              className="w-full py-sm"
+              className="w-full py-2"
             >
               {bioLoading ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -108,7 +108,7 @@ export function LockScreen() {
             {!showPassword ? (
               <button
                 onClick={() => setShowPassword(true)}
-                className="flex items-center gap-sm text-text-muted hover:text-accent text-xs cursor-pointer bg-transparent border-none transition-colors"
+                className="flex items-center gap-2 text-text-muted hover:text-accent text-xs cursor-pointer bg-transparent border-none transition-colors"
               >
                 <KeyRound size={14} />
                 Use password instead

@@ -22,7 +22,7 @@ export function TotpToolbar({
   const { lock } = useStorage();
 
   return (
-    <Toolbar.Root className="flex flex-wrap items-center gap-x-tb gap-y-xs px-md py-tb-y border-b border-border bg-bg-surface">
+    <Toolbar.Root className="flex flex-wrap items-center gap-x-tb gap-y-1 px-3 py-tb-y border-b border-border bg-bg-surface">
       <GoogleSyncButton />
 
       <Toolbar.Button
@@ -57,11 +57,11 @@ export function TotpToolbar({
             >
               {addSource === "image" ? (
                 <>
-                  <Loader2 size={14} className="mr-sm animate-spin" /> Adding
+                  <Loader2 size={14} className="mr-2 animate-spin" /> Adding
                 </>
               ) : (
                 <>
-                  <QrCode size={14} className="mr-sm" /> Upload QR
+                  <QrCode size={14} className="mr-2" /> Upload QR
                 </>
               )}
             </Button>
@@ -73,12 +73,12 @@ export function TotpToolbar({
             <Button {...props} variant="primary" onClick={onScanClick}>
               {addSource === "camera" ? (
                 <>
-                  <Loader2 size={14} className="mr-sm animate-spin" />
+                  <Loader2 size={14} className="mr-2 animate-spin" />
                   Scanning
                 </>
               ) : (
                 <>
-                  <Camera size={14} className="mr-sm" />
+                  <Camera size={14} className="mr-2" />
                   Scan QR
                 </>
               )}

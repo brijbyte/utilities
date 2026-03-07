@@ -64,7 +64,7 @@ export function AccountItem({ account, onDelete }: AccountItemProps) {
 
   return (
     <div
-      className="bg-bg-surface border border-border p-md rounded-xl flex items-center gap-md relative overflow-hidden group cursor-pointer hover:border-border-muted transition-colors"
+      className="bg-bg-surface border border-border p-3 rounded-xl flex items-center gap-3 relative overflow-hidden group cursor-pointer hover:border-border-muted transition-colors"
       onClick={handleCopy}
     >
       <div
@@ -84,14 +84,14 @@ export function AccountItem({ account, onDelete }: AccountItemProps) {
         )}
       </div>
 
-      <div className="flex-1 min-w-0 pt-xs">
+      <div className="flex-1 min-w-0 pt-1">
         <div className="text-sm text-text-muted truncate">
           {account.issuer || "Unknown Issuer"}
         </div>
-        <div className="text-xs text-text-muted truncate mb-sm">
+        <div className="text-xs text-text-muted truncate mb-2">
           {account.label}
         </div>
-        <div className="flex items-center gap-md">
+        <div className="flex items-center gap-3">
           <div className="text-2xl font-mono text-text tracking-widest">
             {code || "..."}
           </div>
@@ -122,12 +122,10 @@ export function AccountItem({ account, onDelete }: AccountItemProps) {
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner side="bottom" align="end">
-            <Popover.Popup className="rounded-lg p-md text-xs w-64">
+            <Popover.Popup className="rounded-lg p-3 text-xs w-64">
               <Popover.Arrow />
-              <p className="text-text font-medium mb-sm">
-                Delete this account?
-              </p>
-              <p className="text-text-muted mb-md leading-relaxed">
+              <p className="text-text font-medium mb-2">Delete this account?</p>
+              <p className="text-text-muted mb-3 leading-relaxed">
                 If two-factor authentication is still enabled on{" "}
                 <span className="text-text">
                   {account.issuer || "this service"}
@@ -135,7 +133,7 @@ export function AccountItem({ account, onDelete }: AccountItemProps) {
                 , you may lose access to your account. Disable 2FA or switch to
                 another method on the website before deleting.
               </p>
-              <div className="flex justify-end gap-sm">
+              <div className="flex justify-end gap-2">
                 <Button
                   variant="ghost"
                   onClick={(e) => {

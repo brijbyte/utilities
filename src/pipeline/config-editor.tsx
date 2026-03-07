@@ -75,7 +75,7 @@ export function ConfigEditor({ schema, value, onChange }: ConfigEditorProps) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-sm">
+    <div className="flex flex-wrap items-center gap-2">
       {keys.map((key) => {
         const fieldSchema = shape[key];
         const inner = unwrap(fieldSchema);
@@ -88,13 +88,13 @@ export function ConfigEditor({ schema, value, onChange }: ConfigEditorProps) {
           return (
             <label
               key={key}
-              className="flex items-center gap-xs text-xs text-text-muted"
+              className="flex items-center gap-1 text-xs text-text-muted"
             >
               {label}
               <select
                 value={String(currentVal ?? "")}
                 onChange={(e) => update(key, e.target.value)}
-                className="border border-border bg-bg-surface text-text px-sm py-xs text-xs cursor-pointer"
+                className="border border-border bg-bg-surface text-text px-2 py-1 text-xs cursor-pointer"
               >
                 {options.map((opt) => (
                   <option key={opt} value={opt}>
@@ -111,7 +111,7 @@ export function ConfigEditor({ schema, value, onChange }: ConfigEditorProps) {
           return (
             <label
               key={key}
-              className="flex items-center gap-xs text-xs text-text-muted"
+              className="flex items-center gap-1 text-xs text-text-muted"
             >
               {label}
               <input
@@ -120,7 +120,7 @@ export function ConfigEditor({ schema, value, onChange }: ConfigEditorProps) {
                 min={min}
                 max={max}
                 onChange={(e) => update(key, Number(e.target.value))}
-                className="border border-border bg-bg-surface text-text px-sm py-xs text-xs w-16"
+                className="border border-border bg-bg-surface text-text px-2 py-1 text-xs w-16"
               />
             </label>
           );
@@ -130,7 +130,7 @@ export function ConfigEditor({ schema, value, onChange }: ConfigEditorProps) {
           return (
             <label
               key={key}
-              className="flex items-center gap-xs text-xs text-text-muted cursor-pointer"
+              className="flex items-center gap-1 text-xs text-text-muted cursor-pointer"
             >
               <input
                 type="checkbox"
@@ -147,14 +147,14 @@ export function ConfigEditor({ schema, value, onChange }: ConfigEditorProps) {
           return (
             <label
               key={key}
-              className="flex items-center gap-xs text-xs text-text-muted"
+              className="flex items-center gap-1 text-xs text-text-muted"
             >
               {label}
               <input
                 type="text"
                 value={String(currentVal ?? "")}
                 onChange={(e) => update(key, e.target.value)}
-                className="border border-border bg-bg-surface text-text px-sm py-xs text-xs"
+                className="border border-border bg-bg-surface text-text px-2 py-1 text-xs"
               />
             </label>
           );

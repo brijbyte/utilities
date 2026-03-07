@@ -7,17 +7,7 @@
     "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code", ui-monospace,
     monospace;
 
-  /* ---- spacing scale ---- */
-  /*  p-xs, gap-sm, m-lg, etc.  */
-  --spacing-xs: 0.25rem; /* 4px  */
-  --spacing-sm: 0.5rem; /* 8px  */
-  --spacing-md: 0.75rem; /* 12px */
-  --spacing-lg: 1rem; /* 16px */
-  --spacing-xl: 1.5rem; /* 24px */
-  --spacing-2xl: 2rem; /* 32px */
-  --spacing-3xl: 2.5rem; /* 40px */
-
-  /* semantic shortcuts — p-hdr-x, h-hdr, px-tb, gap-tb, etc. */
+  /* semantic spacing shortcuts — p-hdr-x, h-hdr, px-tb, gap-tb, etc. */
   --spacing-hdr: 2.75rem; /* header height */
   --spacing-hdr-x: 0.75rem; /* header inline padding */
   --spacing-tb-x: 1rem; /* toolbar inline padding */
@@ -34,76 +24,78 @@
   --spacing-mi-y: 0.5rem; /* menu item block padding */
 
   /* ---- light (default) ---- */
-  --color-bg: #f5f5f4;
-  --color-bg-surface: #ffffff;
-  --color-bg-hover: #e7e5e4;
-  --color-bg-active: #d6d3d1;
-  --color-bg-inset: #fafaf9;
-  --color-bg-overlay: rgba(0, 0, 0, 0.4);
+  --color-bg: var(--color-stone-100);
+  --color-bg-surface: var(--color-white);
+  --color-bg-hover: var(--color-stone-200);
+  --color-bg-active: var(--color-stone-300);
+  --color-bg-inset: var(--color-stone-50);
+  --color-bg-overlay: oklch(0% 0 0 / 0.4);
 
-  --color-border: #c4c1be;
-  --color-border-muted: #e0dedc;
+  --color-border: oklch(82.5% 0.005 50); /* between stone-300 and stone-400 */
+  --color-border-muted: oklch(
+    89.5% 0.004 50
+  ); /* between stone-200 and stone-300 */
 
-  --color-text: #1c1917;
-  --color-text-muted: #78716c;
-  --color-text-inverse: #fafaf9;
+  --color-text: var(--color-stone-900);
+  --color-text-muted: var(--color-stone-500);
+  --color-text-inverse: var(--color-stone-50);
 
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-primary-text: #ffffff;
+  --color-primary: var(--color-blue-600);
+  --color-primary-hover: var(--color-blue-700);
+  --color-primary-text: var(--color-white);
 
-  --color-secondary: #44403c;
-  --color-secondary-hover: #292524;
-  --color-secondary-text: #fafaf9;
+  --color-secondary: var(--color-stone-700);
+  --color-secondary-hover: var(--color-stone-800);
+  --color-secondary-text: var(--color-stone-50);
 
-  --color-danger: #dc2626;
-  --color-danger-hover: #b91c1c;
-  --color-danger-text: #ffffff;
+  --color-danger: var(--color-red-600);
+  --color-danger-hover: var(--color-red-700);
+  --color-danger-text: var(--color-white);
 
-  --color-success: #16a34a;
-  --color-success-hover: #15803d;
-  --color-success-text: #ffffff;
+  --color-success: var(--color-green-600);
+  --color-success-hover: var(--color-green-700);
+  --color-success-text: var(--color-white);
 
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
-  --color-accent-subtle: #eff6ff;
+  --color-accent: var(--color-blue-600);
+  --color-accent-hover: var(--color-blue-700);
+  --color-accent-subtle: var(--color-blue-50);
 }
 
 /* ---- dark overrides ---- */
 .dark {
-  --color-bg: #0c0a09;
-  --color-bg-surface: #1c1917;
-  --color-bg-hover: #292524;
-  --color-bg-active: #44403c;
-  --color-bg-inset: #171412;
-  --color-bg-overlay: rgba(0, 0, 0, 0.6);
+  --color-bg: var(--color-stone-950);
+  --color-bg-surface: var(--color-stone-900);
+  --color-bg-hover: var(--color-stone-800);
+  --color-bg-active: var(--color-stone-700);
+  --color-bg-inset: oklch(12.5% 0.005 50); /* between stone-900 and stone-950 */
+  --color-bg-overlay: oklch(0% 0 0 / 0.6);
 
-  --color-border: #44403c;
-  --color-border-muted: #292524;
+  --color-border: var(--color-stone-700);
+  --color-border-muted: var(--color-stone-800);
 
-  --color-text: #e7e5e4;
-  --color-text-muted: #a8a29e;
-  --color-text-inverse: #1c1917;
+  --color-text: var(--color-stone-200);
+  --color-text-muted: var(--color-stone-400);
+  --color-text-inverse: var(--color-stone-900);
 
-  --color-primary: #3b82f6;
-  --color-primary-hover: #60a5fa;
-  --color-primary-text: #ffffff;
+  --color-primary: var(--color-blue-500);
+  --color-primary-hover: var(--color-blue-400);
+  --color-primary-text: var(--color-white);
 
-  --color-secondary: #a8a29e;
-  --color-secondary-hover: #d6d3d1;
-  --color-secondary-text: #1c1917;
+  --color-secondary: var(--color-stone-400);
+  --color-secondary-hover: var(--color-stone-300);
+  --color-secondary-text: var(--color-stone-900);
 
-  --color-danger: #ef4444;
-  --color-danger-hover: #f87171;
-  --color-danger-text: #ffffff;
+  --color-danger: var(--color-red-500);
+  --color-danger-hover: var(--color-red-400);
+  --color-danger-text: var(--color-white);
 
-  --color-success: #22c55e;
-  --color-success-hover: #4ade80;
-  --color-success-text: #ffffff;
+  --color-success: var(--color-green-500);
+  --color-success-hover: var(--color-green-400);
+  --color-success-text: var(--color-white);
 
-  --color-accent: #3b82f6;
-  --color-accent-hover: #60a5fa;
-  --color-accent-subtle: #172554;
+  --color-accent: var(--color-blue-500);
+  --color-accent-hover: var(--color-blue-400);
+  --color-accent-subtle: var(--color-blue-950);
 }
 
 @layer base {

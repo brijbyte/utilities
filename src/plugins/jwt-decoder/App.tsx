@@ -70,7 +70,7 @@ function Section({
 }) {
   return (
     <div className="border-b border-border-muted last:border-b-0">
-      <div className="flex items-center gap-sm px-pn-x py-xs bg-bg-inset border-b border-border-muted">
+      <div className="flex items-center gap-2 px-pn-x py-1 bg-bg-inset border-b border-border-muted">
         <span className="text-[10px] uppercase tracking-widest text-text-muted flex-1">
           {title}
         </span>
@@ -118,10 +118,10 @@ function ClaimsTable({ payload }: { payload: Record<string, unknown> }) {
             key={c.key}
             className="border-b border-border-muted last:border-b-0"
           >
-            <td className="py-xs pr-md text-text-muted whitespace-nowrap align-top">
+            <td className="py-1 pr-3 text-text-muted whitespace-nowrap align-top">
               {c.label}
             </td>
-            <td className="py-xs text-text break-all font-mono">
+            <td className="py-1 text-text break-all font-mono">
               {String(payload[c.key])}
             </td>
           </tr>
@@ -131,12 +131,12 @@ function ClaimsTable({ payload }: { payload: Record<string, unknown> }) {
             key={tc.key}
             className="border-b border-border-muted last:border-b-0"
           >
-            <td className="py-xs pr-md text-text-muted whitespace-nowrap align-top">
+            <td className="py-1 pr-3 text-text-muted whitespace-nowrap align-top">
               {tc.label}
             </td>
-            <td className="py-xs text-text font-mono">
+            <td className="py-1 text-text font-mono">
               {formatTimestamp(payload[tc.key] as number)}
-              <span className="text-text-muted ml-sm">
+              <span className="text-text-muted ml-2">
                 ({payload[tc.key] as number})
               </span>
             </td>
@@ -147,10 +147,10 @@ function ClaimsTable({ payload }: { payload: Record<string, unknown> }) {
             key={key}
             className="border-b border-border-muted last:border-b-0"
           >
-            <td className="py-xs pr-md text-text-muted whitespace-nowrap align-top font-mono">
+            <td className="py-1 pr-3 text-text-muted whitespace-nowrap align-top font-mono">
               {key}
             </td>
-            <td className="py-xs text-text break-all font-mono">
+            <td className="py-1 text-text break-all font-mono">
               {typeof payload[key] === "object"
                 ? JSON.stringify(payload[key])
                 : String(payload[key])}
@@ -211,7 +211,7 @@ function TokenBody({ decoded }: { decoded: DecodedJwt }) {
         <p className="text-xs text-text font-mono break-all">
           {decoded.signature}
         </p>
-        <p className="text-[10px] text-text-muted mt-sm">
+        <p className="text-[10px] text-text-muted mt-2">
           algorithm: {String(decoded.header.alg ?? "unknown")}
         </p>
       </Section>
@@ -315,7 +315,7 @@ export default function JwtDecoder() {
           <span className="text-xs text-text-muted">
             {validCount} decoded
             {errorCount > 0 && (
-              <span className="text-danger ml-sm">{errorCount} invalid</span>
+              <span className="text-danger ml-2">{errorCount} invalid</span>
             )}
           </span>
         )}
@@ -339,11 +339,11 @@ export default function JwtDecoder() {
       <div className="flex-1 flex min-h-0">
         {/* Left: input */}
         <div className="flex-1 flex flex-col min-w-0 border-r border-border">
-          <div className="flex items-center gap-sm px-pn-x py-pn-lbl bg-bg-surface border-b border-border-muted min-h-[32px]">
+          <div className="flex items-center gap-2 px-pn-x py-pn-lbl bg-bg-surface border-b border-border-muted min-h-[32px]">
             <span className="text-[10px] uppercase tracking-widest text-text-muted">
               tokens — one per line
             </span>
-            <label className="ml-auto flex items-center gap-xs text-[10px] text-text-muted cursor-pointer select-none">
+            <label className="ml-auto flex items-center gap-1 text-[10px] text-text-muted cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={autoFocus}
@@ -404,7 +404,7 @@ export default function JwtDecoder() {
                   >
                     <Accordion.Header>
                       <Accordion.Trigger
-                        className={`flex items-center gap-sm px-pn-x py-pn-lbl w-full border-none cursor-pointer text-left group border-b border-border-muted ${
+                        className={`flex items-center gap-2 px-pn-x py-pn-lbl w-full border-none cursor-pointer text-left group border-b border-border-muted ${
                           isFocused ? "bg-accent/10" : "bg-bg-surface"
                         }`}
                       >

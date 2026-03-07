@@ -80,7 +80,7 @@ export default function Base64Tool() {
           )}
         />
 
-        <Toolbar.Separator className="w-px h-5 bg-border-muted mx-xs" />
+        <Toolbar.Separator className="w-px h-5 bg-border-muted mx-1" />
 
         <Toolbar.Button
           render={(props) => (

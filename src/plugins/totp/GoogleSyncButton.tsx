@@ -42,14 +42,14 @@ export function GoogleSyncButton() {
     return (
       <Button variant="ghost" disabled>
         <Loader2 size={14} className="animate-spin" />
-        <span className="text-xs ml-xs">Connecting…</span>
+        <span className="text-xs ml-1">Connecting…</span>
       </Button>
     );
   }
 
   if (isGoogleLinked) {
     return (
-      <div className="flex items-center gap-sm">
+      <div className="flex items-center gap-2">
         {!isGoogleAuthenticated ? (
           online && (
             <Toolbar.Button
@@ -62,7 +62,7 @@ export function GoogleSyncButton() {
                   className="text-text-muted"
                 >
                   <LogIn size={14} />
-                  <span className="text-xs ml-xs">Sign in</span>
+                  <span className="text-xs ml-1">Sign in</span>
                 </Button>
               )}
             />
@@ -102,7 +102,7 @@ export function GoogleSyncButton() {
           title="Sync with Google Drive"
         >
           <GoogleIcon />
-          <span className="text-xs ml-xs">Sync to Drive</span>
+          <span className="text-xs ml-1">Sync to Drive</span>
         </Button>
       )}
     />

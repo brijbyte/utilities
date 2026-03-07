@@ -68,26 +68,26 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 bg-bg-overlay z-50" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bg-surface border border-border shadow-lg rounded-xl w-[90vw] md:w-100 max-w-full p-lg z-50 outline-none flex flex-col gap-lg">
+        <Dialog.Popup className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bg-surface border border-border shadow-lg rounded-xl w-[90vw] md:w-100 max-w-full p-4 z-50 outline-none flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <Dialog.Title className="text-sm font-medium text-text flex items-center gap-sm">
+            <Dialog.Title className="text-sm font-medium text-text flex items-center gap-2">
               <Shield size={16} /> Settings
             </Dialog.Title>
-            <Dialog.Close className="text-text-muted hover:text-text bg-transparent border-none cursor-pointer p-xs rounded hover:bg-bg-hover transition-colors flex items-center justify-center">
+            <Dialog.Close className="text-text-muted hover:text-text bg-transparent border-none cursor-pointer p-1 rounded hover:bg-bg-hover transition-colors flex items-center justify-center">
               <X size={16} />
             </Dialog.Close>
           </div>
 
-          <div className="flex flex-col gap-md">
+          <div className="flex flex-col gap-3">
             {/* Vault info */}
-            <div className="flex flex-col gap-xs p-md bg-bg border border-border-muted rounded-lg">
+            <div className="flex flex-col gap-1 p-3 bg-bg border border-border-muted rounded-lg">
               <div className="flex justify-between text-xs">
                 <span className="text-text-muted">Accounts</span>
                 <span className="text-text">{accounts.length}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-text-muted">Encryption</span>
-                <span className="text-success flex items-center gap-xs">
+                <span className="text-success flex items-center gap-1">
                   <Check size={12} /> AES-256-GCM
                 </span>
               </div>
@@ -95,8 +95,8 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 
             {/* Biometric unlock */}
             {bioSupported && (
-              <div className="flex items-center justify-between p-md bg-bg border border-border-muted rounded-lg">
-                <div className="flex items-center gap-sm">
+              <div className="flex items-center justify-between p-3 bg-bg border border-border-muted rounded-lg">
+                <div className="flex items-center gap-2">
                   <Fingerprint
                     size={16}
                     className={bioEnabled ? "text-accent" : "text-text-muted"}
@@ -133,8 +133,8 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 
             {/* Google Drive sync */}
             {isGoogleLinked && (
-              <div className="flex items-center justify-between p-md bg-bg border border-border-muted rounded-lg">
-                <div className="flex items-center gap-sm">
+              <div className="flex items-center justify-between p-3 bg-bg border border-border-muted rounded-lg">
+                <div className="flex items-center gap-2">
                   {syncing ? (
                     <Loader2
                       size={14}

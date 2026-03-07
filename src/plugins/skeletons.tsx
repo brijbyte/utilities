@@ -8,7 +8,7 @@ export function TwoPanelSkeleton() {
       <div className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
         <Bar className="w-16 h-6" />
         <Bar className="w-16 h-6" />
-        <Bar className="w-12 h-6 ml-xs" />
+        <Bar className="w-12 h-6 ml-1" />
         <Bar className="w-14 h-6 ml-auto" />
       </div>
       <div className="flex-1 grid grid-cols-2 gap-px bg-border-muted min-h-0">
@@ -16,7 +16,7 @@ export function TwoPanelSkeleton() {
           <div className="px-pn-x py-mi-x border-b border-border-muted">
             <Bar className="w-10 h-3" />
           </div>
-          <div className="px-pn-x py-pn-y flex flex-col gap-sm">
+          <div className="px-pn-x py-pn-y flex flex-col gap-2">
             <Bar className="w-3/4 h-3" />
             <Bar className="w-1/2 h-3" />
             <Bar className="w-2/3 h-3" />
@@ -26,7 +26,7 @@ export function TwoPanelSkeleton() {
           <div className="px-pn-x py-mi-x border-b border-border-muted">
             <Bar className="w-12 h-3" />
           </div>
-          <div className="px-pn-x py-pn-y flex flex-col gap-sm">
+          <div className="px-pn-x py-pn-y flex flex-col gap-2">
             <Bar className="w-2/3 h-3" />
             <Bar className="w-1/2 h-3" />
             <Bar className="w-3/5 h-3" />

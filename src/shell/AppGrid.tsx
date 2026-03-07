@@ -13,7 +13,7 @@ export function AppGrid({ onSelect, compact }: AppGridProps) {
 
   if (plugins.length === 0) {
     return (
-      <p className="text-text-muted text-xs p-xl text-center">
+      <p className="text-text-muted text-xs p-6 text-center">
         No utilities registered.
       </p>
     );
@@ -24,7 +24,7 @@ export function AppGrid({ onSelect, compact }: AppGridProps) {
       <div
         className={
           compact
-            ? "grid grid-cols-3 gap-gr-c px-sm py-md"
+            ? "grid grid-cols-3 gap-gr-c px-2 py-3"
             : "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-gr p-gr-p"
         }
       >
@@ -37,7 +37,7 @@ export function AppGrid({ onSelect, compact }: AppGridProps) {
                   <Link
                     to={`/a/${p.id}`}
                     onClick={onSelect}
-                    className="group flex flex-col items-center gap-sm no-underline"
+                    className="group flex flex-col items-center gap-2 no-underline"
                   />
                 }
               >
@@ -54,7 +54,7 @@ export function AppGrid({ onSelect, compact }: AppGridProps) {
               </Tooltip.Trigger>
               <Tooltip.Portal>
                 <Tooltip.Positioner sideOffset={8}>
-                  <Tooltip.Popup className="px-md py-sm bg-text text-text-inverse text-[11px] max-w-48 rounded border border-border-muted origin-(--transform-origin) transition-[transform,scale,opacity] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 data-instant:transition-none">
+                  <Tooltip.Popup className="px-3 py-2 bg-text text-text-inverse text-[11px] max-w-48 rounded border border-border-muted origin-(--transform-origin) transition-[transform,scale,opacity] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 data-instant:transition-none">
                     {p.meta.description}
                   </Tooltip.Popup>
                 </Tooltip.Positioner>

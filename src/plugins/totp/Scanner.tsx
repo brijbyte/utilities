@@ -102,12 +102,12 @@ export function Scanner({ onScan }: ScannerProps) {
   }, [onScan, selectedDeviceId]);
 
   return (
-    <div className="flex flex-col gap-sm w-full">
+    <div className="flex flex-col gap-2 w-full">
       {devices.length > 1 && !error && (
         <select
           value={selectedDeviceId}
           onChange={(e) => setSelectedDeviceId(e.target.value)}
-          className="w-full bg-bg p-sm rounded border border-border text-sm text-text outline-none focus:border-accent"
+          className="w-full bg-bg p-2 rounded border border-border text-sm text-text outline-none focus:border-accent"
         >
           <option value="">Default Camera</option>
           {devices.map((device, idx) => (
@@ -134,7 +134,7 @@ export function Scanner({ onScan }: ScannerProps) {
 
             {currentDeviceLabel && (
               <div className="absolute top-2 left-2 right-2 flex justify-center pointer-events-none">
-                <div className="bg-black/60 text-white text-[10px] px-sm py-0.5 rounded-full backdrop-blur-sm max-w-[80%] truncate">
+                <div className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full backdrop-blur-sm max-w-[80%] truncate">
                   {currentDeviceLabel}
                 </div>
               </div>

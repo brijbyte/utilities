@@ -62,13 +62,13 @@ export default function JsonFormatter() {
             </Button>
           )}
         />
-        <Toolbar.Separator className="w-px h-5 bg-border-muted mx-xs" />
-        <label className="flex items-center gap-sm text-xs text-text-muted">
+        <Toolbar.Separator className="w-px h-5 bg-border-muted mx-1" />
+        <label className="flex items-center gap-2 text-xs text-text-muted">
           indent
           <select
             value={indent}
             onChange={(e) => setIndent(Number(e.target.value))}
-            className="border border-border bg-bg-surface text-text px-sm py-xs text-xs cursor-pointer"
+            className="border border-border bg-bg-surface text-text px-2 py-1 text-xs cursor-pointer"
           >
             <option value={2}>2</option>
             <option value={4}>4</option>
