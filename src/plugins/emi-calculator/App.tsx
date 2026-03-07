@@ -39,10 +39,7 @@ function SliderField({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between">
-        <label
-          htmlFor={id}
-          className="text-base text-text-muted cursor-pointer"
-        >
+        <label htmlFor={id} className="text-xs text-text-muted cursor-pointer">
           {label}
         </label>
         <div className="flex items-baseline gap-1">
@@ -58,7 +55,7 @@ function SliderField({
             }}
             className="w-20 text-right bg-transparent text-sm text-text outline-none border-b border-border-muted focus:border-primary transition-colors font-mono tabular-nums"
           />
-          {unit && <span className="text-base text-text-muted">{unit}</span>}
+          {unit && <span className="text-xs text-text-muted">{unit}</span>}
         </div>
       </div>
       <Slider.Root
@@ -84,6 +81,66 @@ function SliderField({
           {max.toLocaleString()}
           {unit ? ` ${unit}` : ""}
         </span>
+      </div>
+    </div>
+  );
+}
+
+interface MonthYearFieldProps {
+  label: string;
+  month: number;
+  year: number;
+  onMonthChange: (month: number) => void;
+  onYearChange: (year: number) => void;
+}
+
+function MonthYearField({
+  label,
+  month,
+  year,
+  onMonthChange,
+  onYearChange,
+}: MonthYearFieldProps) {
+  const monthId = useId();
+  const yearId = useId();
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-base text-text-muted">{label}</span>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <label htmlFor={monthId} className="text-base text-text-muted">
+            Month
+          </label>
+          <select
+            id={monthId}
+            value={month}
+            onChange={(e) => onMonthChange(Number(e.target.value))}
+            className="border border-border bg-bg-surface text-text px-2 py-1 text-base cursor-pointer"
+          >
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <option key={m} value={m}>
+                {new Date(2000, m - 1, 1).toLocaleString(undefined, {
+                  month: "long",
+                })}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor={yearId} className="text-base text-text-muted">
+            Year
+          </label>
+          <input
+            id={yearId}
+            type="number"
+            min={1900}
+            max={3000}
+            value={year}
+            onChange={(e) => onYearChange(Number(e.target.value) || year)}
+            className="border border-border bg-bg-surface text-text px-2 py-1 text-base"
+          />
+        </div>
       </div>
     </div>
   );
@@ -170,29 +227,30 @@ function SummaryCard({
 // ── Year group for schedule ─────────────────────────────────────────
 
 interface YearGroupProps {
-  year: number;
+  yearLabel: string;
   rows: {
     month: number;
     emi: number;
     principalPart: number;
     interestPart: number;
     balance: number;
+    dateLabel: string;
   }[];
 }
 
-function YearGroup({ year, rows }: YearGroupProps) {
+function YearGroup({ yearLabel, rows }: YearGroupProps) {
   const totalPrincipal = rows.reduce((s, r) => s + r.principalPart, 0);
   const totalInterest = rows.reduce((s, r) => s + r.interestPart, 0);
   const closingBalance = rows[rows.length - 1].balance;
 
   return (
     <Accordion.Item
-      value={year}
+      value={yearLabel}
       className="border border-border rounded-lg overflow-hidden"
     >
       <Accordion.Header>
-        <Accordion.Trigger className="w-full flex items-center justify-between px-3 py-2 bg-bg-surface hover:bg-bg-hover cursor-pointer transition-colors text-base [&>div>svg]:data-panel-open:rotate-180">
-          <span className="font-medium text-text">Year {year}</span>
+        <Accordion.Trigger className="w-full flex items-center justify-between px-3 py-2 bg-bg-surface hover:bg-bg-hover cursor-pointer transition-colors text-xs [&>div>svg]:data-panel-open:rotate-180">
+          <span className="font-medium text-text">{yearLabel}</span>
           <div className="flex items-center gap-4 text-text-muted">
             <span>
               P:{" "}
@@ -216,7 +274,7 @@ function YearGroup({ year, rows }: YearGroupProps) {
         </Accordion.Trigger>
       </Accordion.Header>
       <Accordion.Panel className="overflow-x-auto">
-        <table className="w-full text-base">
+        <table className="w-full text-xs">
           <thead>
             <tr className="border-t border-border text-text-muted">
               <th className="text-left px-3 py-1 font-normal">Month</th>
@@ -232,7 +290,7 @@ function YearGroup({ year, rows }: YearGroupProps) {
                 key={r.month}
                 className="border-t border-border-muted hover:bg-bg-hover transition-colors"
               >
-                <td className="px-3 py-1 text-text-muted">{r.month}</td>
+                <td className="px-3 py-1 text-text-muted">{r.dateLabel}</td>
                 <td className="px-3 py-1 text-right text-text tabular-nums">
                   {formatNumber(r.emi)}
                 </td>
@@ -266,6 +324,9 @@ export default function EmiCalculator() {
   const [principal, setPrincipal] = useState(DEFAULTS.principal);
   const [rate, setRate] = useState(DEFAULTS.annualRate);
   const [tenure, setTenure] = useState(DEFAULTS.tenureMonths);
+  const today = new Date();
+  const [startMonth, setStartMonth] = useState(today.getMonth() + 1);
+  const [startYear, setStartYear] = useState(today.getFullYear());
 
   const result = useMemo(
     () =>
@@ -277,27 +338,55 @@ export default function EmiCalculator() {
     [principal, rate, tenure],
   );
 
-  // Group schedule by year
+  const monthFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        year: "numeric",
+      }),
+    [],
+  );
+
+  // Group schedule by calendar year based on selected loan start month/year
   const yearGroups = useMemo(() => {
-    const groups: { year: number; rows: typeof result.schedule }[] = [];
-    for (const row of result.schedule) {
-      const yr = Math.ceil(row.month / 12);
-      let group = groups.find((g) => g.year === yr);
-      if (!group) {
-        group = { year: yr, rows: [] };
-        groups.push(group);
+    type ScheduleRowWithDate = (typeof result.schedule)[number] & {
+      dateLabel: string;
+    };
+
+    const groups = new Map<
+      number,
+      {
+        yearLabel: string;
+        rows: ScheduleRowWithDate[];
       }
-      group.rows.push(row);
+    >();
+
+    for (const row of result.schedule) {
+      const offset = row.month - 1;
+      const date = new Date(startYear, startMonth - 1 + offset, 1);
+      const calendarYear = date.getFullYear();
+      const dateLabel = monthFormatter.format(date);
+
+      if (!groups.has(calendarYear)) {
+        groups.set(calendarYear, {
+          yearLabel: String(calendarYear),
+          rows: [],
+        });
+      }
+
+      groups.get(calendarYear)!.rows.push({ ...row, dateLabel });
     }
-    return groups;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result.schedule]);
+
+    return Array.from(groups.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, value]) => value);
+  }, [result, startYear, startMonth, monthFormatter]);
 
   return (
     <div className="h-full overflow-auto">
       <div className="max-w-4xl mx-auto px-pn-x py-6 flex flex-col gap-6">
         {/* ── Inputs ──────────────────────────────── */}
-        <p className="text-base text-text-muted">
+        <p className="text-xs text-text-muted">
           Enter values in your local currency.
         </p>
         <div className="flex flex-col gap-4">
@@ -327,6 +416,13 @@ export default function EmiCalculator() {
             unit="months"
             onChange={setTenure}
           />
+          <MonthYearField
+            label="EMI Start Date"
+            month={startMonth}
+            year={startYear}
+            onMonthChange={setStartMonth}
+            onYearChange={setStartYear}
+          />
         </div>
 
         {/* ── Summary ──────────────────────────────── */}
@@ -334,7 +430,7 @@ export default function EmiCalculator() {
           <div className="flex flex-col gap-4">
             <DonutChart principal={principal} interest={result.totalInterest} />
 
-            <div className="flex items-center gap-3 justify-center text-base text-text-muted">
+            <div className="flex items-center gap-3 justify-center text-xs text-text-muted">
               <span className="flex items-center gap-1">
                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-primary" />
                 Principal
@@ -366,12 +462,16 @@ export default function EmiCalculator() {
         {/* ── Amortisation schedule ────────────────── */}
         {yearGroups.length > 0 && (
           <div className="flex flex-col gap-2">
-            <h2 className="text-base text-text-muted uppercase tracking-wider">
+            <h2 className="text-xs text-text-muted uppercase tracking-wider">
               Amortisation Schedule
             </h2>
             <Accordion.Root multiple className="flex flex-col gap-2">
               {yearGroups.map((g) => (
-                <YearGroup key={g.year} year={g.year} rows={g.rows} />
+                <YearGroup
+                  key={g.yearLabel}
+                  yearLabel={g.yearLabel}
+                  rows={g.rows}
+                />
               ))}
             </Accordion.Root>
           </div>
