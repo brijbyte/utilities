@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import type { TotpAccount } from "./db";
+import type { TotpAccount } from "../utils/db";
 import { AccountItem } from "./AccountItem";
 
 interface Props {

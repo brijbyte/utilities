@@ -4,9 +4,9 @@
 
 import { useState } from "react";
 import { Plus, Cloud, Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
-import { Button } from "../../components/Button";
-import { useStorage } from "./useStorage";
-import type { EncryptedBlob } from "./crypto";
+import { Button } from "../../../components/Button";
+import { useStorage } from "../utils/useStorage";
+import type { EncryptedBlob } from "../utils/crypto";
 
 export function SetupScreen() {
   const [mode, setMode] = useState<

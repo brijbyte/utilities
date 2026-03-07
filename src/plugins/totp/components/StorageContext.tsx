@@ -32,14 +32,14 @@ import {
   unlockWithBioKey,
   removeBioWrappedMK,
   type EncryptedBlob,
-} from "./crypto";
+} from "../utils/crypto";
 import {
   isBiometricsSupported,
   hasBioCredential,
   registerBiometrics,
   authenticateBiometrics,
   clearBioCredential,
-} from "./biometrics";
+} from "../utils/biometrics";
 import {
   getStoredToken,
   getStoredUser,
@@ -49,11 +49,11 @@ import {
   logout as googleLogout,
   isGoogleSyncEnabled,
   setGoogleSyncEnabled,
-} from "./google-auth";
-import { downloadBlob, uploadBlob } from "./drive-sync";
-import { getAllAccounts, deleteAccount as idbDeleteAccount } from "./db";
-import type { TotpAccount } from "./db";
-import { StorageCtx } from "./storage-ctx";
+} from "../utils/google-auth";
+import { downloadBlob, uploadBlob } from "../utils/drive-sync";
+import { getAllAccounts, deleteAccount as idbDeleteAccount } from "../utils/db";
+import type { TotpAccount } from "../utils/db";
+import { StorageCtx } from "../utils/storage-ctx";
 
 // ── Types ──────────────────────────────────────────────────────────
 

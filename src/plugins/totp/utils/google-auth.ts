@@ -157,7 +157,7 @@ export async function requestTokenSilent(): Promise<string> {
         await fetchAndStoreUser(resp.access_token);
         resolve(resp.access_token);
       },
-      error_callback: (err: any) => {
+      error_callback: (err: { type: string; message: string }) => {
         reject(err);
       },
     });

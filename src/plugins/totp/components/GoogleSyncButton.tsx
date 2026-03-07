@@ -1,7 +1,7 @@
 import { Loader2, RefreshCw, LogIn } from "lucide-react";
-import { Button } from "../../components/Button";
-import { useOnline } from "../../useOnline";
-import { useStorage } from "./useStorage";
+import { Button } from "../../../components/Button";
+import { useOnline } from "../../../useOnline";
+import { useStorage } from "../utils/useStorage";
 import { Toolbar } from "@base-ui/react/toolbar";
 
 function GoogleIcon() {

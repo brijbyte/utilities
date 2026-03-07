@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
-import { TotpAppSkeleton } from "./totp/Skeleton";
-import { EmiSkeleton } from "./emi-calculator/Skeleton";
+import { TotpAppSkeleton } from "./totp/components/Skeleton";
+import { EmiSkeleton } from "./emi-calculator/components/Skeleton";
 import { operations as jsonOps } from "./json-formatter/operations";
 import { operations as base64Ops } from "./base64/operations";
 import { operations as hashOps } from "./hash-generator/operations";

@@ -1,481 +1,477 @@
-import { useMemo, useState, useId } from "react";
-import { Accordion } from "@base-ui/react/accordion";
-import { Slider } from "@base-ui/react/slider";
-import { ChevronDown } from "lucide-react";
-import { calculateEmi, type EmiInput } from "./emi";
-import { formatNumber } from "./format";
+import { useMemo, useState } from "react";
+import {
+  Home,
+  TrendingDown,
+  LineChart as LineChartIcon,
+  Receipt,
+  Wallet,
+  GitCompare,
+  Share2,
+} from "lucide-react";
+import {
+  calculateFull,
+  calculateWithoutPrepayments,
+  calculateHomePurchase,
+  calculateTotalFees,
+  calculateEffectiveApr,
+  calculateAffordability,
+  evaluateScenario,
+  computeTenureFromEmi,
+  aggregateByYear,
+  decodeShareURL,
+  type FullCalcInput,
+  type PrepaymentConfig,
+  type LumpSumPrepayment,
+  type RecurringPrepayment,
+  type RateSegment,
+  type FeeConfig,
+  type AffordabilityInput,
+  type Scenario,
+} from "./utils/emi";
+import { useFormat, FormatProvider } from "./components/FormatContext";
+import { CollapsibleGroup, Collapsible, TabBtn } from "./components/ui";
+import {
+  loadSavedScenarios,
+  type SecondaryView,
+  type SavedScenario,
+} from "./utils/types";
+import { InputsSection } from "./components/InputsSection";
+import { ResultsSection } from "./components/ResultsSection";
+import { ChartsSection } from "./components/ChartsSection";
+import { ScheduleSection } from "./components/ScheduleSection";
+import { HomeLoanPanel } from "./components/HomeLoanPanel";
+import { PrepaymentPanel } from "./components/PrepaymentPanel";
+import { RateChangePanel } from "./components/RateChangePanel";
+import { FeesPanel } from "./components/FeesPanel";
+import { AffordabilityTab } from "./components/AffordabilityTab";
+import { CompareTab } from "./components/CompareTab";
+import { ShareTab } from "./components/ShareTab";
 
-// ── Slider input ────────────────────────────────────────────────────
-
-interface SliderFieldProps {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  unit?: string;
-  onChange: (v: number) => void;
-}
-
-function SliderField({
-  label,
-  value,
-  min,
-  max,
-  step,
-  unit,
-  onChange,
-}: SliderFieldProps) {
-  const id = useId();
-  const [draft, setDraft] = useState<string | null>(null);
-
-  function commit() {
-    if (draft === null) return;
-    const n = parseFloat(draft);
-    if (!Number.isNaN(n)) onChange(Math.min(max, Math.max(min, n)));
-    setDraft(null);
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between">
-        <label htmlFor={id} className="text-xs text-text-muted cursor-pointer">
-          {label}
-        </label>
-        <div className="flex items-baseline gap-1">
-          <input
-            id={id}
-            type="text"
-            inputMode="decimal"
-            value={draft ?? value}
-            onChange={(e) => setDraft(e.target.value.replace(/[^0-9.]/g, ""))}
-            onBlur={commit}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commit();
-            }}
-            className="w-20 text-right bg-transparent text-sm text-text outline-none border-b border-border-muted focus:border-primary transition-colors font-mono tabular-nums"
-          />
-          {unit && <span className="text-xs text-text-muted">{unit}</span>}
-        </div>
-      </div>
-      <Slider.Root
-        value={value}
-        onValueChange={onChange}
-        min={min}
-        max={max}
-        step={step}
-      >
-        <Slider.Control className="flex items-center h-4 w-full cursor-pointer touch-none">
-          <Slider.Track className="relative h-1.5 w-full rounded-full bg-border-muted">
-            <Slider.Indicator className="absolute h-full rounded-full bg-primary" />
-            <Slider.Thumb className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary shadow-sm border-2 border-bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-shadow hover:shadow-md" />
-          </Slider.Track>
-        </Slider.Control>
-      </Slider.Root>
-      <div className="flex justify-between text-[10px] text-text-muted">
-        <span>
-          {min.toLocaleString()}
-          {unit ? ` ${unit}` : ""}
-        </span>
-        <span>
-          {max.toLocaleString()}
-          {unit ? ` ${unit}` : ""}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-interface MonthYearFieldProps {
-  label: string;
-  month: number;
-  year: number;
-  onMonthChange: (month: number) => void;
-  onYearChange: (year: number) => void;
-}
-
-function MonthYearField({
-  label,
-  month,
-  year,
-  onMonthChange,
-  onYearChange,
-}: MonthYearFieldProps) {
-  const monthId = useId();
-  const yearId = useId();
-
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-base text-text-muted">{label}</span>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <label htmlFor={monthId} className="text-base text-text-muted">
-            Month
-          </label>
-          <select
-            id={monthId}
-            value={month}
-            onChange={(e) => onMonthChange(Number(e.target.value))}
-            className="border border-border bg-bg-surface text-text px-2 py-1 text-base cursor-pointer"
-          >
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <option key={m} value={m}>
-                {new Date(2000, m - 1, 1).toLocaleString(undefined, {
-                  month: "long",
-                })}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor={yearId} className="text-base text-text-muted">
-            Year
-          </label>
-          <input
-            id={yearId}
-            type="number"
-            min={1900}
-            max={3000}
-            value={year}
-            onChange={(e) => onYearChange(Number(e.target.value) || year)}
-            className="border border-border bg-bg-surface text-text px-2 py-1 text-base"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Donut chart ─────────────────────────────────────────────────────
-
-function DonutChart({
-  principal,
-  interest,
-}: {
-  principal: number;
-  interest: number;
-}) {
-  const total = principal + interest;
-  if (total === 0) return null;
-
-  const pPct = principal / total;
-  const r = 50;
-  const c = 2 * Math.PI * r;
-  const principalArc = pPct * c;
-  const interestArc = c - principalArc;
-
-  return (
-    <div className="relative w-44 h-44 mx-auto">
-      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-        {/* Principal arc */}
-        <circle
-          cx="60"
-          cy="60"
-          r={r}
-          fill="none"
-          stroke="var(--color-primary)"
-          strokeWidth="16"
-          strokeDasharray={`${principalArc} ${c}`}
-          strokeDashoffset="0"
-        />
-        {/* Interest arc */}
-        <circle
-          cx="60"
-          cy="60"
-          r={r}
-          fill="none"
-          stroke="var(--color-accent-subtle)"
-          strokeWidth="16"
-          strokeDasharray={`${interestArc} ${c}`}
-          strokeDashoffset={`${-principalArc}`}
-          className="dark:stroke-accent/30"
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[10px] text-text-muted">Total</span>
-        <span className="text-sm font-medium text-text">
-          {formatNumber(total)}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// ── Summary card ────────────────────────────────────────────────────
-
-function SummaryCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-bg-inset">
-      <span className="text-[10px] text-text-muted uppercase tracking-wider">
-        {label}
-      </span>
-      <span className={`text-sm font-medium ${color ?? "text-text"}`}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-// ── Year group for schedule ─────────────────────────────────────────
-
-interface YearGroupProps {
-  yearLabel: string;
-  rows: {
-    month: number;
-    emi: number;
-    principalPart: number;
-    interestPart: number;
-    balance: number;
-    dateLabel: string;
-  }[];
-}
-
-function YearGroup({ yearLabel, rows }: YearGroupProps) {
-  const totalPrincipal = rows.reduce((s, r) => s + r.principalPart, 0);
-  const totalInterest = rows.reduce((s, r) => s + r.interestPart, 0);
-  const closingBalance = rows[rows.length - 1].balance;
-
-  return (
-    <Accordion.Item
-      value={yearLabel}
-      className="border border-border rounded-lg overflow-hidden"
-    >
-      <Accordion.Header>
-        <Accordion.Trigger className="w-full flex items-center justify-between px-3 py-2 bg-bg-surface hover:bg-bg-hover cursor-pointer transition-colors text-xs [&>div>svg]:data-panel-open:rotate-180">
-          <span className="font-medium text-text">{yearLabel}</span>
-          <div className="flex items-center gap-4 text-text-muted">
-            <span>
-              P:{" "}
-              <span className="text-primary">
-                {formatNumber(totalPrincipal)}
-              </span>
-            </span>
-            <span>
-              I:{" "}
-              <span className="text-text">{formatNumber(totalInterest)}</span>
-            </span>
-            <span>
-              Bal:{" "}
-              <span className="text-text">{formatNumber(closingBalance)}</span>
-            </span>
-            <ChevronDown
-              size={14}
-              className="transition-transform duration-200"
-            />
-          </div>
-        </Accordion.Trigger>
-      </Accordion.Header>
-      <Accordion.Panel className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-t border-border text-text-muted">
-              <th className="text-left px-3 py-1 font-normal">Month</th>
-              <th className="text-right px-3 py-1 font-normal">EMI</th>
-              <th className="text-right px-3 py-1 font-normal">Principal</th>
-              <th className="text-right px-3 py-1 font-normal">Interest</th>
-              <th className="text-right px-3 py-1 font-normal">Balance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr
-                key={r.month}
-                className="border-t border-border-muted hover:bg-bg-hover transition-colors"
-              >
-                <td className="px-3 py-1 text-text-muted">{r.dateLabel}</td>
-                <td className="px-3 py-1 text-right text-text tabular-nums">
-                  {formatNumber(r.emi)}
-                </td>
-                <td className="px-3 py-1 text-right text-primary tabular-nums">
-                  {formatNumber(r.principalPart)}
-                </td>
-                <td className="px-3 py-1 text-right text-text-muted tabular-nums">
-                  {formatNumber(r.interestPart)}
-                </td>
-                <td className="px-3 py-1 text-right text-text tabular-nums">
-                  {formatNumber(r.balance)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Accordion.Panel>
-    </Accordion.Item>
-  );
-}
-
-// ── Main ────────────────────────────────────────────────────────────
-
-const DEFAULTS: EmiInput = {
-  principal: 5000000,
-  annualRate: 8.5,
-  tenureMonths: 240,
-};
+// ═══════════════════════════════════════════════════════════════════
 
 export default function EmiCalculator() {
-  const [principal, setPrincipal] = useState(DEFAULTS.principal);
-  const [rate, setRate] = useState(DEFAULTS.annualRate);
-  const [tenure, setTenure] = useState(DEFAULTS.tenureMonths);
+  return (
+    <FormatProvider>
+      <EmiCalculatorInner />
+    </FormatProvider>
+  );
+}
+
+function EmiCalculatorInner() {
+  const { fmt, setLocale } = useFormat();
+
+  // ── URL state restore ───────────────────────────────────────────
+  const urlState = useMemo(() => decodeShareURL(window.location.search), []);
+
+  // ── Core inputs ─────────────────────────────────────────────────
+  const [principal, setPrincipal] = useState(urlState?.p ?? 5000000);
+  const [rate, setRate] = useState(urlState?.r ?? 8.5);
+  const [tenure, setTenure] = useState(urlState?.t ?? 240);
   const today = new Date();
-  const [startMonth, setStartMonth] = useState(today.getMonth() + 1);
-  const [startYear, setStartYear] = useState(today.getFullYear());
+  const [startMonth, setStartMonth] = useState(
+    urlState?.sm ?? today.getMonth() + 1,
+  );
+  const [startYear, setStartYear] = useState(
+    urlState?.sy ?? today.getFullYear(),
+  );
+  const [solveMode, setSolveMode] = useState<"emi" | "tenure">("emi");
+  const [fixedEmi, setFixedEmi] = useState(0);
 
-  const result = useMemo(
-    () =>
-      calculateEmi({
-        principal,
-        annualRate: rate,
-        tenureMonths: tenure,
-      }),
-    [principal, rate, tenure],
+  // ── Home purchase ───────────────────────────────────────────────
+  const [homeMode, setHomeMode] = useState(!!urlState?.hp);
+  const [propertyPrice, setPropertyPrice] = useState(
+    urlState?.hp?.pp ?? 8000000,
+  );
+  const [downPaymentPct, setDownPaymentPct] = useState(urlState?.hp?.dp ?? 20);
+
+  // ── Prepayments ─────────────────────────────────────────────────
+  const [lumpSums, setLumpSums] = useState<LumpSumPrepayment[]>([]);
+  const [recurringPrepayments, setRecurringPrepayments] = useState<
+    RecurringPrepayment[]
+  >([]);
+  const [prepayStrategy, setPrepayStrategy] = useState<
+    "reduce-tenure" | "reduce-emi"
+  >("reduce-tenure");
+
+  // ── Rate / fees / affordability / compare / saved ───────────────
+  const [rateSegments, setRateSegments] = useState<RateSegment[]>([]);
+  const [fees, setFees] = useState<FeeConfig>({
+    processingFeePercent: 0,
+    processingFeeFlat: 0,
+    insurance: 0,
+    legalCharges: 0,
+    otherCharges: 0,
+    gst: 18,
+  });
+  const [affordInput, setAffordInput] = useState<AffordabilityInput>({
+    monthlyIncome: 150000,
+    existingEmis: 0,
+    otherObligations: 0,
+    foirPercent: 50,
+    annualRate: 8.5,
+    tenureMonths: 240,
+  });
+  const [scenarios, setScenarios] = useState<Scenario[]>([
+    {
+      id: "1",
+      name: "Current",
+      principal: 5000000,
+      annualRate: 8.5,
+      tenureMonths: 240,
+    },
+    {
+      id: "2",
+      name: "Lower Rate",
+      principal: 5000000,
+      annualRate: 7.5,
+      tenureMonths: 240,
+    },
+    {
+      id: "3",
+      name: "Shorter Tenure",
+      principal: 5000000,
+      annualRate: 8.5,
+      tenureMonths: 180,
+    },
+  ]);
+  const [savedScenarios, setSavedScenarios] =
+    useState<SavedScenario[]>(loadSavedScenarios);
+  const [secondaryView, setSecondaryView] = useState<SecondaryView | null>(
+    null,
   );
 
-  const monthFormatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat(undefined, {
-        month: "short",
-        year: "numeric",
-      }),
-    [],
-  );
+  // ── Derived calculations ────────────────────────────────────────
+  const effectivePrincipal = useMemo(() => {
+    if (homeMode)
+      return calculateHomePurchase({
+        propertyPrice,
+        downPaymentPercent: downPaymentPct,
+      }).loanAmount;
+    return principal;
+  }, [homeMode, propertyPrice, downPaymentPct, principal]);
 
-  // Group schedule by calendar year based on selected loan start month/year
-  const yearGroups = useMemo(() => {
-    type ScheduleRowWithDate = (typeof result.schedule)[number] & {
-      dateLabel: string;
+  const computedTenure = useMemo(() => {
+    if (solveMode !== "tenure" || fixedEmi <= 0) return tenure;
+    const t = computeTenureFromEmi(effectivePrincipal, rate, fixedEmi);
+    return Number.isFinite(t) ? Math.min(t, 600) : tenure;
+  }, [solveMode, fixedEmi, effectivePrincipal, rate, tenure]);
+
+  const activeTenure = solveMode === "tenure" ? computedTenure : tenure;
+
+  const prepaymentConfig = useMemo<PrepaymentConfig | undefined>(() => {
+    if (lumpSums.length === 0 && recurringPrepayments.length === 0)
+      return undefined;
+    return {
+      lumpSums,
+      recurring: recurringPrepayments,
+      strategy: prepayStrategy,
     };
+  }, [lumpSums, recurringPrepayments, prepayStrategy]);
 
-    const groups = new Map<
-      number,
-      {
-        yearLabel: string;
-        rows: ScheduleRowWithDate[];
-      }
-    >();
+  const rateTimeline = useMemo<RateSegment[] | undefined>(
+    () => (rateSegments.length > 0 ? rateSegments : undefined),
+    [rateSegments],
+  );
 
-    for (const row of result.schedule) {
-      const offset = row.month - 1;
-      const date = new Date(startYear, startMonth - 1 + offset, 1);
-      const calendarYear = date.getFullYear();
-      const dateLabel = monthFormatter.format(date);
+  const fullInput: FullCalcInput = useMemo(
+    () => ({
+      principal: effectivePrincipal,
+      annualRate: rate,
+      tenureMonths: activeTenure,
+      prepayments: prepaymentConfig,
+      rateTimeline,
+    }),
+    [effectivePrincipal, rate, activeTenure, prepaymentConfig, rateTimeline],
+  );
 
-      if (!groups.has(calendarYear)) {
-        groups.set(calendarYear, {
-          yearLabel: String(calendarYear),
-          rows: [],
-        });
-      }
+  const result = useMemo(() => calculateFull(fullInput), [fullInput]);
+  const baselineResult = useMemo(
+    () => (prepaymentConfig ? calculateWithoutPrepayments(fullInput) : null),
+    [fullInput, prepaymentConfig],
+  );
+  const homeResult = useMemo(
+    () =>
+      homeMode
+        ? calculateHomePurchase({
+            propertyPrice,
+            downPaymentPercent: downPaymentPct,
+          })
+        : null,
+    [homeMode, propertyPrice, downPaymentPct],
+  );
+  const totalFees = useMemo(
+    () => calculateTotalFees(effectivePrincipal, fees),
+    [effectivePrincipal, fees],
+  );
+  const effectiveApr = useMemo(
+    () =>
+      totalFees > 0
+        ? calculateEffectiveApr(
+            effectivePrincipal,
+            result.emi,
+            result.effectiveTenure,
+            totalFees,
+          )
+        : rate,
+    [effectivePrincipal, result.emi, result.effectiveTenure, totalFees, rate],
+  );
+  const effectiveAffordInput = useMemo(
+    () => ({ ...affordInput, annualRate: rate, tenureMonths: activeTenure }),
+    [affordInput, rate, activeTenure],
+  );
+  const affordResult = useMemo(
+    () => calculateAffordability(effectiveAffordInput),
+    [effectiveAffordInput],
+  );
+  const yearData = useMemo(
+    () => aggregateByYear(result.schedule, startMonth, startYear),
+    [result.schedule, startMonth, startYear],
+  );
+  const scenarioResults = useMemo(
+    () => scenarios.map(evaluateScenario),
+    [scenarios],
+  );
+  const prepaymentSavings = useMemo(() => {
+    if (!baselineResult || !prepaymentConfig) return null;
+    return {
+      interestSaved: baselineResult.totalInterest - result.totalInterest,
+      tenureReduced: baselineResult.effectiveTenure - result.effectiveTenure,
+    };
+  }, [baselineResult, result, prepaymentConfig]);
 
-      groups.get(calendarYear)!.rows.push({ ...row, dateLabel });
-    }
+  const prepayCount = lumpSums.length + recurringPrepayments.length;
+  const hasFees = totalFees > 0;
 
-    return Array.from(groups.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([, value]) => value);
-  }, [result, startYear, startMonth, monthFormatter]);
+  // ═══════════════════════════════════════════════════════════════
+  // Secondary views
+  // ═══════════════════════════════════════════════════════════════
+
+  if (secondaryView) {
+    return (
+      <div className="h-full overflow-auto">
+        <div className="max-w-4xl mx-auto px-pn-x py-6 flex flex-col gap-6">
+          <button
+            onClick={() => setSecondaryView(null)}
+            className="self-start inline-flex items-center gap-1 text-xs text-text-muted hover:text-primary transition-colors cursor-pointer"
+          >
+            ← Back to calculator
+          </button>
+
+          {secondaryView === "affordability" && (
+            <AffordabilityTab
+              affordInput={effectiveAffordInput}
+              setAffordInput={setAffordInput}
+              affordResult={affordResult}
+              rate={rate}
+              activeTenure={activeTenure}
+              fmt={fmt}
+            />
+          )}
+          {secondaryView === "compare" && (
+            <CompareTab
+              scenarios={scenarios}
+              setScenarios={setScenarios}
+              scenarioResults={scenarioResults}
+              fmt={fmt}
+            />
+          )}
+          {secondaryView === "share" && (
+            <ShareTab
+              effectivePrincipal={effectivePrincipal}
+              rate={rate}
+              activeTenure={activeTenure}
+              startMonth={startMonth}
+              startYear={startYear}
+              solveMode={solveMode}
+              fixedEmi={fixedEmi}
+              homeMode={homeMode}
+              propertyPrice={propertyPrice}
+              downPaymentPct={downPaymentPct}
+              result={result}
+              savedScenarios={savedScenarios}
+              setSavedScenarios={setSavedScenarios}
+              setPrincipal={setPrincipal}
+              setRate={setRate}
+              setTenure={setTenure}
+              setStartMonth={setStartMonth}
+              setStartYear={setStartYear}
+              setSolveMode={setSolveMode}
+              setFixedEmi={setFixedEmi}
+              setHomeMode={setHomeMode}
+              setPropertyPrice={setPropertyPrice}
+              setDownPaymentPct={setDownPaymentPct}
+              setSecondaryView={setSecondaryView}
+              fmt={fmt}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Main calculator
+  // ═══════════════════════════════════════════════════════════════
 
   return (
     <div className="h-full overflow-auto">
       <div className="max-w-4xl mx-auto px-pn-x py-6 flex flex-col gap-6">
-        {/* ── Inputs ──────────────────────────────── */}
-        <p className="text-xs text-text-muted">
-          Enter values in your local currency.
-        </p>
-        <div className="flex flex-col gap-4">
-          <SliderField
-            label="Loan Amount"
-            value={principal}
-            min={100000}
-            max={100000000}
-            step={100000}
-            onChange={setPrincipal}
-          />
-          <SliderField
-            label="Interest Rate"
-            value={rate}
-            min={1}
-            max={20}
-            step={0.1}
-            unit="%"
-            onChange={setRate}
-          />
-          <SliderField
-            label="Tenure"
-            value={tenure}
-            min={12}
-            max={360}
-            step={12}
-            unit="months"
-            onChange={setTenure}
-          />
-          <MonthYearField
-            label="EMI Start Date"
-            month={startMonth}
-            year={startYear}
-            onMonthChange={setStartMonth}
-            onYearChange={setStartYear}
-          />
+        <InputsSection
+          solveMode={solveMode}
+          setSolveMode={setSolveMode}
+          principal={principal}
+          setPrincipal={setPrincipal}
+          rate={rate}
+          setRate={setRate}
+          tenure={tenure}
+          setTenure={setTenure}
+          fixedEmi={fixedEmi}
+          setFixedEmi={setFixedEmi}
+          startMonth={startMonth}
+          setStartMonth={setStartMonth}
+          startYear={startYear}
+          setStartYear={setStartYear}
+          homeMode={homeMode}
+          resultEmi={result.emi}
+          fmt={fmt}
+          setLocale={setLocale}
+        />
+
+        <CollapsibleGroup
+          defaultValue={homeMode ? ["home-purchase"] : undefined}
+        >
+          <Collapsible
+            value="home-purchase"
+            title="Home Purchase"
+            icon={<Home size={13} className="text-text-muted" />}
+            badge={homeMode ? "Active" : undefined}
+          >
+            <HomeLoanPanel
+              homeMode={homeMode}
+              setHomeMode={setHomeMode}
+              propertyPrice={propertyPrice}
+              setPropertyPrice={setPropertyPrice}
+              downPaymentPct={downPaymentPct}
+              setDownPaymentPct={setDownPaymentPct}
+              homeResult={homeResult}
+              result={result}
+              totalFees={totalFees}
+              fmt={fmt}
+            />
+          </Collapsible>
+
+          <Collapsible
+            value="prepayments"
+            title="Prepayments"
+            icon={<TrendingDown size={13} className="text-text-muted" />}
+            badge={prepayCount > 0 ? String(prepayCount) : undefined}
+          >
+            <PrepaymentPanel
+              lumpSums={lumpSums}
+              setLumpSums={setLumpSums}
+              recurringPrepayments={recurringPrepayments}
+              setRecurringPrepayments={setRecurringPrepayments}
+              prepayStrategy={prepayStrategy}
+              setPrepayStrategy={setPrepayStrategy}
+              result={result}
+              baselineResult={baselineResult}
+              activeTenure={activeTenure}
+              prepaymentSavings={prepaymentSavings}
+              fmt={fmt}
+            />
+          </Collapsible>
+
+          <Collapsible
+            value="rate-changes"
+            title="Rate Changes"
+            icon={<LineChartIcon size={13} className="text-text-muted" />}
+            badge={
+              rateSegments.length > 0 ? String(rateSegments.length) : undefined
+            }
+          >
+            <RateChangePanel
+              rate={rate}
+              rateSegments={rateSegments}
+              setRateSegments={setRateSegments}
+            />
+          </Collapsible>
+
+          <Collapsible
+            value="fees"
+            title="Fees & Charges"
+            icon={<Receipt size={13} className="text-text-muted" />}
+            badge={hasFees ? fmt.percent(effectiveApr, 1) + " APR" : undefined}
+          >
+            <FeesPanel
+              fees={fees}
+              setFees={setFees}
+              effectivePrincipal={effectivePrincipal}
+              totalFees={totalFees}
+              effectiveApr={effectiveApr}
+              rate={rate}
+              result={result}
+              fmt={fmt}
+            />
+          </Collapsible>
+        </CollapsibleGroup>
+
+        <ResultsSection
+          result={result}
+          solveMode={solveMode}
+          computedTenure={computedTenure}
+          activeTenure={activeTenure}
+          hasFees={hasFees}
+          totalFees={totalFees}
+          effectiveApr={effectiveApr}
+          rate={rate}
+          prepaymentSavings={prepaymentSavings}
+          fmt={fmt}
+        />
+
+        <ChartsSection
+          effectivePrincipal={effectivePrincipal}
+          result={result}
+          baselineSchedule={baselineResult?.schedule}
+          startMonth={startMonth}
+          startYear={startYear}
+          yearData={yearData}
+          hasFees={hasFees}
+          totalFees={totalFees}
+          fmt={fmt}
+        />
+
+        <ScheduleSection
+          result={result}
+          startMonth={startMonth}
+          startYear={startYear}
+          fmt={fmt}
+        />
+
+        <div className="border-t border-border-muted pt-4 flex flex-col gap-3">
+          <h2 className="text-xs text-text-muted uppercase tracking-wider">
+            More Tools
+          </h2>
+          <div className="flex gap-1.5 flex-wrap">
+            <TabBtn
+              active={false}
+              onClick={() => setSecondaryView("affordability")}
+              icon={<Wallet size={13} />}
+              label="Affordability"
+            />
+            <TabBtn
+              active={false}
+              onClick={() => setSecondaryView("compare")}
+              icon={<GitCompare size={13} />}
+              label="Compare Scenarios"
+            />
+            <TabBtn
+              active={false}
+              onClick={() => setSecondaryView("share")}
+              icon={<Share2 size={13} />}
+              label="Save & Share"
+            />
+          </div>
         </div>
-
-        {/* ── Summary ──────────────────────────────── */}
-        {result.emi > 0 && (
-          <div className="flex flex-col gap-4">
-            <DonutChart principal={principal} interest={result.totalInterest} />
-
-            <div className="flex items-center gap-3 justify-center text-xs text-text-muted">
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-primary" />
-                Principal
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-accent-subtle dark:bg-accent/30" />
-                Interest
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <SummaryCard
-                label="Monthly EMI"
-                value={formatNumber(result.emi)}
-                color="text-primary"
-              />
-              <SummaryCard
-                label="Total Interest"
-                value={formatNumber(result.totalInterest)}
-              />
-              <SummaryCard
-                label="Total Payment"
-                value={formatNumber(result.totalPayment)}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* ── Amortisation schedule ────────────────── */}
-        {yearGroups.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <h2 className="text-xs text-text-muted uppercase tracking-wider">
-              Amortisation Schedule
-            </h2>
-            <Accordion.Root multiple className="flex flex-col gap-2">
-              {yearGroups.map((g) => (
-                <YearGroup
-                  key={g.yearLabel}
-                  yearLabel={g.yearLabel}
-                  rows={g.rows}
-                />
-              ))}
-            </Accordion.Root>
-          </div>
-        )}
       </div>
     </div>
   );

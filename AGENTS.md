@@ -26,6 +26,7 @@ src/
   components/               Shared UI primitives.
     Button.tsx              Button with variants: primary, secondary, danger, ghost, outline. Supports active state.
     ResizeHandle.tsx         Drag handle for resizable panels with GripVertical icon.
+    Select.tsx              Generic Select dropdown wrapping Base UI Select. Props: value, onValueChange, options ({value, label}[]), align, triggerClassName, popupMinWidth.
     SplitPanel.tsx          Generic two-panel horizontal layout using react-resizable-panels. Labels accept ReactNode.
 
   plugins/                  Built-in utilities.
@@ -36,6 +37,28 @@ src/
     hash-generator/         SHA hash generator.
       App.tsx               Main component. Text input + multi-file/folder drop. Web Worker hashing. Concurrency limit of 5.
       hash-worker.js        Web Worker for crypto.subtle.digest. Posts individual results as each algorithm completes.
+    emi-calculator/         Full-featured loan EMI calculator — single scrollable page with collapsible config panels.
+      App.tsx               Root component. All state + derived calculations. Orchestrates sections and secondary views.
+      utils/
+        emi.ts              Pure calculation engine (no React). EMI formula, reverse-solve tenure, full amortisation with prepayments + floating rates, home purchase, fees/APR, affordability, scenario compare, CSV export, URL serialization.
+        format.ts           Pure formatting module: LocalePreset, Fmt interface, createFmt(), PRESET_ITEMS. Presets: auto (device), ₹ Indian, $ US, € Euro, £ British, ¥ Japanese. No React.
+        types.ts            SecondaryView type, SavedScenario interface, localStorage helpers.
+      components/
+        FormatContext.tsx   React context for locale-aware formatting. FormatProvider wraps the calculator, useFormat() hook returns { fmt, setLocale }. Persists choice in localStorage.
+        ui.tsx              Shared UI primitives: SliderField, NumberField, MonthYearField, DonutChart, SummaryCard, CollapsibleGroup, Collapsible, TabBtn, Section, CopyBtn.
+        charts.tsx          Pure SVG chart components: BalanceLineChart (with prepayment comparison overlay), PrincipalInterestChart (stacked bars by year).
+        InputsSection.tsx   Solve-mode toggle, currency/locale Select (Base UI), loan sliders, start date.
+        ResultsSection.tsx  Donut chart, summary cards, prepayment savings, fees summary.
+        ChartsSection.tsx   Balance-over-time and principal-vs-interest chart wrappers.
+        ScheduleSection.tsx Amortisation schedule with year-grouped accordion, search, year filter, sticky totals, CSV export.
+        HomeLoanPanel.tsx   Home purchase collapsible panel: property price, down payment %, LTV, stamp duty.
+        PrepaymentPanel.tsx Prepayment collapsible panel: lump-sum + recurring editors, strategy toggle, savings summary.
+        RateChangePanel.tsx Rate change collapsible panel: floating-rate timeline editor.
+        FeesPanel.tsx       Fees collapsible panel: processing fee, insurance, legal, GST, effective APR.
+        AffordabilityTab.tsx Secondary view: income/obligation inputs, FOIR-based max EMI/loan, DTI bar.
+        CompareTab.tsx      Secondary view: up to 3 scenarios side-by-side with diff table.
+        ShareTab.tsx        Secondary view: save to localStorage, share via URL, copy summary.
+        Skeleton.tsx        Loading skeleton.
 
   prerender.js              SSG script. Builds SSR bundle, renders "/" to string, injects into dist/index.html.
 ```
@@ -141,6 +164,116 @@ Custom reset styles MUST be in `@layer base` to avoid overriding Tailwind utilit
 - Inline "copied!" feedback with 1.5s timeout on copy actions.
 - Progress bar with shimmer animation during file processing.
 
+### EMI Calculator Plugin
+
+Full-featured loan EMI calculator with home purchase mode, prepayments, floating rates, fees, affordability analysis, charts, scenario comparison, and save/share.
+
+#### File Structure
+
+```
+plugins/emi-calculator/
+  App.tsx                       Root: all state, derived calcs, orchestrates layout sections + secondary views.
+  utils/
+    emi.ts                      Pure calculation engine. No React, no side effects.
+    format.ts                   Pure formatting: LocalePreset, Fmt interface, createFmt(), PRESET_ITEMS. No React.
+    types.ts                    SecondaryView type, SavedScenario, localStorage helpers.
+  components/
+    FormatContext.tsx            React context: FormatProvider + useFormat() hook. Locale persisted in localStorage.
+    ui.tsx                      Shared UI primitives (SliderField, NumberField, DonutChart, SummaryCard, Collapsible, etc).
+    charts.tsx                  SVG chart components (no external charting library).
+    InputsSection.tsx           Solve-mode toggle, currency Select (Base UI), loan sliders, start date.
+    ResultsSection.tsx          Donut chart, summary cards, prepayment/fees summaries.
+    ChartsSection.tsx           Wraps BalanceLineChart + PrincipalInterestChart with headings.
+    ScheduleSection.tsx         Amortisation schedule table with accordion, search, filter, CSV export.
+    HomeLoanPanel.tsx           Home purchase collapsible panel content.
+    PrepaymentPanel.tsx         Prepayment collapsible panel content.
+    RateChangePanel.tsx         Rate change collapsible panel content.
+    FeesPanel.tsx               Fees collapsible panel content.
+    AffordabilityTab.tsx        Secondary view: affordability calculator.
+    CompareTab.tsx              Secondary view: scenario comparison.
+    ShareTab.tsx                Secondary view: save & share.
+    Skeleton.tsx                Loading skeleton.
+```
+
+#### Page Layout
+
+Single scrollable page — no tabs. All inputs and results are visible together. Optional configuration is layered in via collapsible accordion panels (Base UI `Accordion`) with activity badges:
+
+1. **Inputs** (always visible) — Solve-mode toggle (EMI vs tenure), loan amount / rate / tenure sliders, start date.
+2. **Collapsible config panels** — Each has an icon, title, and badge showing active state:
+   - **Home Purchase** — Badge: "Active" when enabled. Replaces loan amount slider with property price + down payment.
+   - **Prepayments** — Badge: count of configured prepayments. Lump-sum and recurring editors.
+   - **Rate Changes** — Badge: count of rate segments. Floating-rate timeline editor.
+   - **Fees & Charges** — Badge: effective APR when fees > 0. Processing fee, insurance, legal, GST.
+3. **Results** (always visible) — Donut chart, summary cards (EMI, interest, total, tenure), prepayment savings, fees summary.
+4. **Charts** (always visible) — Balance-over-time line chart (with prepayment comparison overlay) and principal-vs-interest stacked bars by year.
+5. **Schedule** (always visible) — Full amortisation table with search, year filter, sticky totals, CSV export.
+6. **More Tools** — Subtle divider with buttons leading to secondary views:
+   - **Affordability** — Income/FOIR-based max EMI/loan calculator (separate view).
+   - **Compare** — Up to 3 scenarios side-by-side (separate view).
+   - **Save & Share** — Save to localStorage, share via URL, copy summary (separate view).
+
+Secondary views replace the page content with a "← Back to calculator" link.
+
+#### Calculation Engine (`emi.ts`)
+
+**Core functions:**
+
+- `computeEmi(principal, rate, tenure)` — Standard EMI formula: `P × r × (1+r)^n / ((1+r)^n − 1)`.
+- `computeTenureFromEmi(principal, rate, emi)` — Reverse solve using logarithmic formula.
+- `calculateFull(input)` — Full amortisation with prepayments and rate timeline. Iterates month-by-month, applies prepayments, recomputes EMI on rate changes or reduce-EMI strategy.
+- `calculateHomePurchase(input)` — Property price → down payment → LTV ratio → stamp duty estimate.
+- `calculateTotalFees(principal, fees)` → `calculateEffectiveApr(principal, emi, tenure, fees)` — Newton-Raphson APR solver.
+- `calculateAffordability(input)` — FOIR-based max EMI/loan with safety recommendation.
+- `evaluateScenario(scenario)` — Wraps `calculateFull` for compare mode, adds effective APR.
+- `aggregateByYear(schedule, startMonth, startYear)` — Year-level aggregation for bar charts.
+- `scheduleToCSV()` / `encodeShareURL()` / `decodeShareURL()` / `generateSummaryText()` — Export/share utilities.
+
+**Prepayment logic:**
+
+- Lump sums applied at exact month. Recurring checked per-month against frequency.
+- Two strategies: `reduce-tenure` (keep EMI, pay off faster) and `reduce-emi` (recompute lower EMI on remaining balance).
+- Savings computed by comparing with/without prepayment results.
+
+**Rate timeline:**
+
+- `RateSegment[]` with `fromMonth` and `annualRate`. EMI recomputed on remaining balance/tenure at each rate boundary.
+
+#### Charts (`charts.tsx`)
+
+Pure SVG, no external dependencies. Both charts are responsive (`viewBox` + `w-full`).
+
+- **`BalanceLineChart`** — Plots outstanding balance over months. Optional `compareSchedule` prop renders a dashed overlay (without-prepayment baseline). Area fill under main line.
+- **`PrincipalInterestChart`** — Stacked bars per calendar year showing principal (blue), interest (light blue), and prepayment (green) breakdown.
+
+#### Schedule UX
+
+- Grouped by calendar year in `Accordion` (Base UI).
+- Year headers show compact totals (principal, interest, prepayment, closing balance).
+- **Search** — Filter months by text (e.g. "Jan", "2028").
+- **Year filter** — Dropdown to show a single year.
+- **Sticky totals** — Summary row pinned at top of schedule section.
+- **CSV export** — Downloads `emi-schedule.csv` with all columns including rate.
+- **Rate column** — Each month shows the interest rate in effect.
+- **Prepayment highlight** — Months with prepayments get a green-tinted background.
+
+#### Component Architecture
+
+- **App.tsx** owns all state (`useState` hooks) and derived calculations (`useMemo`). Orchestrates section components and collapsible panels. Secondary views (affordability, compare, share) replace the page via conditional rendering.
+- **Section components** (`InputsSection`, `ResultsSection`, `ChartsSection`) are pure presentational — they receive data and callbacks as props, render a logical section of the main page.
+- **Panel components** (`*Panel.tsx`) are pure presentational — they receive data and callbacks as props, render content inside collapsible panels.
+- **Tab components** (`*Tab.tsx`) are for secondary views — also pure presentational, rendered in place of the main page.
+- **ui.tsx** contains shared primitives including `CollapsibleGroup` and `Collapsible` components (Base UI `Accordion` with chevron rotation and optional badge).
+- **types.ts** defines `SecondaryView` union type and `SavedScenario` interface.
+- **ScheduleSection.tsx** is self-contained with its own search/filter state, but receives the calculation result as props.
+
+#### State Management
+
+- All state lives in `useState` hooks at the top of `EmiCalculator` in App.tsx.
+- Cross-tab state sharing: affordability rate/tenure sync from main inputs; home mode feeds into principal.
+- URL restore: `decodeShareURL(window.location.search)` on mount initializes state from query params.
+- Saved scenarios: `localStorage` key `emi-calc-saved`, persisted as JSON array of `SavedScenario` objects.
+
 ### TOTP Authenticator Plugin
 
 Offline-first TOTP authenticator with encrypted storage and optional Google Drive sync.
@@ -149,29 +282,32 @@ Offline-first TOTP authenticator with encrypted storage and optional Google Driv
 
 ```
 plugins/totp/
-  App.tsx               Entry point. Wraps in StorageProvider, renders state-based UI.
-  StorageContext.tsx     Core state machine + React context. Manages vault lifecycle, accounts, sync.
-  storage-ctx.ts        Context object (split out to avoid circular imports).
-  useStorage.ts         Hook to consume StorageContextValue.
-  crypto.ts             Encryption layer. Password → PBKDF2 → MK → AES-256-GCM.
-  biometrics.ts         WebAuthn PRF convenience unlock. Derives wrapping key, NOT root of trust.
-  drive-sync.ts         Google Drive appDataFolder upload/download of encrypted blobs.
-  google-auth.ts        Google Identity Services token management (implicit grant, no backend).
-  google-auth.d.ts      Type declarations for GIS SDK.
-  db.ts                 Legacy plaintext IndexedDB store (migrated on vault creation).
-  totp.ts               TOTP code generation via crypto.subtle HMAC.
-  qr.ts                 OTPAuth URI parser + image QR scanner.
-  qr-import.ts          QR import orchestration (URI parse + image decode).
-  SetupScreen.tsx       First-launch: "Start Fresh" or "Restore from Google Drive".
-  LockScreen.tsx        Password entry + biometric unlock button.
-  SettingsDialog.tsx     Biometric toggle, vault info, lock button.
-  TotpToolbar.tsx       Toolbar: Google sync status, settings, scan/upload buttons.
-  GoogleSyncButton.tsx  Google Drive link/unlink/sync UI.
-  ScanDialog.tsx        Camera QR scanner dialog.
-  Scanner.tsx           Camera access + jsQR frame scanning loop.
-  AccountList.tsx       Grid of account cards (empty state or grid).
-  AccountItem.tsx       Single account: issuer icon, TOTP code, countdown, copy, delete.
-  Skeleton.tsx          Loading skeletons for the TOTP grid and full app.
+  App.tsx                       Entry point. Wraps in StorageProvider, renders state-based UI.
+  utils/
+    crypto.ts                   Encryption layer. Password → PBKDF2 → MK → AES-256-GCM.
+    biometrics.ts               WebAuthn PRF convenience unlock. Derives wrapping key, NOT root of trust.
+    drive-sync.ts               Google Drive appDataFolder upload/download of encrypted blobs.
+    google-auth.ts              Google Identity Services token management (implicit grant, no backend).
+    google-auth.d.ts            Type declarations for GIS SDK.
+    db.ts                       Legacy plaintext IndexedDB store (migrated on vault creation).
+    totp.ts                     TOTP code generation via crypto.subtle HMAC.
+    qr.ts                       OTPAuth URI parser + image QR scanner.
+    qr-import.ts                QR import orchestration (URI parse + image decode).
+    pending-uri.ts              Pending URI state for cross-component sharing.
+    storage-ctx.ts              Context object (split out to avoid circular imports).
+    useStorage.ts               Hook to consume StorageContextValue.
+  components/
+    StorageContext.tsx           Core state machine + React context. Manages vault lifecycle, accounts, sync.
+    SetupScreen.tsx             First-launch: "Start Fresh" or "Restore from Google Drive".
+    LockScreen.tsx              Password entry + biometric unlock button.
+    SettingsDialog.tsx          Biometric toggle, vault info, lock button.
+    TotpToolbar.tsx             Toolbar: Google sync status, settings, scan/upload buttons.
+    GoogleSyncButton.tsx        Google Drive link/unlink/sync UI.
+    ScanDialog.tsx              Camera QR scanner dialog.
+    Scanner.tsx                 Camera access + jsQR frame scanning loop.
+    AccountList.tsx             Grid of account cards (empty state or grid).
+    AccountItem.tsx             Single account: issuer icon, TOTP code, countdown, copy, delete.
+    Skeleton.tsx                Loading skeletons for the TOTP grid and full app.
 ```
 
 #### Security Architecture

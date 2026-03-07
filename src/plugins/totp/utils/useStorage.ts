@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { StorageCtx } from "./storage-ctx";
-import type { StorageContextValue } from "./StorageContext";
+import type { StorageContextValue } from "../components/StorageContext";
 
 export function useStorage(): StorageContextValue {
   const v = useContext(StorageCtx);

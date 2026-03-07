@@ -1,9 +1,9 @@
 import { useRef } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { Camera, QrCode, Settings, Lock, Loader2 } from "lucide-react";
-import { Button } from "../../components/Button";
+import { Button } from "../../../components/Button";
 import { GoogleSyncButton } from "./GoogleSyncButton";
-import { useStorage } from "./useStorage";
+import { useStorage } from "../utils/useStorage";
 
 interface Props {
   addSource: "image" | "camera" | null;

@@ -1,16 +1,16 @@
 import { Toast } from "@base-ui/react/toast";
 import { useEffect, useRef, useState } from "react";
-import { AccountList } from "./AccountList";
-import { LockScreen } from "./LockScreen";
-import { consumePendingUri } from "./pending-uri";
-import { decodeQrFromImage, isImportError, parseUri } from "./qr-import";
-import { ScanDialog } from "./ScanDialog";
-import { SettingsDialog } from "./SettingsDialog";
-import { SetupScreen } from "./SetupScreen";
-import { TotpGridSkeleton } from "./Skeleton";
-import { StorageProvider } from "./StorageContext";
-import { TotpToolbar } from "./TotpToolbar";
-import { useStorage } from "./useStorage";
+import { AccountList } from "./components/AccountList";
+import { LockScreen } from "./components/LockScreen";
+import { consumePendingUri } from "./utils/pending-uri";
+import { decodeQrFromImage, isImportError, parseUri } from "./utils/qr-import";
+import { ScanDialog } from "./components/ScanDialog";
+import { SettingsDialog } from "./components/SettingsDialog";
+import { SetupScreen } from "./components/SetupScreen";
+import { TotpGridSkeleton } from "./components/Skeleton";
+import { StorageProvider } from "./components/StorageContext";
+import { TotpToolbar } from "./components/TotpToolbar";
+import { useStorage } from "./utils/useStorage";
 
 export default function TotpApp() {
   return (

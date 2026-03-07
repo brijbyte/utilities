@@ -7,9 +7,9 @@
 
 import { useState } from "react";
 import { Lock, Fingerprint, Loader2, KeyRound } from "lucide-react";
-import { Button } from "../../components/Button";
-import type { Variant } from "../../components/Button";
-import { useStorage } from "./useStorage";
+import { Button } from "../../../components/Button";
+import type { Variant } from "../../../components/Button";
+import { useStorage } from "../utils/useStorage";
 
 export function LockScreen() {
   const [showPassword, setShowPassword] = useState(false);

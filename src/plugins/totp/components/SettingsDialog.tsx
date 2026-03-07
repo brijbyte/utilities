@@ -13,8 +13,8 @@ import {
   Cloud,
   LogOut,
 } from "lucide-react";
-import { Button } from "../../components/Button";
-import { useStorage } from "./useStorage";
+import { Button } from "../../../components/Button";
+import { useStorage } from "../utils/useStorage";
 
 interface Props {
   open: boolean;

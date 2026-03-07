@@ -8,6 +8,29 @@
  * The biometric key is NOT the root of trust — the password is.
  */
 
+// ── WebAuthn PRF extension types (not yet in standard TS lib) ───────
+
+interface PrfEval {
+  first: BufferSource;
+}
+
+interface PrfExtension {
+  prf: { eval: PrfEval };
+}
+
+interface PrfResults {
+  results?: { first?: ArrayBuffer };
+}
+
+interface PrfExtensionResults {
+  prf?: PrfResults;
+}
+
+interface PrfCredential extends PublicKeyCredential {
+  getClientExtensionResults(): AuthenticationExtensionsClientOutputs &
+    PrfExtensionResults;
+}
+
 const CREDENTIAL_ID_KEY = "totp-bio-credential-id";
 
 const PRF_SALT = new Uint8Array([
@@ -59,10 +82,10 @@ export async function registerBiometrics(): Promise<CryptoKey | null> {
       },
       extensions: {
         prf: { eval: { first: PRF_SALT } },
-      } as any,
+      } as AuthenticationExtensionsClientInputs & PrfExtension,
       timeout: 60000,
     },
-  })) as any;
+  })) as PrfCredential | null;
 
   if (!credential) return null;
 
@@ -99,10 +122,10 @@ export async function authenticateBiometrics(): Promise<CryptoKey | null> {
       userVerification: "required",
       extensions: {
         prf: { eval: { first: PRF_SALT } },
-      } as any,
+      } as AuthenticationExtensionsClientInputs & PrfExtension,
       timeout: 60000,
     },
-  })) as any;
+  })) as PrfCredential | null;
 
   if (!assertion) return null;
 

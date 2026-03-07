@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Trash2, Copy, Check, ShieldCheck } from "lucide-react";
-import { Popover } from "../../components/Popover";
-import { Button } from "../../components/Button";
-import type { TotpAccount } from "./db";
-import { generateTotp } from "./totp";
+import { Popover } from "../../../components/Popover";
+import { Button } from "../../../components/Button";
+import type { TotpAccount } from "../utils/db";
+import { generateTotp } from "../utils/totp";
 
 interface AccountItemProps {
   account: TotpAccount;
