@@ -6,10 +6,12 @@ import {
   Link,
   KeyRound,
   ShieldCheck,
+  Calculator,
 } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
 import { TotpAppSkeleton } from "./totp/Skeleton";
+import { EmiSkeleton } from "./emi-calculator/Skeleton";
 import { operations as jsonOps } from "./json-formatter/operations";
 import { operations as base64Ops } from "./base64/operations";
 import { operations as hashOps } from "./hash-generator/operations";
@@ -97,6 +99,26 @@ export const plugins: Plugin[] = [
     load: () => import("./jwt-decoder/App"),
     skeleton: () => <TwoPanelSkeleton />,
     operations: jwtOps,
+  },
+  {
+    id: "emi-calculator",
+    name: "EMI Calculator",
+    icon: <Calculator size={24} />,
+    meta: {
+      description:
+        "Calculate home loan EMI, total interest, and view month-by-month amortisation schedule",
+      keywords: [
+        "emi",
+        "calculator",
+        "loan",
+        "mortgage",
+        "interest",
+        "amortisation",
+        "home loan",
+      ],
+    },
+    load: () => import("./emi-calculator/App"),
+    skeleton: () => <EmiSkeleton />,
   },
   {
     id: "totp-authenticator",
