@@ -24,7 +24,7 @@ export function AppGrid({ onSelect, compact }: AppGridProps) {
       <div
         className={
           compact
-            ? "grid grid-cols-3 gap-gr-c p-gr-cp"
+            ? "grid grid-cols-3 gap-gr-c px-sm py-md"
             : "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-gr p-gr-p"
         }
       >

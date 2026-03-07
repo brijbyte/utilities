@@ -20,7 +20,7 @@ export function TotpToolbar({
   const { lock } = useStorage();
 
   return (
-    <Toolbar.Root className="flex flex-wrap items-center gap-x-tb gap-y-xs px-tb-x py-tb-y border-b border-border bg-bg-surface">
+    <Toolbar.Root className="flex flex-wrap items-center gap-x-tb gap-y-xs px-md py-tb-y border-b border-border bg-bg-surface">
       <GoogleSyncButton />
 
       <Toolbar.Button

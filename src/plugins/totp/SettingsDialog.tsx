@@ -31,6 +31,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
     isGoogleLinked,
     googleUser,
     unlinkGoogle,
+    syncing,
   } = useStorage();
 
   const [bioLoading, setBioLoading] = useState(false);
@@ -134,7 +135,14 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
             {isGoogleLinked && (
               <div className="flex items-center justify-between p-md bg-bg border border-border-muted rounded-lg">
                 <div className="flex items-center gap-sm">
-                  <Cloud size={16} className="text-success" />
+                  {syncing ? (
+                    <Loader2
+                      size={14}
+                      className="animate-spin text-text-muted"
+                    />
+                  ) : (
+                    <Cloud size={16} className="text-success" />
+                  )}
                   <div>
                     <div className="text-xs font-medium text-text">
                       Google Drive Sync

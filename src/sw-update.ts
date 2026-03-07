@@ -9,6 +9,8 @@ let waitingWorker: ServiceWorker | null = null;
 let updateAvailable = false;
 const listeners = new Set<Listener>();
 
+const UPDATE_CHECK_INTERVAL = 5 * 60_000; // 5 minutes
+
 function notify() {
   listeners.forEach((fn) => fn());
 }
@@ -32,22 +34,27 @@ export function subscribeToUpdate(listener: Listener): () => void {
 export function initServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
-  navigator.serviceWorker.register("/sw.js").then((reg) => {
-    // Check for updates periodically
-    setInterval(() => reg.update(), 60_000);
+  navigator.serviceWorker
+    .register("/sw.js", {
+      scope: "/",
+      type: "module",
+    })
+    .then((reg) => {
+      // Check for updates periodically
+      setInterval(() => reg.update(), UPDATE_CHECK_INTERVAL);
 
-    reg.addEventListener("updatefound", () => {
-      const nw = reg.installing;
-      if (!nw) return;
-      nw.addEventListener("statechange", () => {
-        if (nw.state === "installed" && navigator.serviceWorker.controller) {
-          waitingWorker = nw;
-          updateAvailable = true;
-          notify();
-        }
+      reg.addEventListener("updatefound", () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener("statechange", () => {
+          if (nw.state === "installed" && navigator.serviceWorker.controller) {
+            waitingWorker = nw;
+            updateAvailable = true;
+            notify();
+          }
+        });
       });
     });
-  });
 
   // Reload when new SW takes over
   let refreshing = false;

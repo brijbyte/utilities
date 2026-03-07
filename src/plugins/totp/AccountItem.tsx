@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Trash2, Copy, Check, ShieldCheck } from "lucide-react";
-import { Popover } from "@base-ui/react/popover";
+import { Popover } from "../../components/Popover";
 import { Button } from "../../components/Button";
-import { PopoverArrow } from "../../shell/PopoverArrow";
 import type { TotpAccount } from "./db";
 import { generateTotp } from "./totp";
 
@@ -122,9 +121,9 @@ export function AccountItem({ account, onDelete }: AccountItemProps) {
           <Trash2 size={16} />
         </Popover.Trigger>
         <Popover.Portal>
-          <Popover.Positioner sideOffset={6} side="bottom" align="end">
-            <Popover.Popup className="bg-bg-surface border border-border rounded-lg shadow-lg p-md text-xs w-64 outline-none transition-[transform,opacity] origin-(--transform-origin) data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
-              <PopoverArrow />
+          <Popover.Positioner side="bottom" align="end">
+            <Popover.Popup className="rounded-lg p-md text-xs w-64">
+              <Popover.Arrow />
               <p className="text-text font-medium mb-sm">
                 Delete this account?
               </p>

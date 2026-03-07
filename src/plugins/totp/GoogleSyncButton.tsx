@@ -57,9 +57,6 @@ export function GoogleSyncButton() {
         ) : (
           <CloudOff size={14} className="text-text-muted" />
         )}
-        <span className="text-xs text-text-muted">
-          {syncing ? "Syncing…" : isGoogleAuthenticated ? "Synced" : "Offline"}
-        </span>
         {!isGoogleAuthenticated ? (
           online && (
             <Toolbar.Button

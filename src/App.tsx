@@ -9,6 +9,7 @@ import { ThemeProvider } from "./theme";
 import { toastManager } from "./utils/toastManager";
 import { GlobalToasts } from "./components/Toasts";
 import { PwaRoutePersist } from "./PwaRouteRestore";
+import { PluginPage } from "./shell/PluginPage";
 
 function Toaster() {
   return (
@@ -28,7 +29,9 @@ export default function App() {
           <PwaRoutePersist />
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/a/:id" element={<AppPage />} />
+            <Route path="/a/" element={<AppPage />}>
+              <Route index path=":id" element={<PluginPage />} />
+            </Route>
           </Routes>
           <Toaster />
         </ThemeProvider>
