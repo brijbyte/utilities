@@ -20,10 +20,6 @@
     {
       "protocol": "web+otpauth",
       "url": "/a/totp-authenticator?uri=%s"
-    },
-    {
-      "protocol": "otpauth",
-      "url": "/a/totp-authenticator?uri=%s"
     }
   ],
   "shortcuts": [
@@ -40,6 +36,15 @@
           "purpose": "any maskable"
         }
       ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/launchericon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Home screen showing main navigation and featured content"
     }
   ]
 }

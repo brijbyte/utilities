@@ -39,7 +39,10 @@ function SliderField({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between">
-        <label htmlFor={id} className="text-xs text-text-muted cursor-pointer">
+        <label
+          htmlFor={id}
+          className="text-base text-text-muted cursor-pointer"
+        >
           {label}
         </label>
         <div className="flex items-baseline gap-1">
@@ -55,7 +58,7 @@ function SliderField({
             }}
             className="w-20 text-right bg-transparent text-sm text-text outline-none border-b border-border-muted focus:border-primary transition-colors font-mono tabular-nums"
           />
-          {unit && <span className="text-xs text-text-muted">{unit}</span>}
+          {unit && <span className="text-base text-text-muted">{unit}</span>}
         </div>
       </div>
       <Slider.Root
@@ -188,7 +191,7 @@ function YearGroup({ year, rows }: YearGroupProps) {
       className="border border-border rounded-lg overflow-hidden"
     >
       <Accordion.Header>
-        <Accordion.Trigger className="w-full flex items-center justify-between px-3 py-2 bg-bg-surface hover:bg-bg-hover cursor-pointer transition-colors text-xs [&>div>svg]:data-panel-open:rotate-180">
+        <Accordion.Trigger className="w-full flex items-center justify-between px-3 py-2 bg-bg-surface hover:bg-bg-hover cursor-pointer transition-colors text-base [&>div>svg]:data-panel-open:rotate-180">
           <span className="font-medium text-text">Year {year}</span>
           <div className="flex items-center gap-4 text-text-muted">
             <span>
@@ -213,7 +216,7 @@ function YearGroup({ year, rows }: YearGroupProps) {
         </Accordion.Trigger>
       </Accordion.Header>
       <Accordion.Panel className="overflow-x-auto">
-        <table className="w-full text-xs">
+        <table className="w-full text-base">
           <thead>
             <tr className="border-t border-border text-text-muted">
               <th className="text-left px-3 py-1 font-normal">Month</th>
@@ -294,7 +297,7 @@ export default function EmiCalculator() {
     <div className="h-full overflow-auto">
       <div className="max-w-4xl mx-auto px-pn-x py-6 flex flex-col gap-6">
         {/* ── Inputs ──────────────────────────────── */}
-        <p className="text-xs text-text-muted">
+        <p className="text-base text-text-muted">
           Enter values in your local currency.
         </p>
         <div className="flex flex-col gap-4">
@@ -331,7 +334,7 @@ export default function EmiCalculator() {
           <div className="flex flex-col gap-4">
             <DonutChart principal={principal} interest={result.totalInterest} />
 
-            <div className="flex items-center gap-3 justify-center text-xs text-text-muted">
+            <div className="flex items-center gap-3 justify-center text-base text-text-muted">
               <span className="flex items-center gap-1">
                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-primary" />
                 Principal
@@ -363,7 +366,7 @@ export default function EmiCalculator() {
         {/* ── Amortisation schedule ────────────────── */}
         {yearGroups.length > 0 && (
           <div className="flex flex-col gap-2">
-            <h2 className="text-xs text-text-muted uppercase tracking-wider">
+            <h2 className="text-base text-text-muted uppercase tracking-wider">
               Amortisation Schedule
             </h2>
             <Accordion.Root multiple className="flex flex-col gap-2">
