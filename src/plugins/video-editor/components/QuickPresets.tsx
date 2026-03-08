@@ -130,9 +130,9 @@ const PRESET_GROUPS: PresetGroup[] = [
             fit: "crop",
           };
           ops.trim = {
-            enabled: true,
+            enabled: meta.duration > 0,
             start: 0,
-            end: Math.min(meta.duration, 90),
+            end: meta.duration > 0 ? Math.min(meta.duration, 90) : 90,
           };
           return ops;
         },
@@ -164,9 +164,9 @@ const PRESET_GROUPS: PresetGroup[] = [
             fit: "crop",
           };
           ops.trim = {
-            enabled: true,
+            enabled: meta.duration > 0,
             start: 0,
-            end: Math.min(meta.duration, 60),
+            end: meta.duration > 0 ? Math.min(meta.duration, 60) : 60,
           };
           return ops;
         },
@@ -198,9 +198,9 @@ const PRESET_GROUPS: PresetGroup[] = [
             fit: "crop",
           };
           ops.trim = {
-            enabled: true,
+            enabled: meta.duration > 0,
             start: 0,
-            end: Math.min(meta.duration, 600),
+            end: meta.duration > 0 ? Math.min(meta.duration, 600) : 600,
           };
           return ops;
         },
@@ -232,9 +232,9 @@ const PRESET_GROUPS: PresetGroup[] = [
             fit: "pad",
           };
           ops.trim = {
-            enabled: true,
+            enabled: meta.duration > 0,
             start: 0,
-            end: Math.min(meta.duration, 140),
+            end: meta.duration > 0 ? Math.min(meta.duration, 140) : 140,
           };
           return ops;
         },
@@ -263,9 +263,9 @@ const PRESET_GROUPS: PresetGroup[] = [
             fit: "pad",
           };
           ops.trim = {
-            enabled: true,
+            enabled: meta.duration > 0,
             start: 0,
-            end: Math.min(meta.duration, 180),
+            end: meta.duration > 0 ? Math.min(meta.duration, 180) : 180,
           };
           return ops;
         },
@@ -410,9 +410,9 @@ const PRESET_GROUPS: PresetGroup[] = [
             fit: "pad",
           };
           ops.trim = {
-            enabled: meta.duration > 10,
+            enabled: meta.duration > 10 || meta.duration === 0,
             start: 0,
-            end: Math.min(meta.duration, 10),
+            end: meta.duration > 0 ? Math.min(meta.duration, 10) : 10,
           };
           return ops;
         },

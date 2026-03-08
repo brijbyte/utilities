@@ -115,23 +115,43 @@ export default function VideoEditor() {
       setFile(f);
       setState({ status: "idle" });
 
-      // Extract metadata using a <video> element
+      // Extract metadata using a <video> element.
+      // For formats the browser can't decode (e.g. MKV on Safari),
+      // onloadedmetadata won't fire — fall back to basic file info.
+      const probeUrl = URL.createObjectURL(f);
       const video = document.createElement("video");
       video.preload = "metadata";
-      video.onloadedmetadata = () => {
+
+      const setMetaFromProbe = (
+        duration: number,
+        width: number,
+        height: number,
+      ) => {
         const m: VideoMeta = {
-          duration: video.duration,
-          width: video.videoWidth,
-          height: video.videoHeight,
+          duration,
+          width,
+          height,
           size: f.size,
-          type: f.type,
+          type: f.type || "video/x-matroska",
           name: f.name,
         };
         setMeta(m);
         setOps(defaultOperations(m));
-        URL.revokeObjectURL(video.src);
+        URL.revokeObjectURL(probeUrl);
       };
-      video.src = URL.createObjectURL(f);
+
+      video.onloadedmetadata = () => {
+        setMetaFromProbe(video.duration, video.videoWidth, video.videoHeight);
+      };
+
+      video.onerror = () => {
+        // Browser can't parse this format — use fallback defaults.
+        // FFmpeg can still process it, we just don't know the resolution/duration.
+        // Use 0 for duration (disables trim by default) and 1920×1080 as placeholder.
+        setMetaFromProbe(0, 1920, 1080);
+      };
+
+      video.src = probeUrl;
     },
     [videoUrl],
   );

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Info } from "lucide-react";
+import { Info, Film } from "lucide-react";
 
 // Formats browsers can generally play via <video>
 const PLAYABLE_TYPES = new Set([
@@ -33,13 +33,26 @@ interface VideoPreviewProps {
 export function VideoPreview({ url, type, name }: VideoPreviewProps) {
   const [playbackError, setPlaybackError] = useState(false);
   const likelyPlayable = canBrowserPlay(type, name);
-  const showWarning = !likelyPlayable || playbackError;
 
   const handleError = useCallback(() => {
     setPlaybackError(true);
   }, []);
 
   const ext = name.split(".").pop()?.toUpperCase() ?? "Video";
+
+  // If we already know the browser can't play it, don't even render the
+  // <video> element — it shows an ugly broken player on mobile Safari.
+  if (!likelyPlayable) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border-muted bg-bg-inset text-xs text-text-muted">
+        <Film size={13} className="shrink-0 text-text-muted" />
+        <span>
+          {ext} can't be previewed in your browser. Processing will still work —
+          FFmpeg handles all formats.
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -49,12 +62,12 @@ export function VideoPreview({ url, type, name }: VideoPreviewProps) {
         onError={handleError}
         className="w-full max-h-72 rounded-lg bg-black"
       />
-      {showWarning && (
+      {playbackError && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border-muted bg-bg-inset text-xs text-text-muted">
           <Info size={13} className="shrink-0" />
           <span>
-            {ext} preview may not work in your browser. Processing will still
-            work — FFmpeg handles all formats.
+            {ext} preview failed. Processing will still work — FFmpeg handles
+            all formats.
           </span>
         </div>
       )}

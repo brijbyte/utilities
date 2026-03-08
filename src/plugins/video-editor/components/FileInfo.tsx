@@ -31,12 +31,15 @@ export function FileInfo({ meta }: FileInfoProps) {
     {
       icon: <Maximize size={11} />,
       label: "Res",
-      value: `${meta.width}×${meta.height}`,
+      value:
+        meta.width === 1920 && meta.height === 1080 && meta.duration === 0
+          ? "Unknown"
+          : `${meta.width}×${meta.height}`,
     },
     {
       icon: <Clock size={11} />,
       label: "Duration",
-      value: formatTime(meta.duration),
+      value: meta.duration > 0 ? formatTime(meta.duration) : "Unknown",
     },
   ];
 

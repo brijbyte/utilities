@@ -64,28 +64,37 @@ function TimeInput({
 
 export function TrimPanel({ config, duration, onChange }: TrimPanelProps) {
   const trimmedDuration = config.end - config.start;
+  const hasDuration = duration > 0;
 
   return (
     <div className="flex flex-col gap-3">
+      {!hasDuration && (
+        <p className="text-[0.625rem] text-warning leading-relaxed">
+          Duration unknown — enter start and end times manually.
+        </p>
+      )}
+
       <div className="flex flex-wrap items-end gap-3">
         <TimeInput
           label="Start Time"
           value={config.start}
-          max={config.end}
+          max={config.end || Infinity}
           onChange={(v) => onChange({ ...config, start: v })}
         />
         <TimeInput
           label="End Time"
           value={config.end}
-          max={duration}
+          max={duration || Infinity}
           onChange={(v) => onChange({ ...config, end: v })}
         />
-        <div className="flex flex-col gap-1">
-          <span className="text-[0.625rem] text-text-muted">Duration</span>
-          <span className="text-xs text-text font-mono tabular-nums px-2 py-1">
-            {formatTime(Math.max(0, trimmedDuration))}
-          </span>
-        </div>
+        {trimmedDuration > 0 && (
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.625rem] text-text-muted">Duration</span>
+            <span className="text-xs text-text font-mono tabular-nums px-2 py-1">
+              {formatTime(Math.max(0, trimmedDuration))}
+            </span>
+          </div>
+        )}
       </div>
 
       <p className="text-[0.625rem] text-text-muted leading-relaxed">
@@ -96,22 +105,24 @@ export function TrimPanel({ config, duration, onChange }: TrimPanelProps) {
         <span className="font-mono">90.5</span> = 90.5s
       </p>
 
-      {/* Visual timeline bar */}
-      <div className="flex flex-col gap-1">
-        <div className="relative h-2 bg-border-muted rounded-full overflow-hidden">
-          <div
-            className="absolute h-full bg-primary/30 rounded-full"
-            style={{
-              left: `${(config.start / duration) * 100}%`,
-              width: `${(trimmedDuration / duration) * 100}%`,
-            }}
-          />
+      {/* Visual timeline bar — only show when duration is known */}
+      {hasDuration && (
+        <div className="flex flex-col gap-1">
+          <div className="relative h-2 bg-border-muted rounded-full overflow-hidden">
+            <div
+              className="absolute h-full bg-primary/30 rounded-full"
+              style={{
+                left: `${(config.start / duration) * 100}%`,
+                width: `${(trimmedDuration / duration) * 100}%`,
+              }}
+            />
+          </div>
+          <div className="flex justify-between text-[0.625rem] text-text-muted">
+            <span>{formatTime(0)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
         </div>
-        <div className="flex justify-between text-[0.625rem] text-text-muted">
-          <span>{formatTime(0)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
