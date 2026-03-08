@@ -134,6 +134,46 @@ export function formatTimeFfmpeg(seconds: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${s.toFixed(3).padStart(6, "0")}`;
 }
 
+/**
+ * Clamp target dimensions so neither exceeds the source resolution,
+ * while preserving the target aspect ratio.
+ *
+ * E.g., source 1280×720, target 1080×1080 → 720×720
+ *       source 1280×720, target 1080×1920 → 405×720
+ *       source 1920×1080, target 1080×1080 → 1080×1080 (no change)
+ */
+export function clampToSource(
+  targetW: number,
+  targetH: number,
+  sourceW: number,
+  sourceH: number,
+): { width: number; height: number } {
+  if (targetW <= sourceW && targetH <= sourceH) {
+    return { width: targetW, height: targetH };
+  }
+
+  const targetRatio = targetW / targetH;
+
+  // Scale down to fit within source dimensions
+  let w = targetW;
+  let h = targetH;
+
+  if (w > sourceW) {
+    w = sourceW;
+    h = Math.round(w / targetRatio);
+  }
+  if (h > sourceH) {
+    h = sourceH;
+    w = Math.round(h * targetRatio);
+  }
+
+  // Ensure even dimensions (required by most codecs)
+  w = Math.ceil(w / 2) * 2;
+  h = Math.ceil(h / 2) * 2;
+
+  return { width: w, height: h };
+}
+
 export function defaultOperations(meta: VideoMeta): Operations {
   return {
     compress: {

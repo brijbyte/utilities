@@ -1,5 +1,5 @@
 import type { Operations, VideoMeta } from "./types";
-import { RESOLUTION_PRESETS, formatTimeFfmpeg } from "./types";
+import { RESOLUTION_PRESETS, formatTimeFfmpeg, clampToSource } from "./types";
 
 /**
  * Build FFmpeg command arguments from operation configs.
@@ -45,9 +45,11 @@ export function buildCommand(
       h = meta.height;
     }
 
+    // Clamp to source resolution — never upscale beyond what the source provides
+    const clamped = clampToSource(w, h, meta.width, meta.height);
     // Ensure target dimensions are even (required by most codecs)
-    const ew = Math.ceil(w / 2) * 2;
-    const eh = Math.ceil(h / 2) * 2;
+    const ew = Math.ceil(clamped.width / 2) * 2;
+    const eh = Math.ceil(clamped.height / 2) * 2;
 
     if (!ops.resize.maintainAspect) {
       // Stretch to exact dimensions (ignores aspect ratio)

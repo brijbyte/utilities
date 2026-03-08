@@ -14,7 +14,7 @@ export function VideoEditorSkeleton() {
 
       {/* Content skeleton */}
       <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-3xl mx-auto flex flex-col gap-4">
+        <div className="max-w-5xl mx-auto flex flex-col gap-4">
           {/* Upload zone skeleton */}
           <div className="flex flex-col items-center justify-center gap-4 p-10 border-2 border-dashed border-border-muted rounded-lg">
             <Bar className="w-16 h-16 rounded-full" />

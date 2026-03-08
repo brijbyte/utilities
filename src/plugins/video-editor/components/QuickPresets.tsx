@@ -8,7 +8,7 @@ import {
   MonitorPlay,
 } from "lucide-react";
 import type { Operations, VideoMeta } from "../utils/types";
-import { defaultOperations } from "../utils/types";
+import { defaultOperations, clampToSource } from "../utils/types";
 
 // ── SVG icons for platforms without lucide icons ────────────────────
 
@@ -79,7 +79,9 @@ const PRESET_GROUPS: PresetGroup[] = [
           // 1080p (1920×1080) or keep 4K, 16:9 aspect ratio,
           // CRF 16-18 for high quality upload (YouTube re-encodes anyway)
           const ops = defaultOperations(meta);
-          const isOver1080 = meta.width > 1920 || meta.height > 1080;
+          const t1080 = clampToSource(1920, 1080, meta.width, meta.height);
+          const needsResize1080 =
+            t1080.width < 1920 || meta.width > 1920 || meta.height > 1080;
           ops.compress = {
             enabled: true,
             format: "mp4",
@@ -91,10 +93,10 @@ const PRESET_GROUPS: PresetGroup[] = [
             ),
           };
           ops.resize = {
-            enabled: isOver1080,
-            preset: isOver1080 ? "1080p" : "original",
-            width: isOver1080 ? 1920 : meta.width,
-            height: isOver1080 ? 1080 : meta.height,
+            enabled: meta.width > 1920 || meta.height > 1080,
+            preset: needsResize1080 ? "1080p" : "original",
+            width: t1080.width,
+            height: t1080.height,
             maintainAspect: true,
             fit: "pad",
           };
@@ -106,8 +108,9 @@ const PRESET_GROUPS: PresetGroup[] = [
         label: "Instagram Reel",
         icon: <InstagramIcon />,
         apply: (meta) => {
-          // Instagram Reels: MP4, H.264 + AAC, 1080×1920 (9:16), max 90s
+          // Instagram Reels: MP4, H.264 + AAC, 9:16, max 90s
           const ops = defaultOperations(meta);
+          const reelSize = clampToSource(1080, 1920, meta.width, meta.height);
           ops.compress = {
             enabled: true,
             format: "mp4",
@@ -121,8 +124,8 @@ const PRESET_GROUPS: PresetGroup[] = [
           ops.resize = {
             enabled: true,
             preset: "custom",
-            width: 1080,
-            height: 1920,
+            width: reelSize.width,
+            height: reelSize.height,
             maintainAspect: true,
             fit: "crop",
           };
@@ -139,8 +142,9 @@ const PRESET_GROUPS: PresetGroup[] = [
         label: "Instagram Post",
         icon: <InstagramIcon />,
         apply: (meta) => {
-          // Instagram feed: MP4, H.264 + AAC, 1080×1080 (1:1), max 60s
+          // Instagram feed: MP4, H.264 + AAC, 1:1, max 60s
           const ops = defaultOperations(meta);
+          const postSize = clampToSource(1080, 1080, meta.width, meta.height);
           ops.compress = {
             enabled: true,
             format: "mp4",
@@ -154,8 +158,8 @@ const PRESET_GROUPS: PresetGroup[] = [
           ops.resize = {
             enabled: true,
             preset: "custom",
-            width: 1080,
-            height: 1080,
+            width: postSize.width,
+            height: postSize.height,
             maintainAspect: true,
             fit: "crop",
           };
@@ -172,8 +176,9 @@ const PRESET_GROUPS: PresetGroup[] = [
         label: "TikTok",
         icon: <TikTokIcon />,
         apply: (meta) => {
-          // TikTok: MP4, H.264 + AAC, 1080×1920 (9:16), max 10 min, ≤287MB
+          // TikTok: MP4, H.264 + AAC, 9:16, max 10 min, ≤287MB
           const ops = defaultOperations(meta);
+          const tikSize = clampToSource(1080, 1920, meta.width, meta.height);
           ops.compress = {
             enabled: true,
             format: "mp4",
@@ -187,8 +192,8 @@ const PRESET_GROUPS: PresetGroup[] = [
           ops.resize = {
             enabled: true,
             preset: "custom",
-            width: 1080,
-            height: 1920,
+            width: tikSize.width,
+            height: tikSize.height,
             maintainAspect: true,
             fit: "crop",
           };
@@ -205,9 +210,9 @@ const PRESET_GROUPS: PresetGroup[] = [
         label: "X / Twitter",
         icon: <TwitterIcon />,
         apply: (meta) => {
-          // X/Twitter: MP4, H.264 + AAC, 1280×720 (16:9), max 140s, ≤512MB
+          // X/Twitter: MP4, H.264 + AAC, 720p, max 140s, ≤512MB
           const ops = defaultOperations(meta);
-          const isOver720 = meta.width > 1280 || meta.height > 720;
+          const t720 = clampToSource(1280, 720, meta.width, meta.height);
           ops.compress = {
             enabled: true,
             format: "mp4",
@@ -219,10 +224,10 @@ const PRESET_GROUPS: PresetGroup[] = [
             ),
           };
           ops.resize = {
-            enabled: isOver720,
-            preset: isOver720 ? "720p" : "original",
-            width: isOver720 ? 1280 : meta.width,
-            height: isOver720 ? 720 : meta.height,
+            enabled: meta.width > 1280 || meta.height > 720,
+            preset: "720p",
+            width: t720.width,
+            height: t720.height,
             maintainAspect: true,
             fit: "pad",
           };
@@ -241,7 +246,7 @@ const PRESET_GROUPS: PresetGroup[] = [
         apply: (meta) => {
           // WhatsApp: MP4, H.264 + AAC, 16MB limit, 3 min status / longer in chat
           const ops = defaultOperations(meta);
-          const isOver720 = meta.width > 1280 || meta.height > 720;
+          const wa720 = clampToSource(1280, 720, meta.width, meta.height);
           ops.compress = {
             enabled: true,
             format: "mp4",
@@ -250,10 +255,10 @@ const PRESET_GROUPS: PresetGroup[] = [
             targetSizeMB: 16,
           };
           ops.resize = {
-            enabled: isOver720,
-            preset: isOver720 ? "720p" : "original",
-            width: isOver720 ? 1280 : meta.width,
-            height: isOver720 ? 720 : meta.height,
+            enabled: meta.width > 1280 || meta.height > 720,
+            preset: "720p",
+            width: wa720.width,
+            height: wa720.height,
             maintainAspect: true,
             fit: "pad",
           };
@@ -288,11 +293,12 @@ const PRESET_GROUPS: PresetGroup[] = [
               Math.round(meta.size / (1024 * 1024) / 2),
             ),
           };
+          const ip1080 = clampToSource(1920, 1080, meta.width, meta.height);
           ops.resize = {
             enabled: meta.width > 1920 || meta.height > 1080,
             preset: "1080p",
-            width: 1920,
-            height: 1080,
+            width: ip1080.width,
+            height: ip1080.height,
             maintainAspect: true,
             fit: "pad",
           };
@@ -317,11 +323,12 @@ const PRESET_GROUPS: PresetGroup[] = [
               Math.round(meta.size / (1024 * 1024) / 4),
             ),
           };
+          const ip720 = clampToSource(1280, 720, meta.width, meta.height);
           ops.resize = {
             enabled: meta.width > 1280 || meta.height > 720,
             preset: "720p",
-            width: 1280,
-            height: 720,
+            width: ip720.width,
+            height: ip720.height,
             maintainAspect: true,
             fit: "pad",
           };
@@ -393,11 +400,12 @@ const PRESET_GROUPS: PresetGroup[] = [
         apply: (meta) => {
           const ops = defaultOperations(meta);
           ops.convert = { enabled: true, format: "gif" };
+          const gif480 = clampToSource(854, 480, meta.width, meta.height);
           ops.resize = {
-            enabled: meta.width > 480,
+            enabled: meta.width > 854 || meta.height > 480,
             preset: "480p",
-            width: 854,
-            height: 480,
+            width: gif480.width,
+            height: gif480.height,
             maintainAspect: true,
             fit: "pad",
           };
@@ -436,26 +444,24 @@ interface QuickPresetsProps {
 
 export function QuickPresets({ meta, onApply }: QuickPresetsProps) {
   return (
-    <div className="flex flex-col gap-3">
-      {PRESET_GROUPS.map((group) => (
-        <div key={group.label} className="flex flex-col gap-1.5">
-          <span className="text-[0.625rem] text-text-muted uppercase tracking-wider">
-            {group.label}
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {group.presets.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => onApply(preset.apply(meta))}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs border rounded-full cursor-pointer transition-colors select-none bg-bg-surface text-text-muted border-border hover:bg-bg-hover hover:text-text"
-              >
-                {preset.icon}
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[9px] text-text-muted uppercase tracking-wider">
+        Quick Presets
+      </span>
+      <div className="flex flex-wrap gap-1">
+        {PRESET_GROUPS.flatMap((group) =>
+          group.presets.map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => onApply(preset.apply(meta))}
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] border rounded-full cursor-pointer transition-colors select-none bg-bg-surface text-text-muted border-border hover:bg-bg-hover hover:text-text"
+            >
+              {preset.icon}
+              {preset.label}
+            </button>
+          )),
+        )}
+      </div>
     </div>
   );
 }

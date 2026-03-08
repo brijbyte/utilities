@@ -2,7 +2,7 @@ import { useId } from "react";
 import { Select } from "../../../components/Select";
 import { Button } from "../../../components/Button";
 import type { ResizeConfig, ResizeFit, VideoMeta } from "../utils/types";
-import { RESOLUTION_PRESETS } from "../utils/types";
+import { RESOLUTION_PRESETS, clampToSource } from "../utils/types";
 
 interface ResizePanelProps {
   config: ResizeConfig;
@@ -30,13 +30,23 @@ export function ResizePanel({ config, meta, onChange }: ResizePanelProps) {
   const widthId = useId();
   const heightId = useId();
 
-  // Determine target dimensions for aspect ratio comparison
+  // Determine effective (clamped) target dimensions
   let targetW = config.width;
   let targetH = config.height;
   if (config.preset !== "original" && config.preset !== "custom") {
     const p = RESOLUTION_PRESETS[config.preset];
-    targetW = p.width;
-    targetH = p.height;
+    const clamped = clampToSource(p.width, p.height, meta.width, meta.height);
+    targetW = clamped.width;
+    targetH = clamped.height;
+  } else if (config.preset === "custom") {
+    const clamped = clampToSource(
+      config.width,
+      config.height,
+      meta.width,
+      meta.height,
+    );
+    targetW = clamped.width;
+    targetH = clamped.height;
   }
 
   // Check if target aspect ratio differs from source
@@ -44,6 +54,15 @@ export function ResizePanel({ config, meta, onChange }: ResizePanelProps) {
   const targetRatio = targetW / targetH;
   const ratioMismatch =
     config.preset !== "original" && Math.abs(sourceRatio - targetRatio) > 0.05;
+
+  // Check if clamping changed the dimensions
+  const wasClamped =
+    config.preset !== "original" &&
+    config.preset !== "custom" &&
+    (() => {
+      const p = RESOLUTION_PRESETS[config.preset];
+      return targetW !== p.width || targetH !== p.height;
+    })();
 
   const handlePreset = (preset: string) => {
     if (preset === "original") {
@@ -57,11 +76,12 @@ export function ResizePanel({ config, meta, onChange }: ResizePanelProps) {
       onChange({ ...config, preset: "custom" });
     } else {
       const p = RESOLUTION_PRESETS[preset];
+      const clamped = clampToSource(p.width, p.height, meta.width, meta.height);
       onChange({
         ...config,
         preset: preset as ResizeConfig["preset"],
-        width: p.width,
-        height: p.height,
+        width: clamped.width,
+        height: clamped.height,
       });
     }
   };
@@ -125,38 +145,46 @@ export function ResizePanel({ config, meta, onChange }: ResizePanelProps) {
       </div>
 
       {config.preset === "custom" && (
-        <div className="flex items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label htmlFor={widthId} className="text-[10px] text-text-muted">
-              Width
-            </label>
-            <input
-              id={widthId}
-              type="number"
-              min={2}
-              max={7680}
-              step={2}
-              value={config.width}
-              onChange={(e) => handleWidth(Number(e.target.value) || 2)}
-              className="w-24 bg-bg-surface border border-border text-sm text-text px-2 py-1 rounded font-mono tabular-nums focus:border-primary outline-none transition-colors"
-            />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label htmlFor={widthId} className="text-[10px] text-text-muted">
+                Width
+              </label>
+              <input
+                id={widthId}
+                type="number"
+                min={2}
+                max={meta.width}
+                step={2}
+                value={config.width}
+                onChange={(e) => handleWidth(Number(e.target.value) || 2)}
+                className="w-24 bg-bg-surface border border-border text-sm text-text px-2 py-1 rounded font-mono tabular-nums focus:border-primary outline-none transition-colors"
+              />
+            </div>
+            <span className="text-text-muted text-xs pb-1">×</span>
+            <div className="flex flex-col gap-1">
+              <label htmlFor={heightId} className="text-[10px] text-text-muted">
+                Height
+              </label>
+              <input
+                id={heightId}
+                type="number"
+                min={2}
+                max={meta.height}
+                step={2}
+                value={config.height}
+                onChange={(e) => handleHeight(Number(e.target.value) || 2)}
+                className="w-24 bg-bg-surface border border-border text-sm text-text px-2 py-1 rounded font-mono tabular-nums focus:border-primary outline-none transition-colors"
+              />
+            </div>
           </div>
-          <span className="text-text-muted text-xs pb-1">×</span>
-          <div className="flex flex-col gap-1">
-            <label htmlFor={heightId} className="text-[10px] text-text-muted">
-              Height
-            </label>
-            <input
-              id={heightId}
-              type="number"
-              min={2}
-              max={4320}
-              step={2}
-              value={config.height}
-              onChange={(e) => handleHeight(Number(e.target.value) || 2)}
-              className="w-24 bg-bg-surface border border-border text-sm text-text px-2 py-1 rounded font-mono tabular-nums focus:border-primary outline-none transition-colors"
-            />
-          </div>
+          {(config.width > meta.width || config.height > meta.height) && (
+            <span className="text-[10px] text-warning">
+              Clamped to {targetW}×{targetH} — upscaling beyond source
+              resolution ({meta.width}×{meta.height}) is avoided.
+            </span>
+          )}
         </div>
       )}
 
@@ -184,15 +212,25 @@ export function ResizePanel({ config, meta, onChange }: ResizePanelProps) {
         </div>
       )}
 
-      {config.preset !== "original" && config.preset !== "custom" && (
+      {config.preset !== "original" && (
         <span className="text-[10px] text-text-muted">
-          Output: {RESOLUTION_PRESETS[config.preset].width}×
-          {RESOLUTION_PRESETS[config.preset].height}
-          {config.maintainAspect
-            ? config.fit === "crop"
-              ? " (cropped to fill)"
-              : " (padded to fit)"
-            : " (stretched)"}
+          Output: {targetW}×{targetH}
+          {wasClamped && (
+            <>
+              {" "}
+              <span className="text-warning">
+                (clamped from {RESOLUTION_PRESETS[config.preset]?.width}×
+                {RESOLUTION_PRESETS[config.preset]?.height} to avoid upscaling)
+              </span>
+            </>
+          )}
+          {config.preset !== "custom" &&
+            !wasClamped &&
+            (config.maintainAspect
+              ? config.fit === "crop"
+                ? " (cropped to fill)"
+                : " (padded to fit)"
+              : " (stretched)")}
         </span>
       )}
     </div>
