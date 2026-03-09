@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
+import sharp from "sharp";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "dist");
@@ -181,13 +182,34 @@ async function prerender() {
   const iconsDir = path.join(distDir, "icons");
   await fs.mkdir(iconsDir, { recursive: true });
 
+  const iconSize = 192;
+  const padding = 32;
+  const innerSize = iconSize - padding * 2;
+
   for (const plugin of plugins) {
     // Render the React icon element to an SVG string
-    const svgMarkup = renderToStaticMarkup(plugin.icon);
+    let svgMarkup = renderToStaticMarkup(plugin.icon);
 
-    // Write icon SVG to dist/icons/<id>.svg
-    const iconPath = `/icons/${plugin.id}.svg`;
-    await fs.writeFile(path.join(iconsDir, `${plugin.id}.svg`), svgMarkup);
+    // Replace currentColor with a concrete color and set viewBox-based sizing
+    // Wrap in a padded SVG so the icon doesn't bleed to edges
+    svgMarkup = svgMarkup
+      .replace(/width="24"/, `width="${innerSize}"`)
+      .replace(/height="24"/, `height="${innerSize}"`)
+      .replace(/stroke="currentColor"/g, 'stroke="#1c1917"');
+
+    const wrappedSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${iconSize}" height="${iconSize}" viewBox="0 0 ${iconSize} ${iconSize}">
+      <rect width="${iconSize}" height="${iconSize}" rx="32" fill="#f5f5f4"/>
+      <g transform="translate(${padding}, ${padding})">${svgMarkup}</g>
+    </svg>`;
+
+    // Convert to 192x192 PNG
+    const pngBuffer = await sharp(Buffer.from(wrappedSvg))
+      .resize(iconSize, iconSize)
+      .png()
+      .toBuffer();
+
+    const pngFilename = `${plugin.id}.png`;
+    await fs.writeFile(path.join(iconsDir, pngFilename), pngBuffer);
 
     shortcuts.push({
       name: plugin.name,
@@ -196,10 +218,9 @@ async function prerender() {
       url: `/a/${plugin.id}?source=pwa`,
       icons: [
         {
-          src: iconPath,
-          sizes: "any",
-          type: "image/svg+xml",
-          purpose: "any maskable",
+          src: `/icons/${pngFilename}`,
+          sizes: `${iconSize}x${iconSize}`,
+          type: "image/png",
         },
       ],
     });
