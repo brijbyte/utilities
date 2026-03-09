@@ -298,7 +298,7 @@ export function EditorView({
             {cropEnabled && cropRegion && (
               <button
                 onClick={() => setCropDialogOpen(true)}
-                className="absolute top-1.5 right-1.5 p-1 rounded bg-black/50 text-white/80 hover:bg-black/70 hover:text-white cursor-pointer transition-colors opacity-0 group-hover/img:opacity-100 z-10"
+                className="absolute top-1.5 right-1.5 p-1 rounded bg-black/50 text-white/80 hover:bg-black/70 hover:text-white cursor-pointer transition-colors sm:opacity-0 sm:group-hover/img:opacity-100 z-10"
                 title="Expand to full screen"
               >
                 <Expand size={14} />
