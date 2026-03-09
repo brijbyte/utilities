@@ -8,11 +8,24 @@
   "display": "standalone",
   "background_color": "#f5f5f4",
   "theme_color": "#1c1917",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
@@ -25,11 +38,116 @@
   "shortcuts": [],
   "screenshots": [
     {
-      "src": "screenshots/launchericon-512x512.png",
-      "sizes": "512x512",
+      "src": "/screenshots/home-wide.png",
+      "sizes": "2560x1600",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Home screen showing main navigation and featured content"
+      "label": "Home — app launcher grid with all developer tools"
+    },
+    {
+      "src": "/screenshots/home-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Home — app launcher grid on mobile"
+    },
+    {
+      "src": "/screenshots/json-formatter-wide.png",
+      "sizes": "2560x1600",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "JSON Formatter — format and validate JSON with split-panel view"
+    },
+    {
+      "src": "/screenshots/json-formatter-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "JSON Formatter on mobile"
+    },
+    {
+      "src": "/screenshots/emi-calculator-wide.png",
+      "sizes": "2560x1600",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "EMI Calculator — loan amortisation with sliders and results"
+    },
+    {
+      "src": "/screenshots/emi-calculator-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "EMI Calculator on mobile"
+    },
+    {
+      "src": "/screenshots/totp-authenticator-wide.png",
+      "sizes": "2560x1600",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "TOTP Authenticator — encrypted offline 2FA code generator"
+    },
+    {
+      "src": "/screenshots/totp-authenticator-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "TOTP Authenticator on mobile"
+    },
+    {
+      "src": "/screenshots/home-dark-wide.png",
+      "sizes": "2560x1600",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Home — app launcher grid (dark theme)"
+    },
+    {
+      "src": "/screenshots/home-dark-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Home — app launcher grid on mobile (dark theme)"
+    },
+    {
+      "src": "/screenshots/json-formatter-dark-wide.png",
+      "sizes": "2560x1600",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "JSON Formatter — split-panel view (dark theme)"
+    },
+    {
+      "src": "/screenshots/json-formatter-dark-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "JSON Formatter on mobile (dark theme)"
+    },
+    {
+      "src": "/screenshots/emi-calculator-dark-wide.png",
+      "sizes": "2560x1600",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "EMI Calculator — loan amortisation (dark theme)"
+    },
+    {
+      "src": "/screenshots/emi-calculator-dark-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "EMI Calculator on mobile (dark theme)"
+    },
+    {
+      "src": "/screenshots/totp-authenticator-dark-wide.png",
+      "sizes": "2560x1600",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "TOTP Authenticator — encrypted 2FA (dark theme)"
+    },
+    {
+      "src": "/screenshots/totp-authenticator-dark-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "TOTP Authenticator on mobile (dark theme)"
     }
   ]
 }
