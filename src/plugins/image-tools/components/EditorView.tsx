@@ -7,16 +7,19 @@ import {
   Crop,
   Loader2,
   Expand,
+  Eraser,
 } from "lucide-react";
 import { CollapsibleGroup, Collapsible } from "../../../components/Collapsible";
 import { Button } from "../../../components/Button";
 import { ResizePanel } from "./ResizePanel";
 import { ConvertPanel } from "./ConvertPanel";
 import { CropPanel } from "./CropPanel";
+import { BgRemovePanel } from "./BgRemovePanel";
 import { ImageReport } from "./ImageInfo";
 import { FaceOverlay } from "./FaceOverlay";
 import { CropOverlay } from "./CropOverlay";
 import { CropDialog } from "./CropDialog";
+import { BgMaskOverlay } from "./BgMaskOverlay";
 import type {
   ImageFile,
   ResizeConfig,
@@ -31,6 +34,12 @@ import {
 import { processImage, processPassportPhoto } from "../utils/resize";
 import { detectFaces } from "../utils/face-detect";
 import type { FaceResult } from "../utils/face-detect";
+import {
+  segmentPerson,
+  applyMask,
+  DEFAULT_BG_CONFIG,
+} from "../utils/bg-remove";
+import type { BgRemoveConfig } from "../utils/bg-remove";
 import {
   computeSmartCrop,
   computePassportCrop,
@@ -84,6 +93,20 @@ export function EditorView({
   // Reset to null when config/faces change (recomputes from smart crop)
   const [cropOverride, setCropOverride] = useState<CropRegion | null>(null);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
+
+  // Background removal state
+  const [bgConfig, setBgConfig] = useState<BgRemoveConfig>(DEFAULT_BG_CONFIG);
+  const [bgSegmenting, setBgSegmenting] = useState(false);
+  const [bgProgress, setBgProgress] = useState<string | null>(null);
+  const [bgError, setBgError] = useState<string | null>(null);
+  // Cached mask — reused across config changes, recomputed only on new segmentation
+  const [bgMask, setBgMask] = useState<{
+    mask: Float32Array;
+    width: number;
+    height: number;
+    origWidth: number;
+    origHeight: number;
+  } | null>(null);
 
   // ── Derived ───────────────────────────────────────────────
 
@@ -179,6 +202,38 @@ export function EditorView({
     [faces, runFaceDetection],
   );
 
+  // ── Background removal ────────────────────────────────────
+
+  const runSegmentation = useCallback(async () => {
+    setBgSegmenting(true);
+    setBgError(null);
+    setBgProgress(null);
+
+    try {
+      const bitmap = await createImageBitmap(image.file);
+      const maskResult = await segmentPerson(bitmap, (msg) =>
+        setBgProgress(msg),
+      );
+      bitmap.close();
+      setBgMask(maskResult);
+      setBgProgress(null);
+    } catch (err) {
+      setBgError(err instanceof Error ? err.message : "Segmentation failed");
+    } finally {
+      setBgSegmenting(false);
+    }
+  }, [image.file]);
+
+  const handleEnableBgRemove = useCallback(
+    async (enabled: boolean) => {
+      setBgConfig((prev) => ({ ...prev, enabled }));
+      if (enabled && !bgMask) {
+        await runSegmentation();
+      }
+    },
+    [bgMask, runSegmentation],
+  );
+
   // ── Process image ─────────────────────────────────────────
 
   const handleProcess = useCallback(async () => {
@@ -201,6 +256,40 @@ export function EditorView({
         );
       }
 
+      // Apply background removal if enabled and mask is available
+      if (bgConfig.enabled && bgMask) {
+        // Yield to browser before heavy pixel work
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        // Decode the processed result into a bitmap
+        const processed = await createImageBitmap(r.blob);
+        // Pass the crop region so mask coordinates are mapped correctly
+        const activeCrop = cropEnabled ? cropRegion : null;
+        const bgCanvas = applyMask(
+          processed,
+          bgMask.mask,
+          bgMask.width,
+          bgMask.height,
+          bgMask.origWidth,
+          bgMask.origHeight,
+          bgConfig,
+          activeCrop,
+        );
+        processed.close();
+
+        // Re-encode — use PNG for transparency, otherwise keep original format
+        const outFormat =
+          bgConfig.fill.type === "transparent" ? "image/png" : convert.format;
+        const blob = await bgCanvas.convertToBlob({
+          type: outFormat,
+          quality: outFormat === "image/png" ? undefined : convert.quality,
+        });
+        const url = URL.createObjectURL(blob);
+
+        // Clean up old result URL
+        URL.revokeObjectURL(r.url);
+        r = { blob, url, width: r.width, height: r.height };
+      }
+
       if (result) URL.revokeObjectURL(result.url);
       setResult(r);
     } finally {
@@ -215,19 +304,26 @@ export function EditorView({
     cropEnabled,
     cropRegion,
     activeTemplate,
+    bgConfig,
+    bgMask,
   ]);
 
   // ── Download ──────────────────────────────────────────────
 
   const handleDownload = useCallback(() => {
     if (!result) return;
-    const ext = FORMAT_EXTENSIONS[convert.format];
+    // If bg removal with transparency is active, output is always PNG
+    const actualFormat =
+      bgConfig.enabled && bgConfig.fill.type === "transparent"
+        ? "image/png"
+        : convert.format;
+    const ext = FORMAT_EXTENSIONS[actualFormat];
     const baseName = image.file.name.replace(/\.[^.]+$/, "");
     const a = document.createElement("a");
     a.href = result.url;
     a.download = `${baseName}-processed${ext}`;
     a.click();
-  }, [result, convert.format, image.file.name]);
+  }, [result, convert.format, bgConfig, image.file.name]);
 
   // ── Report actions to parent toolbar ──────────────────────
 
@@ -275,6 +371,17 @@ export function EditorView({
               alt="Original"
               className="w-full h-auto max-h-80 object-contain"
             />
+            {/* Background mask overlay — shows person/background tint */}
+            {bgConfig.enabled && bgMask && (
+              <BgMaskOverlay
+                mask={bgMask.mask}
+                maskW={bgMask.width}
+                maskH={bgMask.height}
+                imgWidth={image.width}
+                imgHeight={image.height}
+                config={bgConfig}
+              />
+            )}
             {/* Show face overlay when not cropping, or crop overlay when cropping */}
             {cropEnabled && cropRegion ? (
               <CropOverlay
@@ -462,6 +569,57 @@ export function EditorView({
               faceCount={faces?.length ?? 0}
               onChange={setCropConfig}
             />
+          )}
+        </Collapsible>
+
+        {/* Background Removal */}
+        <Collapsible
+          value="bgremove"
+          title="Remove Background"
+          icon={<Eraser size={13} className="text-text-muted" />}
+          badge={bgConfig.enabled ? (bgMask ? "Active" : "Pending") : undefined}
+        >
+          <p className="text-[10px] text-text-muted leading-relaxed -mt-1 mb-2">
+            Remove the background using MediaPipe Selfie Segmentation. The model
+            (~250KB) is downloaded from CDN on first use and cached by your
+            browser.
+          </p>
+
+          <label className="flex items-center gap-1.5 text-xs text-text cursor-pointer mb-2">
+            <input
+              type="checkbox"
+              checked={bgConfig.enabled}
+              onChange={(e) => handleEnableBgRemove(e.target.checked)}
+              className="accent-primary"
+            />
+            Enable background removal
+          </label>
+
+          {bgConfig.enabled && (
+            <>
+              {bgSegmenting && (
+                <p className="text-[0.625rem] text-primary flex items-center gap-1 mb-2">
+                  <Loader2 size={11} className="animate-spin" />
+                  {bgProgress ?? "Segmenting…"}
+                </p>
+              )}
+              {bgError && (
+                <p className="text-[0.625rem] text-danger mb-2">{bgError}</p>
+              )}
+              {bgMask && (
+                <>
+                  <BgRemovePanel config={bgConfig} onChange={setBgConfig} />
+                  <Button
+                    variant="outline"
+                    onClick={runSegmentation}
+                    disabled={bgSegmenting}
+                    className="text-[0.625rem] mt-2"
+                  >
+                    Re-segment
+                  </Button>
+                </>
+              )}
+            </>
           )}
         </Collapsible>
 

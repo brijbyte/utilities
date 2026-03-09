@@ -23,13 +23,13 @@ Fully client-side image processing plugin. All operations run in the browser usi
 ✅ Passport / visa photo templates (9 templates, auto-framing per spec)
 ✅ Resize with presets + custom dimensions (step-down for sharpness)
 ✅ Format conversion (PNG ↔ JPEG ↔ WebP with quality control)
+✅ Background removal (MediaPipe Selfie Segmentation, configurable threshold/softness)
 ✅ Side-by-side original / processed preview with size comparison
 ```
 
 ### Planned
 
 ```
-⬜ Background removal (MediaPipe Selfie Segmentation)
 ⬜ Batch resize / convert all
 ⬜ Batch download as ZIP
 ⬜ Before/after comparison slider
@@ -57,6 +57,11 @@ plugins/
                                   9 passport/visa templates with specs.
       resize.ts                   Canvas resize (step-down for quality), format conversion,
                                   processImage() and processPassportPhoto() pipelines.
+      bg-remove.ts                MediaPipe Image Segmenter wrapper. Lazy CDN singleton.
+                                  Selfie segmenter model (float16, ~250KB). segmentPerson()
+                                  returns confidence mask. applyMask() composites with
+                                  configurable threshold, edge softness, and background fill.
+                                  Handles crop region offset for mask coordinate mapping.
     components/
       UploadZone.tsx              Multi-file drag-drop + paste + compact toolbar mode.
       ImageGallery.tsx            Responsive grid of ImageCards.
@@ -76,6 +81,13 @@ plugins/
       CropDialog.tsx              Fullscreen Base UI Dialog for precise crop adjustment.
                                   Zoom in/out (buttons, +/−, ⌘+scroll), pan via scroll,
                                   fit-to-screen (0 key). Reuses CropOverlay at any zoom.
+      BgRemovePanel.tsx            Background fill presets (transparent, white, black, blue,
+                                  green, custom color picker), threshold slider, edge
+                                  softness slider.
+      BgMaskOverlay.tsx            Canvas-rendered mask preview overlay. Person areas shown
+                                  with green tint, background with red tint. Rendered at
+                                  mask resolution via OffscreenCanvas → blob URL. Updates
+                                  live as threshold/softness change.
       ResizePanel.tsx             Preset buttons (1080p/720p/480p/custom), custom dimensions,
                                   aspect ratio lock, output dimension preview.
       ConvertPanel.tsx            Format buttons (JPEG/PNG/WebP), quality slider.
@@ -86,17 +98,17 @@ plugins/
 
 ## Technology Choices
 
-| Feature                | Technology                              | Size               | Why                                                 |
-| ---------------------- | --------------------------------------- | ------------------ | --------------------------------------------------- |
-| **Face detection**     | MediaPipe Face Detection (WASM/WebGL)   | ~5MB lazy from CDN | Fast, accurate, GPU-accelerated via WebGL           |
-| **Background removal** | MediaPipe Selfie Segmentation (planned) | ~5MB lazy from CDN | Real person segmentation, not generic               |
-| **Blur detection**     | Canvas + Laplacian variance (pure JS)   | 0KB (built-in)     | No ML needed, subsampled for speed on large images  |
-| **Exposure check**     | Canvas histogram analysis (pure JS)     | 0KB                | Luminance mean + standard deviation                 |
-| **EXIF parsing**       | Manual binary parser (pure JS)          | 0KB                | Reads JPEG APP1 marker, TIFF IFDs, GPS sub-IFD      |
-| **Resize**             | OffscreenCanvas + step-down halving     | 0KB                | Native browser, Lanczos-quality at large reductions |
-| **Format convert**     | `OffscreenCanvas.convertToBlob()`       | 0KB                | Native browser API                                  |
-| **Scrollable popover** | Base UI ScrollArea                      | Bundled            | Styled scrollbar, no scroll-to-bottom issue         |
-| **Grouped dropdown**   | Base UI Select (Group + GroupLabel)     | Bundled            | Accessible, themed, grouped passport templates      |
+| Feature                | Technology                                 | Size                       | Why                                                 |
+| ---------------------- | ------------------------------------------ | -------------------------- | --------------------------------------------------- |
+| **Face detection**     | MediaPipe Face Detection (WASM/WebGL)      | ~5MB lazy from CDN         | Fast, accurate, GPU-accelerated via WebGL           |
+| **Background removal** | MediaPipe Selfie Segmentation (WASM/WebGL) | ~250KB model lazy from CDN | Real person segmentation, confidence mask output    |
+| **Blur detection**     | Canvas + Laplacian variance (pure JS)      | 0KB (built-in)             | No ML needed, subsampled for speed on large images  |
+| **Exposure check**     | Canvas histogram analysis (pure JS)        | 0KB                        | Luminance mean + standard deviation                 |
+| **EXIF parsing**       | Manual binary parser (pure JS)             | 0KB                        | Reads JPEG APP1 marker, TIFF IFDs, GPS sub-IFD      |
+| **Resize**             | OffscreenCanvas + step-down halving        | 0KB                        | Native browser, Lanczos-quality at large reductions |
+| **Format convert**     | `OffscreenCanvas.convertToBlob()`          | 0KB                        | Native browser API                                  |
+| **Scrollable popover** | Base UI ScrollArea                         | Bundled                    | Styled scrollbar, no scroll-to-bottom issue         |
+| **Grouped dropdown**   | Base UI Select (Group + GroupLabel)        | Bundled                    | Accessible, themed, grouped passport templates      |
 
 ## Architecture Decisions
 
@@ -199,7 +211,29 @@ Two crop modes, both face-aware:
 | Chinese Visa           | China          | 33×48     | 390×567          | 58–73%     | 55%      | `#ffffff`  |
 | Japanese Visa/Passport | Japan          | 35×45     | 413×531          | 70–80%     | 55%      | `#ffffff`  |
 
-### 7. Processing Pipeline
+### 7. Background Removal — Selfie Segmentation
+
+Uses MediaPipe Image Segmenter with the `selfie_segmenter` model (float16, ~250KB). Same lazy CDN singleton pattern as face detection — shares the WASM runtime (~5MB, browser-cached).
+
+**Segmentation:** `segmentPerson()` downscales the input to max 1024px on the long edge (the model internally works at 256×256 — feeding multi-megapixel images is wasteful and freezes the browser). Returns a confidence mask (`Float32Array`) where each value is 0.0 (background) to 1.0 (person). Also returns `origWidth`/`origHeight` for coordinate mapping.
+
+**Mask application:** `applyMask()` processes each pixel:
+
+- Compute alpha from confidence using threshold + edge softness (feathered transition)
+- For transparent fill: multiply pixel alpha by mask alpha
+- For color fill: blend original pixel over fill color weighted by alpha
+
+**Crop-aware masking:** The mask is generated once from a downscaled version of the original image and cached. `applyMask` maps bitmap pixels → original image coords → mask coords, accounting for both the downscale ratio and any active crop region.
+
+**Configuration:**
+
+- **Threshold** (0.1–0.9): confidence cutoff for person vs background
+- **Edge softness** (0–0.2): width of the feathered transition zone
+- **Background fill**: transparent (checkerboard preview), white, black, blue, green, or custom color
+
+**Format handling:** Transparent background forces PNG output (JPEG doesn't support alpha). The download filename extension adjusts automatically.
+
+### 8. Processing Pipeline
 
 ```
 Input File
@@ -207,9 +241,13 @@ Input File
   ├── Regular mode:   crop (optional) → step-down resize (optional) → format convert
   │
   └── Passport mode:  passport crop → step-down resize to template pixels → bg color fill → JPEG 95%
+  │
+  └── Both paths →    background removal (optional) → re-encode
 ```
 
-Both paths use `createImageBitmap()` for sub-rectangle extraction (crop) and `OffscreenCanvas` for drawing/conversion.
+Both paths use `canvas.drawImage()` with source rect for cropping (avoids `createImageBitmap` sub-rect browser bugs) and `OffscreenCanvas` for drawing/conversion.
+
+Background removal is applied as a post-processing step on the processed output. The segmentation mask is generated once from the original image and cached. When a crop is active, the mask coordinates are offset to match the cropped region. Transparent background forces PNG output regardless of format selection.
 
 ## UI Layout
 
@@ -238,7 +276,7 @@ Both paths use `createImageBitmap()` for sub-rectangle extraction (crop) and `Of
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ Toolbar: [🖼 N images] ··· [Add Images] [Clear All]         │
+│ Toolbar: [🖼 N] ··· [Process] [Download] | [Add] [Clear All] │
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
 │  Image Strip (horizontal scroll, click to switch):           │
@@ -255,10 +293,9 @@ Both paths use `createImageBitmap()` for sub-rectangle extraction (crop) and `Of
 │                                                              │
 │  ▸ 😀 Face Detection           1 face                       │
 │  ▸ ✂️  Smart Crop               Schengen Visa                │
+│  ▸ 🧹 Remove Background        Active                       │
 │  ▸ 📏 Resize                   1080p                        │
 │  ▸ 🔄 Convert Format           JPEG                         │
-│                                                              │
-│  [Process Image] [Download]                                  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -296,6 +333,7 @@ const [selectedId, setSelectedId] = useState<string | null>(null);
 - **ImageReport (ImageInfo.tsx)** — Popover with Base UI ScrollArea. Quality section at top (color-coded), then file, image, EXIF, location sections.
 - **FaceOverlay / CropOverlay** — SVG overlays on the image preview. FaceOverlay shows bounding boxes + keypoints. CropOverlay is interactive: drag interior to move, drag corners to resize (aspect-locked or free), drag edges to resize one axis (free mode) or move (locked mode). Uses SVG CTM (`getScreenCTM().inverse()`) to convert pointer events to image-coordinate deltas regardless of display scaling. Only one shows at a time (crop takes priority). User adjustments stored as `cropOverride` in EditorView — reset when config/template/faces change.
 - **CropPanel** — GroupedSelect dropdown for passport templates (grouped by region), manual aspect ratio buttons, padding slider, template requirements card.
+- **BgRemovePanel** — Background fill presets (transparent, white, black, blue, green, custom color picker), threshold slider (person vs background cutoff), edge softness slider (hard vs feathered). Segmentation runs automatically on enable; mask is cached and reused across config changes.
 
 ## Conventions
 
@@ -307,6 +345,7 @@ const [selectedId, setSelectedId] = useState<string | null>(null);
 - `processPassportPhoto()` is a dedicated pipeline: crop → resize to template pixels → bg fill → JPEG 95%.
 - Step-down resize (halving until within 2×) used for all downscaling >2× to preserve sharpness.
 - EXIF parser only reads first 128KB of JPEG files — fast and memory-efficient.
+- Background removal mask is cached per image — config changes (threshold, softness, fill) don't re-run segmentation. Only "Re-segment" button or re-enabling triggers a new segmentation.
 - No npm dependencies added. MediaPipe loaded via dynamic ESM import from CDN.
 
 ## Implementation Status
@@ -317,7 +356,7 @@ const [selectedId, setSelectedId] = useState<string | null>(null);
 4. ✅ Resize + format conversion
 5. ✅ EXIF extraction + metadata report
 6. ✅ Image strip for editor navigation
-7. ⬜ Background removal (MediaPipe Selfie Segmentation)
+7. ✅ Background removal (MediaPipe Selfie Segmentation)
 8. ⬜ Batch operations (resize all, convert all)
 9. ⬜ ZIP download
 10. ⬜ Before/after comparison slider
