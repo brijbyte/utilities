@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { renderToStaticMarkup } from "react-dom/server";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "dist");
@@ -173,6 +174,46 @@ async function prerender() {
   }
 
   console.log(`✓ Generated HTML pages for ${plugins.length} plugins`);
+
+  // --- Generate plugin shortcut icons and manifest shortcuts ---
+
+  const shortcuts = [];
+  const iconsDir = path.join(distDir, "icons");
+  await fs.mkdir(iconsDir, { recursive: true });
+
+  for (const plugin of plugins) {
+    // Render the React icon element to an SVG string
+    const svgMarkup = renderToStaticMarkup(plugin.icon);
+
+    // Write icon SVG to dist/icons/<id>.svg
+    const iconPath = `/icons/${plugin.id}.svg`;
+    await fs.writeFile(path.join(iconsDir, `${plugin.id}.svg`), svgMarkup);
+
+    shortcuts.push({
+      name: plugin.name,
+      short_name: plugin.name,
+      description: plugin.meta.description,
+      url: `/a/${plugin.id}?source=pwa`,
+      icons: [
+        {
+          src: iconPath,
+          sizes: "any",
+          type: "image/svg+xml",
+          purpose: "any maskable",
+        },
+      ],
+    });
+  }
+
+  // Read the manifest, inject shortcuts, write back
+  const manifestPath = path.join(distDir, "manifest.webmanifest");
+  const manifest = JSON.parse(await fs.readFile(manifestPath, "utf-8"));
+  manifest.shortcuts = shortcuts;
+  await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+
+  console.log(
+    `✓ Generated ${shortcuts.length} shortcut icons and updated manifest`,
+  );
 
   await vite.close();
 }
