@@ -120,6 +120,135 @@ function buildServiceWorker(): Plugin {
   };
 }
 
+/**
+ * Dev-only plugin that handles /api/proxy requests directly in the Vite dev
+ * server, mirroring the Cloudflare Pages Function in functions/api/proxy.ts.
+ * This avoids needing to run `wrangler pages dev` locally.
+ */
+function devCorsProxy(): Plugin {
+  return {
+    name: "dev-cors-proxy",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use("/api/proxy", async (req, res) => {
+        // Handle CORS preflight
+        if (req.method === "OPTIONS") {
+          res.writeHead(204, {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers":
+              "Content-Type, Authorization, X-Proxy-URL",
+            "Access-Control-Max-Age": "86400",
+          });
+          res.end();
+          return;
+        }
+
+        if (req.method !== "POST") {
+          res.writeHead(405, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+
+        // Read request body
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) {
+          chunks.push(chunk as Buffer);
+        }
+        const bodyStr = Buffer.concat(chunks).toString("utf-8");
+
+        let proxyReq: {
+          url: string;
+          method: string;
+          headers: Record<string, string>;
+          body?: string;
+        };
+        try {
+          proxyReq = JSON.parse(bodyStr);
+        } catch {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid JSON body" }));
+          return;
+        }
+
+        if (!proxyReq.url || !proxyReq.method) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Missing url or method" }));
+          return;
+        }
+
+        try {
+          const targetHeaders = new Headers(proxyReq.headers || {});
+          targetHeaders.delete("host");
+          targetHeaders.delete("origin");
+          targetHeaders.delete("referer");
+
+          const fetchInit: RequestInit = {
+            method: proxyReq.method,
+            headers: targetHeaders,
+          };
+
+          if (
+            proxyReq.body &&
+            proxyReq.method !== "GET" &&
+            proxyReq.method !== "HEAD"
+          ) {
+            fetchInit.body = proxyReq.body;
+          }
+
+          const upstream = await fetch(proxyReq.url, fetchInit);
+
+          // Forward status and headers
+          const corsHeaders: Record<string, string> = {
+            "Access-Control-Allow-Origin": "*",
+          };
+          const ct = upstream.headers.get("content-type") || "application/json";
+          corsHeaders["Content-Type"] = ct;
+
+          for (const h of ["x-request-id", "request-id", "retry-after"]) {
+            const val = upstream.headers.get(h);
+            if (val) corsHeaders[h] = val;
+          }
+
+          const isStreaming =
+            ct.includes("text/event-stream") ||
+            ct.includes("application/x-ndjson");
+
+          if (isStreaming && upstream.body) {
+            res.writeHead(upstream.status, {
+              ...corsHeaders,
+              "Cache-Control": "no-cache",
+              Connection: "keep-alive",
+            });
+
+            const reader = upstream.body.getReader();
+            const pump = async () => {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                res.write(value);
+              }
+              res.end();
+            };
+            pump().catch(() => res.end());
+          } else {
+            const text = await upstream.text();
+            res.writeHead(upstream.status, corsHeaders);
+            res.end(text);
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          res.writeHead(502, {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          });
+          res.end(JSON.stringify({ error: message }));
+        }
+      });
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     blogPlugin(),
@@ -130,6 +259,7 @@ export default defineConfig({
     }),
     tailwindcss(),
     buildServiceWorker(),
+    devCorsProxy(),
   ],
   define: {},
   build: {

@@ -9,6 +9,7 @@ import {
   Calculator,
   Film,
   ImageIcon,
+  Bot,
 } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
@@ -16,6 +17,7 @@ import { TotpAppSkeleton } from "./totp/components/Skeleton";
 import { EmiSkeleton } from "./emi-calculator/components/Skeleton";
 import { VideoEditorSkeleton } from "./video-editor/components/Skeleton";
 import { ImageToolsSkeleton } from "./image-tools/components/Skeleton";
+import { ChatSkeleton } from "./chat/components/Skeleton";
 import { operations as jsonOps } from "./json-formatter/operations";
 import { operations as base64Ops } from "./base64/operations";
 import { operations as hashOps } from "./hash-generator/operations";
@@ -179,5 +181,26 @@ export const plugins: Plugin[] = [
     },
     load: () => import("./totp/App"),
     skeleton: () => <TotpAppSkeleton />,
+  },
+  {
+    id: "chat",
+    name: "Chat",
+    icon: <Bot size={24} />,
+    meta: {
+      description:
+        "Chat with LLMs from multiple providers — sessions stored locally in the browser",
+      keywords: [
+        "ai",
+        "chat",
+        "llm",
+        "openai",
+        "anthropic",
+        "gemini",
+        "grok",
+        "mistral",
+      ],
+    },
+    load: () => import("./chat/App"),
+    skeleton: () => <ChatSkeleton />,
   },
 ];
