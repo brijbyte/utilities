@@ -1,12 +1,12 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   LayoutGrid,
   Maximize,
   ArrowRightLeft,
-  Download,
   ScanFace,
   Crop,
   Loader2,
+  Expand,
 } from "lucide-react";
 import { CollapsibleGroup, Collapsible } from "../../../components/Collapsible";
 import { Button } from "../../../components/Button";
@@ -16,6 +16,7 @@ import { CropPanel } from "./CropPanel";
 import { ImageReport } from "./ImageInfo";
 import { FaceOverlay } from "./FaceOverlay";
 import { CropOverlay } from "./CropOverlay";
+import { CropDialog } from "./CropDialog";
 import type {
   ImageFile,
   ResizeConfig,
@@ -35,15 +36,28 @@ import {
   computePassportCrop,
   PHOTO_TEMPLATES,
 } from "../utils/crop";
-import type { CropConfig } from "../utils/crop";
+import type { CropConfig, CropRegion } from "../utils/crop";
+
+export interface EditorActions {
+  process: () => void;
+  download: () => void;
+  processing: boolean;
+  hasResult: boolean;
+}
 
 interface EditorViewProps {
   image: ImageFile;
   onBack: () => void;
   onUpdate: (id: string, patch: Partial<ImageFile>) => void;
+  onActionsChange?: (actions: EditorActions) => void;
 }
 
-export function EditorView({ image, onBack, onUpdate }: EditorViewProps) {
+export function EditorView({
+  image,
+  onBack,
+  onUpdate,
+  onActionsChange,
+}: EditorViewProps) {
   const [resize, setResize] = useState<ResizeConfig | null>(null);
   const [convert, setConvert] = useState<ConvertConfig>({
     format: image.file.type === "image/png" ? "image/png" : "image/jpeg",
@@ -66,6 +80,10 @@ export function EditorView({ image, onBack, onUpdate }: EditorViewProps) {
     padding: 0.4,
     template: null,
   });
+  // User-adjusted crop override — takes precedence over computed crop
+  // Reset to null when config/faces change (recomputes from smart crop)
+  const [cropOverride, setCropOverride] = useState<CropRegion | null>(null);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
 
   // ── Derived ───────────────────────────────────────────────
 
@@ -76,7 +94,8 @@ export function EditorView({ image, onBack, onUpdate }: EditorViewProps) {
     ? (PHOTO_TEMPLATES.find((t) => t.id === cropConfig.template) ?? null)
     : null;
 
-  const cropRegion = useMemo(() => {
+  // Auto-computed crop from face detection + config
+  const computedCrop = useMemo(() => {
     if (!cropEnabled) return null;
 
     // Passport template mode — use specialized crop
@@ -102,6 +121,19 @@ export function EditorView({ image, onBack, onUpdate }: EditorViewProps) {
     cropConfig,
     activeTemplate,
   ]);
+
+  // Reset user override when the computed crop changes (config/template/faces changed)
+  const prevComputedRef = useRef(computedCrop);
+  if (prevComputedRef.current !== computedCrop) {
+    prevComputedRef.current = computedCrop;
+    if (cropOverride !== null) setCropOverride(null);
+  }
+
+  // Final crop: user override takes precedence over computed
+  const cropRegion = cropOverride ?? computedCrop;
+
+  // Whether aspect ratio is locked (any non-free preset or template)
+  const lockAspect = activeTemplate !== null || cropConfig.aspect !== "free";
 
   // ── Face detection ────────────────────────────────────────
 
@@ -197,6 +229,17 @@ export function EditorView({ image, onBack, onUpdate }: EditorViewProps) {
     a.click();
   }, [result, convert.format, image.file.name]);
 
+  // ── Report actions to parent toolbar ──────────────────────
+
+  useEffect(() => {
+    onActionsChange?.({
+      process: handleProcess,
+      download: handleDownload,
+      processing,
+      hasResult: result !== null,
+    });
+  }, [onActionsChange, handleProcess, handleDownload, processing, result]);
+
   // ── Render ────────────────────────────────────────────────
 
   return (
@@ -226,7 +269,7 @@ export function EditorView({ image, onBack, onUpdate }: EditorViewProps) {
               />
             )}
           </div>
-          <div className="relative rounded-lg border border-border-muted overflow-hidden bg-bg-inset">
+          <div className="relative rounded-lg border border-border-muted overflow-hidden bg-bg-inset group/img">
             <img
               src={image.url}
               alt="Original"
@@ -238,6 +281,8 @@ export function EditorView({ image, onBack, onUpdate }: EditorViewProps) {
                 crop={cropRegion}
                 imgWidth={image.width}
                 imgHeight={image.height}
+                lockAspect={lockAspect}
+                onCropChange={setCropOverride}
               />
             ) : (
               showOverlay &&
@@ -248,6 +293,16 @@ export function EditorView({ image, onBack, onUpdate }: EditorViewProps) {
                   imgHeight={image.height}
                 />
               )
+            )}
+            {/* Expand button — visible when crop is active */}
+            {cropEnabled && cropRegion && (
+              <button
+                onClick={() => setCropDialogOpen(true)}
+                className="absolute top-1.5 right-1.5 p-1 rounded bg-black/50 text-white/80 hover:bg-black/70 hover:text-white cursor-pointer transition-colors opacity-0 group-hover/img:opacity-100 z-10"
+                title="Expand to full screen"
+              >
+                <Expand size={14} />
+              </button>
             )}
           </div>
           <div className="flex items-center gap-2 mt-1">
@@ -473,18 +528,19 @@ export function EditorView({ image, onBack, onUpdate }: EditorViewProps) {
         </Collapsible>
       </CollapsibleGroup>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-2">
-        <Button variant="primary" onClick={handleProcess} disabled={processing}>
-          {processing ? "Processing…" : "Process Image"}
-        </Button>
-        {result && (
-          <Button variant="outline" onClick={handleDownload}>
-            <Download size={12} />
-            Download
-          </Button>
-        )}
-      </div>
+      {/* Fullscreen crop dialog */}
+      {cropEnabled && cropRegion && (
+        <CropDialog
+          open={cropDialogOpen}
+          onOpenChange={setCropDialogOpen}
+          imageUrl={image.url}
+          imgWidth={image.width}
+          imgHeight={image.height}
+          crop={cropRegion}
+          lockAspect={lockAspect}
+          onCropChange={setCropOverride}
+        />
+      )}
     </div>
   );
 }

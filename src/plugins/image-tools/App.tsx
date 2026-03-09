@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Trash2, ImageIcon } from "lucide-react";
+import { Trash2, ImageIcon, Download, Loader2 } from "lucide-react";
 import { Button } from "../../components/Button";
 import { UploadZone } from "./components/UploadZone";
 import { ImageGallery } from "./components/ImageGallery";
 import { ImageStrip } from "./components/ImageStrip";
 import { EditorView } from "./components/EditorView";
+import type { EditorActions } from "./components/EditorView";
 import type { ImageFile } from "./utils/types";
 import { generateId, buildImageMeta } from "./utils/types";
 import { analyzeImage } from "./utils/quality";
@@ -17,6 +18,9 @@ export default function ImageTools() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(0); // count of images being analyzed
   const urlsRef = useRef<Set<string>>(new Set());
+  const [editorActions, setEditorActions] = useState<EditorActions | null>(
+    null,
+  );
 
   // ── Cleanup on unmount ────────────────────────────────────
 
@@ -108,6 +112,7 @@ export default function ImageTools() {
       });
       if (selectedId === id) {
         setSelectedId(null);
+        setEditorActions(null);
       }
     },
     [selectedId],
@@ -122,6 +127,7 @@ export default function ImageTools() {
     }
     setImages([]);
     setSelectedId(null);
+    setEditorActions(null);
   }, [images]);
 
   // ── Select & navigate ─────────────────────────────────────
@@ -132,6 +138,7 @@ export default function ImageTools() {
 
   const handleBack = useCallback(() => {
     setSelectedId(null);
+    setEditorActions(null);
   }, []);
 
   // ── Update image (from editor) ────────────────────────────
@@ -169,6 +176,37 @@ export default function ImageTools() {
           )}
         </div>
         <div className="ml-auto flex items-center gap-1.5">
+          {/* Editor actions — shown when an image is selected */}
+          {selectedImage && editorActions && (
+            <>
+              <Button
+                variant="primary"
+                onClick={editorActions.process}
+                disabled={editorActions.processing}
+                className="text-xs"
+              >
+                {editorActions.processing ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    Processing…
+                  </>
+                ) : (
+                  "Process"
+                )}
+              </Button>
+              {editorActions.hasResult && (
+                <Button
+                  variant="outline"
+                  onClick={editorActions.download}
+                  className="text-xs"
+                >
+                  <Download size={12} />
+                  Download
+                </Button>
+              )}
+              <div className="w-px h-4 bg-border mx-0.5" />
+            </>
+          )}
           <UploadZone onFiles={handleFiles} compact />
           <Button
             variant="ghost"
@@ -212,6 +250,7 @@ export default function ImageTools() {
                 image={selectedImage}
                 onBack={handleBack}
                 onUpdate={handleUpdateImage}
+                onActionsChange={setEditorActions}
               />
             </>
           )}

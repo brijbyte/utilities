@@ -18,6 +18,8 @@ Fully client-side image processing plugin. All operations run in the browser usi
 ✅ Face detection (MediaPipe BlazeFace, lazy CDN load, GPU-accelerated)
 ✅ Face overlay (bounding boxes + keypoints, expanded to include full head)
 ✅ Smart crop (face-aware, configurable aspect ratio + padding)
+✅ Interactive crop overlay (drag to move, resize via edges/corners)
+✅ Fullscreen crop dialog with zoom/pan for precise adjustments
 ✅ Passport / visa photo templates (9 templates, auto-framing per spec)
 ✅ Resize with presets + custom dimensions (step-down for sharpness)
 ✅ Format conversion (PNG ↔ JPEG ↔ WebP with quality control)
@@ -64,10 +66,16 @@ plugins/
       EditorView.tsx              Single-image editor. Collapsible panels for face detection,
                                   smart crop, resize, convert. Original/processed preview.
       FaceOverlay.tsx             SVG overlay: bounding boxes, confidence labels, keypoints.
-      CropOverlay.tsx             SVG overlay: darkened outside area, dashed crop border,
-                                  rule-of-thirds grid, corner handles.
+      CropOverlay.tsx             Interactive SVG overlay: darkened outside area, dashed crop
+                                  border, rule-of-thirds grid, draggable edges/corners.
+                                  Supports move (drag interior), resize via corners (aspect-
+                                  locked or free), and edge resize (free mode only).
+                                  Uses SVG CTM for screen→image coordinate conversion.
       CropPanel.tsx               Passport template dropdown (GroupedSelect), aspect ratio
                                   buttons, padding slider, template requirements card.
+      CropDialog.tsx              Fullscreen Base UI Dialog for precise crop adjustment.
+                                  Zoom in/out (buttons, +/−, ⌘+scroll), pan via scroll,
+                                  fit-to-screen (0 key). Reuses CropOverlay at any zoom.
       ResizePanel.tsx             Preset buttons (1080p/720p/480p/custom), custom dimensions,
                                   aspect ratio lock, output dimension preview.
       ConvertPanel.tsx            Format buttons (JPEG/PNG/WebP), quality slider.
@@ -286,7 +294,7 @@ const [selectedId, setSelectedId] = useState<string | null>(null);
 - **ImageStrip** — Horizontal scroll strip shown above editor when 2+ images. 56×56px thumbnails, selected image highlighted + auto-scrolled into view. Click to switch.
 - **EditorView** — Single-image editor. Local state for operations. Collapsible panels via shared `Collapsible` component. Processes image via `processImage()` or `processPassportPhoto()`.
 - **ImageReport (ImageInfo.tsx)** — Popover with Base UI ScrollArea. Quality section at top (color-coded), then file, image, EXIF, location sections.
-- **FaceOverlay / CropOverlay** — SVG overlays on the image preview. FaceOverlay shows bounding boxes + keypoints. CropOverlay shows darkened outside area + dashed border + rule-of-thirds + corner handles. Only one shows at a time (crop takes priority).
+- **FaceOverlay / CropOverlay** — SVG overlays on the image preview. FaceOverlay shows bounding boxes + keypoints. CropOverlay is interactive: drag interior to move, drag corners to resize (aspect-locked or free), drag edges to resize one axis (free mode) or move (locked mode). Uses SVG CTM (`getScreenCTM().inverse()`) to convert pointer events to image-coordinate deltas regardless of display scaling. Only one shows at a time (crop takes priority). User adjustments stored as `cropOverride` in EditorView — reset when config/template/faces change.
 - **CropPanel** — GroupedSelect dropdown for passport templates (grouped by region), manual aspect ratio buttons, padding slider, template requirements card.
 
 ## Conventions

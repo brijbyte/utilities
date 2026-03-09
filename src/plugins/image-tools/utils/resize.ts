@@ -121,15 +121,23 @@ export async function processImage(
 
   // Step 1: Crop (if provided)
   if (crop) {
-    const cropped = await createImageBitmap(
+    // Use canvas drawImage with source rect — createImageBitmap sub-rect
+    // has browser bugs with large images (incorrect y offset)
+    const cropCanvas = new OffscreenCanvas(crop.width, crop.height);
+    const cropCtx = cropCanvas.getContext("2d")!;
+    cropCtx.drawImage(
       bitmap,
       crop.x,
       crop.y,
       crop.width,
       crop.height,
+      0,
+      0,
+      crop.width,
+      crop.height,
     );
     bitmap.close();
-    bitmap = cropped;
+    bitmap = await createImageBitmap(cropCanvas);
     // Update effective source dimensions for resize computation
     srcWidth = crop.width;
     srcHeight = crop.height;
@@ -186,17 +194,26 @@ export async function processPassportPhoto(
   template: PhotoTemplate,
 ): Promise<ProcessedResult> {
   const { width: outW, height: outH } = templatePixels(template);
-
   // Crop the source image
   const bitmap = await createImageBitmap(file);
-  const cropped = await createImageBitmap(
+
+  // Use canvas drawImage with source rect — createImageBitmap sub-rect
+  // has browser bugs with large images (incorrect y offset)
+  const cropCanvas = new OffscreenCanvas(crop.width, crop.height);
+  const cropCtx = cropCanvas.getContext("2d")!;
+  cropCtx.drawImage(
     bitmap,
     crop.x,
     crop.y,
     crop.width,
     crop.height,
+    0,
+    0,
+    crop.width,
+    crop.height,
   );
   bitmap.close();
+  const cropped = await createImageBitmap(cropCanvas);
 
   // Resize cropped image to template pixels using step-down
   const resized = stepDownResize(cropped, outW, outH);
