@@ -8,8 +8,11 @@ const VERSION = __COMMIT_HASH__;
 const CACHE_NAME = `utilities-${VERSION}`;
 
 // Static shell + all hashed assets (injected at build time)
+const OFFLINE_PAGE = "/offline.html";
+
 const PRECACHE = [
   "/",
+  OFFLINE_PAGE,
   "/manifest.webmanifest",
   "/icon.svg",
   ...__PRECACHE_ASSETS__,
@@ -46,16 +49,21 @@ sw.addEventListener("fetch", (event: FetchEvent) => {
   // Skip non-GET and cross-origin
   if (request.method !== "GET" || url.origin !== sw.location.origin) return;
 
-  // Navigation requests (SPA): network-first, fallback to cached /index.html
+  // Navigation requests (SPA): network-first, fallback to cached page or offline page
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then((response) => {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("/", clone));
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match("/") as Promise<Response>),
+        .catch(
+          () =>
+            caches.match(request).then(
+              (cached) => cached || caches.match(OFFLINE_PAGE),
+            ) as Promise<Response>,
+        ),
     );
     return;
   }

@@ -14,6 +14,9 @@ import { useSwUpdate } from "../useSwUpdate";
 import { Popover } from "../components/Popover";
 import { Button } from "../components/Button";
 
+const commitHash = (globalThis as unknown as Record<string, string>).__APP_VERSION__ ?? "";
+const commitDate = (globalThis as unknown as Record<string, string>).__APP_DATE__ ?? "";
+
 const themeOptions: { value: Theme; icon: typeof Sun; label: string }[] = [
   { value: "light", icon: Sun, label: "Light" },
   { value: "dark", icon: Moon, label: "Dark" },
@@ -68,18 +71,18 @@ export function AppInfo() {
                 <div className="flex items-center justify-between">
                   <span>Release</span>
                   <a
-                    href={`https://github.com/brijbyte/utilities/commit/${__COMMIT_HASH__}`}
+                    href={`https://github.com/brijbyte/utilities/commit/${commitHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-mono underline text-primary"
                   >
-                    {__COMMIT_HASH__}
+                    {commitHash}
                   </a>
                 </div>
-                {__COMMIT_DATE__ && (
+                {commitDate && (
                   <div className="flex items-center justify-between">
                     <span className="font-mono">
-                      {formatDistanceToNow(__COMMIT_DATE__)} ago
+                      {formatDistanceToNow(commitDate)} ago
                     </span>
                   </div>
                 )}

@@ -1,11 +1,30 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 import { renderToStaticMarkup } from "react-dom/server";
 import sharp from "sharp";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "dist");
+
+function parseToUTC(dateStr) {
+  const iso = dateStr
+    .replace(" ", "T")
+    .replace(" +", "+")
+    .replace(/([+-]\d{2})(\d{2})$/, "$1:$2");
+  return new Date(iso);
+}
+
+const commitHash =
+  process.env.SW_VERSION ||
+  execSync("git rev-parse --short HEAD").toString().trim();
+const commitDateRaw =
+  process.env.SW_DATE ||
+  execSync("git log -1 --format=%cd --date=iso", { env: { TZ: "UTC" } })
+    .toString()
+    .trim();
+const commitDate = parseToUTC(commitDateRaw).toISOString();
 
 async function prerender() {
   // Build SSR bundle
@@ -34,6 +53,10 @@ async function prerender() {
     path.resolve(distDir, "index.html"),
     "utf-8",
   );
+
+  // Inject app version info into the inline script
+  template = template.replaceAll("<!--app:hash-->", commitHash);
+  template = template.replaceAll("<!--app:date-->", commitDate);
 
   // Load plugins to generate dynamic metadata
   const { plugins } = await vite.ssrLoadModule("./src/plugins/index.tsx");

@@ -129,9 +129,7 @@ export default defineConfig({
     tailwindcss(),
     buildServiceWorker(),
   ],
-  define: {
-    ...DEFINE,
-  },
+  define: {},
   build: {
     manifest: true,
     rolldownOptions: {
