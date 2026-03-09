@@ -13,6 +13,7 @@ import {
 import { useSwUpdate } from "../useSwUpdate";
 import { Popover } from "../components/Popover";
 import { Button } from "../components/Button";
+import { useMemo } from "react";
 
 const commitHash =
   (globalThis as unknown as Record<string, string>).__APP_VERSION__ ?? "";
@@ -28,6 +29,15 @@ const themeOptions: { value: Theme; icon: typeof Sun; label: string }[] = [
 export function AppInfo() {
   const updateAvailable = useSwUpdate();
   const { theme, setTheme, fontSize, setFontSize } = useTheme();
+
+  const formattedDate = useMemo(() => {
+    if (!commitDate) return null;
+    try {
+      return formatDistanceToNow(commitDate);
+    } catch {
+      return null;
+    }
+  }, []);
 
   return (
     <Popover.Root>
@@ -81,11 +91,9 @@ export function AppInfo() {
                     {commitHash}
                   </a>
                 </div>
-                {commitDate && (
+                {formattedDate && (
                   <div className="flex items-center justify-between">
-                    <span className="font-mono">
-                      {formatDistanceToNow(commitDate)} ago
-                    </span>
+                    <span className="font-mono">{formattedDate} ago</span>
                   </div>
                 )}
                 {isPwa && (
