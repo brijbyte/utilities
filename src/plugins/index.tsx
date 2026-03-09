@@ -8,12 +8,14 @@ import {
   ShieldCheck,
   Calculator,
   Film,
+  ImageIcon,
 } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
 import { TotpAppSkeleton } from "./totp/components/Skeleton";
 import { EmiSkeleton } from "./emi-calculator/components/Skeleton";
 import { VideoEditorSkeleton } from "./video-editor/components/Skeleton";
+import { ImageToolsSkeleton } from "./image-tools/components/Skeleton";
 import { operations as jsonOps } from "./json-formatter/operations";
 import { operations as base64Ops } from "./base64/operations";
 import { operations as hashOps } from "./hash-generator/operations";
@@ -121,6 +123,28 @@ export const plugins: Plugin[] = [
     },
     load: () => import("./emi-calculator/App"),
     skeleton: () => <EmiSkeleton />,
+  },
+  {
+    id: "image-tools",
+    name: "Image Tools",
+    icon: <ImageIcon size={24} />,
+    meta: {
+      description:
+        "Smart crop, background removal, face detection, quality filtering — all in the browser",
+      keywords: [
+        "image",
+        "photo",
+        "crop",
+        "background removal",
+        "face detection",
+        "resize",
+        "compress",
+        "quality",
+        "batch",
+      ],
+    },
+    load: () => import("./image-tools/App"),
+    skeleton: () => <ImageToolsSkeleton />,
   },
   {
     id: "video-editor",

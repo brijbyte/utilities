@@ -60,9 +60,11 @@ sw.addEventListener("fetch", (event: FetchEvent) => {
         })
         .catch(
           () =>
-            caches.match(request).then(
-              (cached) => cached || caches.match(OFFLINE_PAGE),
-            ) as Promise<Response>,
+            caches
+              .match(request)
+              .then(
+                (cached) => cached || caches.match(OFFLINE_PAGE),
+              ) as Promise<Response>,
         ),
     );
     return;

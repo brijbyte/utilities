@@ -14,8 +14,10 @@ import { useSwUpdate } from "../useSwUpdate";
 import { Popover } from "../components/Popover";
 import { Button } from "../components/Button";
 
-const commitHash = (globalThis as unknown as Record<string, string>).__APP_VERSION__ ?? "";
-const commitDate = (globalThis as unknown as Record<string, string>).__APP_DATE__ ?? "";
+const commitHash =
+  (globalThis as unknown as Record<string, string>).__APP_VERSION__ ?? "";
+const commitDate =
+  (globalThis as unknown as Record<string, string>).__APP_DATE__ ?? "";
 
 const themeOptions: { value: Theme; icon: typeof Sun; label: string }[] = [
   { value: "light", icon: Sun, label: "Light" },
