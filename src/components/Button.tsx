@@ -35,7 +35,7 @@ export function Button({
 
   return (
     <button
-      className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs leading-none border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${active ? activeClass : variantClasses[variant]} ${disabledClass} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs leading-none rounded border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${active ? activeClass : variantClasses[variant]} ${disabledClass} ${className}`}
       disabled={disabled}
       {...props}
     />

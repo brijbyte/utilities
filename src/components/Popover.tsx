@@ -59,13 +59,15 @@ function Arrow(props: ComponentProps<typeof BasePopover.Arrow>) {
   );
 }
 
-/* ── Portal (re-export as-is) ───────────────────────────── */
+/* ── Portal / Close (re-export as-is) ───────────────────── */
 const Portal = BasePopover.Portal;
+const Close = BasePopover.Close;
 
 export const Popover = {
   Root,
   Trigger,
   Portal,
+  Close,
   Backdrop,
   Positioner,
   Popup,

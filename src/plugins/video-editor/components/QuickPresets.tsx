@@ -7,6 +7,8 @@ import {
   Apple,
   MonitorPlay,
 } from "lucide-react";
+import { Button } from "../../../components/Button";
+import { Popover } from "../../../components/Popover";
 import type { Operations, VideoMeta } from "../utils/types";
 import { defaultOperations, clampToSource } from "../utils/types";
 
@@ -14,24 +16,51 @@ import { defaultOperations, clampToSource } from "../utils/types";
 
 function YoutubeIcon() {
   return (
-    <svg viewBox="0 0 24 24" width={13} height={13} fill="currentColor">
-      <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.9 31.9 0 0 0 0 12a31.9 31.9 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.9 31.9 0 0 0 24 12a31.9 31.9 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z" />
+    <svg viewBox="0 0 24 24" width={13} height={13}>
+      <path
+        fill="#FF0000"
+        d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.9 31.9 0 0 0 0 12a31.9 31.9 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.9 31.9 0 0 0 24 12a31.9 31.9 0 0 0-.5-5.8Z"
+      />
+      <path fill="#FFF" d="M9.6 15.6V8.4l6.3 3.6-6.3 3.6Z" />
     </svg>
   );
 }
 
 function InstagramIcon() {
   return (
-    <svg viewBox="0 0 24 24" width={13} height={13} fill="currentColor">
-      <path d="M12 2.2c2.7 0 3 0 4.1.06 1 .05 1.6.2 2 .34a3.4 3.4 0 0 1 1.2.8c.37.36.66.77.8 1.24.14.37.3.96.34 1.97.05 1.08.06 1.4.06 4.12s0 3.04-.06 4.12c-.05 1-.2 1.6-.34 1.97a3.6 3.6 0 0 1-2.04 2.04c-.37.14-.96.3-1.97.34-1.08.05-1.4.06-4.12.06s-3.04 0-4.12-.06c-1-.05-1.6-.2-1.97-.34a3.4 3.4 0 0 1-1.24-.8 3.4 3.4 0 0 1-.8-1.24c-.14-.37-.3-.96-.34-1.97C2.22 15.04 2.2 14.7 2.2 12s0-3.04.06-4.12c.05-1 .2-1.6.34-1.97.14-.47.43-.88.8-1.24a3.4 3.4 0 0 1 1.24-.8c.37-.14.96-.3 1.97-.34C7.7 2.22 8 2.2 12 2.2Zm0-2.16c-2.72 0-3.06 0-4.13.06s-1.8.2-2.43.44a5.6 5.6 0 0 0-2.04 1.32A5.6 5.6 0 0 0 2.08 3.9c-.23.64-.39 1.37-.44 2.43C1.58 7.4 1.56 7.74 1.56 12s0 4.6.06 5.67.2 1.8.44 2.43a5.6 5.6 0 0 0 1.32 2.04 5.6 5.6 0 0 0 2.04 1.32c.64.23 1.37.39 2.43.44S8.91 24 12 24s3.73 0 4.8-.06 1.8-.2 2.43-.44a5.84 5.84 0 0 0 3.36-3.36c.23-.64.39-1.37.44-2.43s.06-1.4.06-4.13 0-3.73-.06-4.8-.2-1.8-.44-2.43a5.6 5.6 0 0 0-1.32-2.04A5.6 5.6 0 0 0 19.23.99c-.64-.23-1.37-.39-2.43-.44C15.73.5 15.39.48 12 .48V.04ZM12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32ZM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm6.4-10.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88Z" />
+    <svg viewBox="0 0 24 24" width={13} height={13}>
+      <defs>
+        <linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#FFDC80" />
+          <stop offset="25%" stopColor="#F77737" />
+          <stop offset="50%" stopColor="#E1306C" />
+          <stop offset="75%" stopColor="#C13584" />
+          <stop offset="100%" stopColor="#833AB4" />
+        </linearGradient>
+      </defs>
+      <path
+        fill="url(#ig-grad)"
+        d="M12 2.2c2.7 0 3 0 4.1.06 1 .05 1.6.2 2 .34a3.4 3.4 0 0 1 1.2.8c.37.36.66.77.8 1.24.14.37.3.96.34 1.97.05 1.08.06 1.4.06 4.12s0 3.04-.06 4.12c-.05 1-.2 1.6-.34 1.97a3.6 3.6 0 0 1-2.04 2.04c-.37.14-.96.3-1.97.34-1.08.05-1.4.06-4.12.06s-3.04 0-4.12-.06c-1-.05-1.6-.2-1.97-.34a3.4 3.4 0 0 1-1.24-.8 3.4 3.4 0 0 1-.8-1.24c-.14-.37-.3-.96-.34-1.97C2.22 15.04 2.2 14.7 2.2 12s0-3.04.06-4.12c.05-1 .2-1.6.34-1.97.14-.47.43-.88.8-1.24a3.4 3.4 0 0 1 1.24-.8c.37-.14.96-.3 1.97-.34C7.7 2.22 8 2.2 12 2.2Zm0-2.16c-2.72 0-3.06 0-4.13.06s-1.8.2-2.43.44a5.6 5.6 0 0 0-2.04 1.32A5.6 5.6 0 0 0 2.08 3.9c-.23.64-.39 1.37-.44 2.43C1.58 7.4 1.56 7.74 1.56 12s0 4.6.06 5.67.2 1.8.44 2.43a5.6 5.6 0 0 0 1.32 2.04 5.6 5.6 0 0 0 2.04 1.32c.64.23 1.37.39 2.43.44S8.91 24 12 24s3.73 0 4.8-.06 1.8-.2 2.43-.44a5.84 5.84 0 0 0 3.36-3.36c.23-.64.39-1.37.44-2.43s.06-1.4.06-4.13 0-3.73-.06-4.8-.2-1.8-.44-2.43a5.6 5.6 0 0 0-1.32-2.04A5.6 5.6 0 0 0 19.23.99c-.64-.23-1.37-.39-2.43-.44C15.73.5 15.39.48 12 .48V.04ZM12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32ZM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm6.4-10.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88Z"
+      />
     </svg>
   );
 }
 
 function TikTokIcon() {
   return (
-    <svg viewBox="0 0 24 24" width={13} height={13} fill="currentColor">
-      <path d="M19.3 6.4a4.8 4.8 0 0 1-2.9-1 4.8 4.8 0 0 1-1.9-2.8h.01V2h-3.8v13.6a2.9 2.9 0 0 1-2.9 2.7 2.9 2.9 0 0 1-2.1-.9 2.9 2.9 0 0 1 1.5-4.8 2.9 2.9 0 0 1 1.5.1V8.7a6.7 6.7 0 0 0-1.5-.2 6.7 6.7 0 0 0-4.8 2 6.7 6.7 0 0 0-1.9 5.3 6.7 6.7 0 0 0 2.7 4.6 6.7 6.7 0 0 0 4 1.3 6.7 6.7 0 0 0 4.8-2 6.7 6.7 0 0 0 2-4.8V9.4A8.6 8.6 0 0 0 19.3 11V7.1a4.8 4.8 0 0 1-1.3-.2v3.2a8.6 8.6 0 0 1-4.4-1.5v7.5a6.7 6.7 0 0 1-2 4.8 6.7 6.7 0 0 1-4.8 2 6.7 6.7 0 0 1-4-1.3 6.7 6.7 0 0 0 5.4 2.1 6.7 6.7 0 0 0 4.8-2 6.7 6.7 0 0 0 2-4.8V7.6a8.6 8.6 0 0 0 5 1.6V5.7h-.7Z" />
+    <svg viewBox="0 0 24 24" width={13} height={13}>
+      <path
+        fill="#25F4EE"
+        d="M10.7 15.6V8.7a6.7 6.7 0 0 0-1.5-.2 6.7 6.7 0 0 0-4.8 2 6.7 6.7 0 0 0-1.9 5.3 6.7 6.7 0 0 0 2.7 4.6 6.7 6.7 0 0 1-1.3-4 6.7 6.7 0 0 1 1.9-5.3 6.7 6.7 0 0 1 4.8-2c.5 0 1 .07 1.5.17V8.7a6.7 6.7 0 0 0-1.5-.2Z"
+      />
+      <path
+        fill="#FE2C55"
+        d="M11.3 2.6h3.2a4.8 4.8 0 0 0 1.9 2.8 4.8 4.8 0 0 0 2.9 1v3.4A8.6 8.6 0 0 1 14 8.3v7.5a6.7 6.7 0 0 1-2 4.8 6.7 6.7 0 0 1-4.8 2 6.7 6.7 0 0 1-4-1.3 6.7 6.7 0 0 0 4 1.3 6.7 6.7 0 0 0 4.8-2 6.7 6.7 0 0 0 2-4.8V8.3a8.6 8.6 0 0 0 5.3 1.8V6.7a4.8 4.8 0 0 1-3.6-1.3A4.8 4.8 0 0 1 14.5 2h-3.2v.6Z"
+      />
+      <path
+        fill="currentColor"
+        d="M19.3 6.4a4.8 4.8 0 0 1-2.9-1 4.8 4.8 0 0 1-1.9-2.8h.01V2h-3.8v13.6a2.9 2.9 0 0 1-2.9 2.7 2.9 2.9 0 0 1-2.1-.9 2.9 2.9 0 0 1 1.5-4.8 2.9 2.9 0 0 1 1.5.1V8.7a6.7 6.7 0 0 0-1.5-.2 6.7 6.7 0 0 0-4.8 2 6.7 6.7 0 0 0-1.9 5.3 6.7 6.7 0 0 0 2.7 4.6 6.7 6.7 0 0 0 4 1.3 6.7 6.7 0 0 0 4.8-2 6.7 6.7 0 0 0 2-4.8V9.4A8.6 8.6 0 0 0 19.3 11V7.1a4.8 4.8 0 0 1-1.3-.2v3.2a8.6 8.6 0 0 1-4.4-1.5v7.5a6.7 6.7 0 0 1-2 4.8 6.7 6.7 0 0 1-4.8 2 6.7 6.7 0 0 1-4-1.3 6.7 6.7 0 0 0 5.4 2.1 6.7 6.7 0 0 0 4.8-2 6.7 6.7 0 0 0 2-4.8V7.6a8.6 8.6 0 0 0 5 1.6V5.7h-.7Z"
+      />
     </svg>
   );
 }
@@ -46,7 +75,7 @@ function TwitterIcon() {
 
 function WhatsAppIcon() {
   return (
-    <svg viewBox="0 0 24 24" width={13} height={13} fill="currentColor">
+    <svg viewBox="0 0 24 24" width={13} height={13} fill="#25D366">
       <path d="M17.5 14.4c-.3-.15-1.8-.9-2.1-1s-.5-.15-.7.15-.8 1-1 1.2-.35.22-.65.07a8.2 8.2 0 0 1-2.4-1.5 9 9 0 0 1-1.7-2.1c-.17-.3 0-.46.13-.6s.3-.35.45-.52c.15-.17.2-.3.3-.5s.05-.37-.02-.52c-.08-.15-.7-1.7-.96-2.33-.25-.6-.5-.52-.7-.53h-.6a1.15 1.15 0 0 0-.83.39A3.5 3.5 0 0 0 5.6 9.1a6.1 6.1 0 0 0 1.27 3.23 13.9 13.9 0 0 0 5.35 4.73 6.1 6.1 0 0 0 3.78.63 3.2 3.2 0 0 0 2.1-1.48 2.6 2.6 0 0 0 .18-1.48c-.08-.13-.3-.21-.6-.36ZM12.05 21.8a9.9 9.9 0 0 1-5-1.38l-.36-.21-3.73.98 1-3.65-.24-.37a9.87 9.87 0 0 1 15.34-12.3 9.87 9.87 0 0 1-7 16.93ZM12.05 0A12 12 0 0 0 1.7 17.97L0 24l6.2-1.63A12 12 0 1 0 12.05 0Z" />
     </svg>
   );
@@ -57,6 +86,7 @@ function WhatsAppIcon() {
 interface Preset {
   id: string;
   label: string;
+  desc: string;
   icon: ReactNode;
   apply: (meta: VideoMeta) => Operations;
 }
@@ -73,6 +103,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "youtube",
         label: "YouTube",
+        desc: "MP4 H.264, high quality (CRF 16), cap at 1080p",
         icon: <YoutubeIcon />,
         apply: (meta) => {
           // YouTube recommended: MP4, H.264 video + AAC audio,
@@ -106,6 +137,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "instagram-reel",
         label: "Instagram Reel",
+        desc: "9:16 vertical, crop to fill, max 90s, MP4",
         icon: <InstagramIcon />,
         apply: (meta) => {
           // Instagram Reels: MP4, H.264 + AAC, 9:16, max 90s
@@ -140,6 +172,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "instagram-post",
         label: "Instagram Post",
+        desc: "1:1 square, crop to fill, max 60s, MP4",
         icon: <InstagramIcon />,
         apply: (meta) => {
           // Instagram feed: MP4, H.264 + AAC, 1:1, max 60s
@@ -174,6 +207,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "tiktok",
         label: "TikTok",
+        desc: "9:16 vertical, crop to fill, max 10 min, MP4",
         icon: <TikTokIcon />,
         apply: (meta) => {
           // TikTok: MP4, H.264 + AAC, 9:16, max 10 min, ≤287MB
@@ -208,6 +242,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "twitter",
         label: "X / Twitter",
+        desc: "MP4, cap at 720p, max 140s",
         icon: <TwitterIcon />,
         apply: (meta) => {
           // X/Twitter: MP4, H.264 + AAC, 720p, max 140s, ≤512MB
@@ -242,6 +277,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "whatsapp",
         label: "WhatsApp",
+        desc: "MP4, target 16 MB, cap at 720p, max 3 min",
         icon: <WhatsAppIcon />,
         apply: (meta) => {
           // WhatsApp: MP4, H.264 + AAC, 16MB limit, 3 min status / longer in chat
@@ -278,6 +314,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "iphone",
         label: "iPhone",
+        desc: "MP4 H.264, CRF 22, cap at 1080p — Retina-quality",
         icon: <Apple size={13} />,
         apply: (meta) => {
           // iPhone sweet spot: 1080p H.264 MP4, CRF 22 looks great on Retina
@@ -308,6 +345,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "iphone-save-space",
         label: "iPhone (Save Space)",
+        desc: "MP4 H.264, CRF 26, 720p — smaller files, still good",
         icon: <Apple size={13} />,
         apply: (meta) => {
           // Max compression while still looking good on phone
@@ -338,6 +376,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "tv-4k",
         label: "TV / Desktop",
+        desc: "MP4 H.264, CRF 18, keep original resolution",
         icon: <MonitorPlay size={13} />,
         apply: (meta) => {
           // Keep resolution, light compression for TV/desktop viewing
@@ -363,6 +402,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "compress-small",
         label: "Reduce File Size",
+        desc: "Aggressive compression (CRF 28), keep resolution",
         icon: <Shrink size={13} />,
         apply: (meta) => {
           const ops = defaultOperations(meta);
@@ -382,6 +422,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "extract-audio",
         label: "Extract Audio",
+        desc: "Save audio track as MP3",
         icon: <Music size={13} />,
         apply: (meta) => {
           const ops = defaultOperations(meta);
@@ -396,6 +437,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "make-gif",
         label: "Make GIF",
+        desc: "Convert to GIF, cap at 480p, first 10s",
         icon: <Image size={13} />,
         apply: (meta) => {
           const ops = defaultOperations(meta);
@@ -420,6 +462,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         id: "mute",
         label: "Remove Audio",
+        desc: "Strip audio track, keep video unchanged",
         icon: <VolumeX size={13} />,
         apply: (meta) => {
           const ops = defaultOperations(meta);
@@ -442,6 +485,57 @@ interface QuickPresetsProps {
   onApply: (ops: Operations) => void;
 }
 
+function PresetButton({
+  preset,
+  meta,
+  onApply,
+}: {
+  preset: Preset;
+  meta: VideoMeta;
+  onApply: (ops: Operations) => void;
+}) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger
+        render={
+          <Button
+            variant="outline"
+            className="rounded-full py-1 px-2 text-[11px]"
+          />
+        }
+      >
+        {preset.icon}
+        {preset.label}
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner side="bottom" align="center">
+          <Popover.Popup className="max-w-64 p-3 flex flex-col gap-2.5">
+            <Popover.Arrow />
+            <div className="flex items-center gap-1.5 text-xs font-medium text-text">
+              {preset.icon}
+              {preset.label}
+            </div>
+            <p className="text-[11px] text-text-muted leading-relaxed">
+              {preset.desc}
+            </p>
+            <Popover.Close
+              render={
+                <Button
+                  variant="primary"
+                  className="self-end"
+                  onClick={() => onApply(preset.apply(meta))}
+                />
+              }
+            >
+              Apply
+            </Popover.Close>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
 export function QuickPresets({ meta, onApply }: QuickPresetsProps) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -451,14 +545,12 @@ export function QuickPresets({ meta, onApply }: QuickPresetsProps) {
       <div className="flex flex-wrap gap-1">
         {PRESET_GROUPS.flatMap((group) =>
           group.presets.map((preset) => (
-            <button
+            <PresetButton
               key={preset.id}
-              onClick={() => onApply(preset.apply(meta))}
-              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] border rounded-full cursor-pointer transition-colors select-none bg-bg-surface text-text-muted border-border hover:bg-bg-hover hover:text-text"
-            >
-              {preset.icon}
-              {preset.label}
-            </button>
+              preset={preset}
+              meta={meta}
+              onApply={onApply}
+            />
           )),
         )}
       </div>

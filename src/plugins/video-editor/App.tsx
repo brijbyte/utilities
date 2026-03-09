@@ -65,7 +65,7 @@ export default function VideoEditor() {
         block: "center",
       });
     }
-  }, [state.status === "loading-ffmpeg"]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isProcessing]);
 
   // Auto-scroll to output when done
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function VideoEditor() {
         });
       });
     }
-  }, [state.status === "done"]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.status]);
 
   // ── Callbacks ─────────────────────────────────────────────────
 
