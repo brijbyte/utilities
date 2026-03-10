@@ -302,7 +302,7 @@ async function prerender() {
     await fs.rm(path.join(distDir, blogJsStub.fileName), { force: true });
   }
 
-  // 3. Read blog.html template
+  // 2. Read blog.html template
   const blogTemplate = await fs.readFile(
     path.resolve(__dirname, "src/blog/blog.html"),
     "utf-8",
@@ -395,6 +395,46 @@ async function prerender() {
   console.log(
     `✓ Generated blog index + ${articles.length} article pages (CSS: ${blogCssPath})`,
   );
+
+  // --- Generate sitemap.xml ---
+
+  const sitemapEntries = [
+    // Home
+    { loc: `${baseUrl}/`, changefreq: "weekly", priority: "1.0" },
+    // Plugin pages
+    ...plugins.map((p) => ({
+      loc: `${baseUrl}/a/${p.id}`,
+      changefreq: "monthly",
+      priority: "0.8",
+    })),
+    // Blog index
+    { loc: `${baseUrl}/blog`, changefreq: "weekly", priority: "0.7" },
+    // Blog articles
+    ...articles.map((a) => ({
+      loc: `${baseUrl}/blog/${a.slug}`,
+      lastmod: a.date,
+      changefreq: "yearly",
+      priority: "0.6",
+    })),
+  ];
+
+  const sitemap = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...sitemapEntries.map((e) => {
+      let entry = `  <url>\n    <loc>${e.loc}</loc>`;
+      if (e.lastmod) entry += `\n    <lastmod>${e.lastmod}</lastmod>`;
+      entry += `\n    <changefreq>${e.changefreq}</changefreq>`;
+      entry += `\n    <priority>${e.priority}</priority>`;
+      entry += `\n  </url>`;
+      return entry;
+    }),
+    "</urlset>",
+    "",
+  ].join("\n");
+
+  await fs.writeFile(path.join(distDir, "sitemap.xml"), sitemap);
+  console.log(`✓ Generated sitemap.xml (${sitemapEntries.length} URLs)`);
 
   await vite.close();
 }
