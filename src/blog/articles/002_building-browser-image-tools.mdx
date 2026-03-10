@@ -1,0 +1,184 @@
+---
+title: "Building Browser-Based Image Tools with Canvas API and MediaPipe"
+date: "2025-03-10"
+description: "How we built a fully client-side image processing toolkit — face detection, smart cropping, passport photos, background removal, quality scoring, and EXIF parsing — all without a server."
+tags: ["architecture", "image-processing", "mediapipe", "canvas"]
+---
+
+Image processing usually means uploading photos to a server, waiting, and hoping your data stays private. We built an image tools plugin that does everything in the browser — face detection, smart cropping, passport photo generation, background removal, quality analysis, and format conversion. No uploads, no server, no network calls (except lazy-loading ML models from CDN).
+
+## What It Does
+
+The tool handles a surprisingly wide range of image operations:
+
+- **Multi-image upload** with drag-drop, file picker, and clipboard paste
+- **Quality scoring** — automatic blur, exposure, and resolution analysis
+- **EXIF extraction** — camera info, GPS coordinates, exposure settings
+- **Face detection** — MediaPipe BlazeFace, GPU-accelerated
+- **Smart crop** — face-aware cropping with configurable aspect ratios
+- **Passport photos** — 9 country-specific templates with auto-framing
+- **Background removal** — MediaPipe Selfie Segmentation with configurable threshold
+- **Resize and convert** — step-down algorithm for sharp downscaling
+
+## Technology Choices
+
+We deliberately minimized dependencies. Most features use built-in browser APIs:
+
+| Feature            | Technology                        | External Size         |
+| ------------------ | --------------------------------- | --------------------- |
+| Face detection     | MediaPipe (WASM/WebGL)            | ~5MB lazy from CDN    |
+| Background removal | MediaPipe Selfie Segmentation     | ~250KB model from CDN |
+| Blur detection     | Canvas + Laplacian variance       | 0KB                   |
+| Exposure analysis  | Canvas histogram                  | 0KB                   |
+| EXIF parsing       | Manual binary parser              | 0KB                   |
+| Resize             | OffscreenCanvas + step-down       | 0KB                   |
+| Format conversion  | `OffscreenCanvas.convertToBlob()` | 0KB                   |
+
+Six of the eight core features require zero external code. Only face detection and background removal need MediaPipe, and those load lazily.
+
+## Lazy Model Loading
+
+MediaPipe models load from CDN only when the user first triggers face detection or background removal. The WASM runtime (~5MB) and model files are cached as singletons. Concurrent init calls are deduped via a shared promise:
+
+```ts
+let detector: MPFaceDetector | null = null;
+let initPromise: Promise<void> | null = null;
+
+async function ensureDetector() {
+  if (detector) return;
+  if (initPromise) {
+    await initPromise;
+    return;
+  }
+  initPromise = (async () => {
+    const vision = await import(VISION_ESM_URL);
+    const fileset = await vision.FilesetResolver.forVisionTasks(WASM_CDN);
+    detector = await vision.FaceDetector.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
+      runningMode: "IMAGE",
+      minDetectionConfidence: 0.5,
+    });
+  })();
+  await initPromise;
+}
+```
+
+After the first load, subsequent calls are instant. The browser caches the WASM and model files across sessions.
+
+## Quality Scoring Without ML
+
+Quality analysis runs automatically on upload using pure Canvas operations — no machine learning needed. We subsample large images to ~512px for speed (under 50ms per image).
+
+**Blur detection** uses Laplacian variance on grayscale pixel data. The Laplacian operator highlights edges; high variance means sharp edges (in-focus), low variance means smooth gradients (blurry). Thresholds: >500 is sharp, >100 is soft, below that is blurry.
+
+**Exposure analysis** builds a luminance histogram and checks the mean and standard deviation. Low standard deviation means a flat, washed-out image. Low mean indicates underexposure; high mean indicates overexposure.
+
+**Resolution scoring** is simply megapixels: >2MP is high, >0.5MP is medium, below that is low.
+
+The three scores combine into an overall quality badge (good/fair/poor) shown on each image card in the gallery.
+
+## EXIF Parsing — No Library Needed
+
+Rather than pulling in an EXIF library, we wrote a pure JS binary parser that reads the first 128KB of JPEG files. It parses the APP1 marker → TIFF header → IFD0 → Exif sub-IFD → GPS sub-IFD, extracting:
+
+- **Camera:** make, model, lens, software
+- **Exposure:** shutter speed, aperture, ISO, focal length, flash, metering mode
+- **GPS:** latitude/longitude (DMS → decimal), with a Google Maps link
+- **Dates:** original capture and modification timestamps
+
+Reading only the first 128KB keeps it fast and memory-efficient. Non-JPEG files (PNG, WebP) don't carry EXIF data, so the parser returns `null` for those.
+
+## Face Detection — Expanding the Bounding Box
+
+MediaPipe's BlazeFace model returns a tight "face box" — roughly from the eyes to the chin. For cropping and passport photos, we need the full head. So we expand each detection:
+
+- **50% upward** — adds half the face height above the top edge (forehead, hair)
+- **10% wider** on each side — more natural framing
+- **Clamped** to image bounds
+
+This expanded box drives both the smart crop and passport photo features.
+
+## Smart Crop and Passport Photos
+
+Two crop modes, both face-aware:
+
+**Manual mode** computes a bounding box around all detected faces, adds configurable padding, and expands to the desired aspect ratio (1:1, 4:5, 3:4, 16:9, etc.). When no faces are detected, it falls back to a center crop.
+
+**Passport template mode** is specialized per country's requirements:
+
+1. Pick the primary face (highest confidence)
+2. Size the crop so the head fills the template's required head-to-frame ratio
+3. Position vertically so the eye line sits at the specified fraction
+4. Center horizontally on the face
+5. Clamp to image bounds
+
+We ship 9 passport/visa templates:
+
+| Template            | Size (mm) | Head Ratio | Eye Line | Background |
+| ------------------- | --------- | ---------- | -------- | ---------- |
+| Schengen Visa       | 35×45     | 70–80%     | 55%      | Light gray |
+| US Visa / Passport  | 51×51     | 50–69%     | 56%      | White      |
+| UK Passport         | 35×45     | 66–75%     | 55%      | Off-white  |
+| Indian Passport     | 51×51     | 50–70%     | 55%      | White      |
+| Indian OCI Card     | 35×45     | 60–75%     | 55%      | White      |
+| Canadian Passport   | 50×70     | 47–54%     | 53%      | White      |
+| Australian Passport | 35×45     | 64–78%     | 55%      | White      |
+| Chinese Visa        | 33×48     | 58–73%     | 55%      | White      |
+| Japanese Visa       | 35×45     | 70–80%     | 55%      | White      |
+
+Each template specifies exact pixel dimensions at 300 DPI, so the output is print-ready.
+
+### Interactive Crop Overlay
+
+The crop region is shown as an interactive SVG overlay on the image preview. Users can drag the interior to reposition, drag corners to resize (aspect-locked in template mode, free in manual mode), and drag edges in free mode. The overlay uses SVG CTM (`getScreenCTM().inverse()`) to convert pointer events to image-coordinate deltas regardless of display scaling.
+
+For precise adjustments, a fullscreen crop dialog provides zoom in/out (buttons, keyboard shortcuts, ⌘+scroll), pan via scroll, and fit-to-screen (0 key).
+
+## Background Removal
+
+Background removal uses MediaPipe's Selfie Segmentation model (float16, ~250KB). It shares the WASM runtime with face detection, so if face detection has already loaded, background removal only needs to fetch the small segmentation model.
+
+**How it works:** The input image is downscaled to max 1024px on the long edge (the model internally works at 256×256 — feeding multi-megapixel images is wasteful and freezes the browser). The model returns a confidence mask where each pixel is 0.0 (background) to 1.0 (person).
+
+**Mask application** processes each pixel using configurable parameters:
+
+- **Threshold** (0.1–0.9) — confidence cutoff for person vs background
+- **Edge softness** (0–0.2) — width of the feathered transition zone
+- **Background fill** — transparent, white, black, blue, green, or custom color
+
+Transparent backgrounds force PNG output (JPEG doesn't support alpha). The mask is generated once and cached — changing threshold, softness, or fill color only re-applies the mask, it doesn't re-run segmentation. A live mask preview overlay shows person areas with a green tint and background with red tint, updating in real-time as parameters change.
+
+## Step-Down Resize for Sharp Downscaling
+
+A single-pass `drawImage()` from, say, 5712px → 1080px produces noticeably blurry results. The browser's bilinear interpolation can't cleanly handle large reduction ratios.
+
+Our solution: repeatedly halve the dimensions until within 2× of the target, then do one final resize. Each 2:1 halving cleanly averages 4 source pixels per output pixel, preserving sharpness.
+
+```
+5712 → 2856 → 1428 → 1080
+```
+
+This step-down approach produces Lanczos-quality results using only the native Canvas API.
+
+## Processing Pipeline
+
+All operations compose into a clean pipeline:
+
+```
+Input Image
+  ├── Regular:   crop → step-down resize → format convert
+  ├── Passport:  passport crop → resize to template pixels → bg fill → JPEG 95%
+  └── Both:      background removal (optional) → re-encode
+```
+
+Background removal is applied as a post-processing step. The segmentation mask is generated from the original image and cached. When a crop is active, mask coordinates are offset to match the cropped region.
+
+## What We Learned
+
+**Canvas API is surprisingly capable.** Six of our eight features use only built-in browser APIs. The combination of `OffscreenCanvas`, `getImageData`, `drawImage` with source rectangles, and `convertToBlob` covers most image processing needs.
+
+**MediaPipe is excellent for browser ML.** GPU-accelerated via WebGL, small model files, and the lazy CDN loading pattern means zero cost until the user actually needs face detection or background removal.
+
+**Binary parsing in JS works fine.** The EXIF parser reads raw bytes from JPEG files using `DataView`. No library needed — just knowledge of the TIFF/EXIF spec and careful offset arithmetic. Reading only the first 128KB keeps it fast.
+
+**SVG overlays beat Canvas for interactivity.** The crop overlay uses SVG elements with pointer event handlers. SVG's built-in coordinate system (`getScreenCTM`) handles display scaling automatically, making drag-to-resize work correctly regardless of image size or zoom level.

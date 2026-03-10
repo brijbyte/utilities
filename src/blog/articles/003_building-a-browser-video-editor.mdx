@@ -1,0 +1,102 @@
+---
+title: "Building a Browser-Based Video Editor with FFmpeg WASM"
+date: "2025-03-10"
+description: "How we built a fully client-side video processor using FFmpeg compiled to WebAssembly — compression, trimming, resizing, format conversion, and more, all without a server."
+tags: ["architecture", "video", "ffmpeg", "wasm"]
+---
+
+What if you could compress, trim, resize, and convert videos entirely in your browser? No uploads, no server, no waiting for cloud processing. That's exactly what we built with the video editor plugin — powered by FFmpeg compiled to WebAssembly.
+
+## The Challenge
+
+Video processing traditionally requires server-side infrastructure. Users upload files, wait for processing, then download results. This introduces latency, privacy concerns, bandwidth costs, and server maintenance. We wanted to eliminate all of that.
+
+The key insight: FFmpeg — the Swiss Army knife of video processing — has been compiled to WebAssembly. The `@ffmpeg/ffmpeg` project brings nearly the full power of FFmpeg to the browser.
+
+## Architecture Overview
+
+The core architecture is straightforward:
+
+```
+Main Thread                          Worker Thread
+──────────                           ─────────────
+File + args  ──postMessage──→        fetchFile(file)
+                                     ffmpeg.load() (nested worker)
+             ←──progress────         ffmpeg.exec(args)
+             ←──progress────         ffmpeg.readFile(output)
+             ←──done + Blob──        new Blob(outputData)
+```
+
+All FFmpeg processing runs in a dedicated Web Worker to keep the UI completely responsive. The worker spawns FFmpeg's own internal worker (worker-in-worker), handles file I/O, and posts progress updates back to the main thread.
+
+## Key Design Decisions
+
+### Single-Threaded Core
+
+We use FFmpeg's single-threaded WASM core (`@ffmpeg/core@0.12.10`) rather than the multi-threaded variant. Why? The multi-threaded version requires `SharedArrayBuffer`, which demands `Cross-Origin-Isolation` headers (`COOP` and `COEP`). These headers break many third-party integrations and are impractical for a general-purpose web app. The single-threaded core is slightly slower but works everywhere without special server configuration.
+
+### CDN Loading
+
+The FFmpeg WASM binary is approximately 30MB. Bundling it would make the app unusably large. Instead, we load it from CDN (`cdn.jsdelivr.net`) on first use. The WASM and JS core files are converted to blob URLs via `toBlobURL()` for cross-origin loading. After the first load, the browser caches them.
+
+### Web Worker Pipeline
+
+File reading (`fetchFile`), WASM execution, and blob creation all happen off the main thread. This means the UI stays responsive even during heavy encoding operations. Progress updates are throttled to 250ms to avoid render thrashing.
+
+### Cancellation
+
+Each processing run creates an `AbortController`. On cancel, a `terminate` message is posted to the worker, which calls `ffmpeg.terminate()` and kills the worker entirely. This provides immediate cancellation — no waiting for the current encoding frame to finish. A `beforeunload` listener also blocks accidental page reloads during processing.
+
+## Progress Reporting
+
+Getting accurate progress from FFmpeg WASM is surprisingly tricky. We derive progress from two sources:
+
+1. **Log parsing** (preferred) — FFmpeg prints `time=HH:MM:SS.ms` in stderr during encoding. We parse this against the known input duration to calculate a percentage.
+2. **Progress event** (fallback) — FFmpeg's built-in progress callback, which is less reliable.
+
+The last 5 FFmpeg log lines are displayed below the progress bar so users can see real-time encoding status and diagnose issues.
+
+## Command Builder
+
+The `commands.ts` module composes FFmpeg CLI argument arrays from the user's configuration. Operations are layered in order: trim → rotate/flip → resize → codec/compression → audio → output format. Only enabled operations contribute args.
+
+### Resize Fit Modes
+
+When the target aspect ratio differs from the source (e.g., landscape video → square for Instagram), we offer three fit modes:
+
+| Mode        | FFmpeg Filter            | Result                            |
+| ----------- | ------------------------ | --------------------------------- |
+| **Pad**     | `scale` + `pad`          | Black bars, all content preserved |
+| **Crop**    | `scale` + `crop`         | Fill frame, edges cut off         |
+| **Stretch** | `scale` (no aspect flag) | Distorted to fill                 |
+
+Social media presets (Instagram, TikTok) default to **Crop** since that's what looks best in feeds. Other presets default to **Pad** to preserve all content.
+
+## Quick Presets
+
+Rather than making users figure out the right settings for each platform, we provide one-click presets:
+
+- **Social media:** YouTube, Instagram Reel/Post, TikTok, X/Twitter, WhatsApp
+- **Devices:** iPhone, iPhone Save Space, TV/Desktop
+
+Each preset applies resolution, format, bitrate, and fit mode settings appropriate for the platform. Crucially, presets are _not_ toggles — clicking one sets the values, and users can then freely modify any setting. This gives both convenience and control.
+
+## What We Learned
+
+### Memory Constraints
+
+Browser tabs have memory limits. Large videos (500MB+) can cause out-of-memory errors because the entire file must be held in the WASM heap during processing. We show a warning for files over 500MB and suggest using smaller files or reducing quality settings.
+
+### Codec Limitations
+
+FFmpeg WASM supports H.264 and VP8/VP9, but **not H.265/HEVC** due to patent licensing issues in the WASM build. Audio codecs are handled automatically: MP4 uses AAC (`-c:a aac -b:a 128k`) and WebM uses Opus (`-c:a libopus -b:a 128k`).
+
+### Output Handling
+
+The processed video is created as a Blob inside the Web Worker, then posted to the main thread via `postMessage`. A `URL.createObjectURL()` creates a downloadable link. The output section shows a before/after file size comparison so users can see exactly how much space they saved.
+
+## The Result
+
+The video editor handles compression, trimming, resizing, format conversion, audio extraction/removal, and rotation — all running entirely in the browser. No server, no uploads, no privacy concerns. Processing speed depends on the user's hardware, but even on mid-range laptops, encoding a 1-minute clip takes under 30 seconds.
+
+The single-page layout with collapsible operation panels keeps the interface clean while making every option discoverable. Users can enable exactly the operations they need, preview settings, and process with a single click.

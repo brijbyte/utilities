@@ -28,13 +28,13 @@ const ARTICLES_DIR = path.resolve(
   "articles",
 );
 
-/** Parse `YYYY-MM-DD_slug.mdx` filename into { date, slug }. */
+/** Parse `NNN_slug.mdx` filename into { order, slug }. */
 function parseFilename(
   filename: string,
-): { date: string; slug: string } | null {
-  const match = filename.match(/^(\d{4}-\d{2}-\d{2})_(.+)\.mdx$/);
+): { order: number; slug: string } | null {
+  const match = filename.match(/^(\d+)_(.+)\.mdx$/);
   if (!match) return null;
-  return { date: match[1], slug: match[2] };
+  return { order: parseInt(match[1], 10), slug: match[2] };
 }
 
 // ── MDX compilation ─────────────────────────────────────────────────
@@ -48,7 +48,6 @@ export interface CompiledArticle {
 async function compileMdx(
   source: string,
   slug: string,
-  date: string,
 ): Promise<CompiledArticle> {
   const result = await compile(source, {
     remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter, remarkGfm],
@@ -67,7 +66,7 @@ async function compileMdx(
   const frontmatter = mod.frontmatter ?? {};
   const meta: ArticleMeta = {
     slug,
-    date,
+    date: (frontmatter.date as string) ?? "",
     title: (frontmatter.title as string) ?? slug,
     description: (frontmatter.description as string) ?? "",
     tags: Array.isArray(frontmatter.tags) ? (frontmatter.tags as string[]) : [],
@@ -79,30 +78,26 @@ async function compileMdx(
 
 // ── Public API ──────────────────────────────────────────────────────
 
-/** List all article files, sorted newest-first. */
+/** List all article files, sorted newest-first (highest order number first). */
 export async function listArticleFiles(): Promise<string[]> {
   const files = await fs.readdir(ARTICLES_DIR);
   return files
-    .filter((f) => f.endsWith(".mdx"))
-    .sort()
-    .reverse();
+    .filter((f) => f.endsWith(".mdx") && parseFilename(f) !== null)
+    .sort((a, b) => parseFilename(b)!.order - parseFilename(a)!.order);
 }
 
-/** Get all articles metadata, sorted newest-first by date. */
+/** Get all articles metadata, sorted newest-first (by file order). */
 export async function getAllArticles(): Promise<ArticleMeta[]> {
   const files = await listArticleFiles();
   const articles: ArticleMeta[] = [];
 
   for (const file of files) {
-    const parsed = parseFilename(file);
-    if (!parsed) continue;
-
+    const parsed = parseFilename(file)!;
     const source = await fs.readFile(path.join(ARTICLES_DIR, file), "utf-8");
-    const { meta } = await compileMdx(source, parsed.slug, parsed.date);
+    const { meta } = await compileMdx(source, parsed.slug);
     articles.push(meta);
   }
 
-  articles.sort((a, b) => b.date.localeCompare(a.date));
   return articles;
 }
 
@@ -111,14 +106,10 @@ export async function getArticle(
   slug: string,
 ): Promise<CompiledArticle | null> {
   const files = await listArticleFiles();
-  const file = files.find((f) => {
-    const parsed = parseFilename(f);
-    return parsed?.slug === slug;
-  });
-
+  const file = files.find((f) => parseFilename(f)?.slug === slug);
   if (!file) return null;
 
   const parsed = parseFilename(file)!;
   const source = await fs.readFile(path.join(ARTICLES_DIR, file), "utf-8");
-  return compileMdx(source, parsed.slug, parsed.date);
+  return compileMdx(source, parsed.slug);
 }
