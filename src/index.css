@@ -37,7 +37,7 @@
   ); /* between stone-200 and stone-300 */
 
   --color-text: var(--color-stone-900);
-  --color-text-muted: var(--color-stone-500);
+  --color-text-muted: var(--color-stone-600);
   --color-text-inverse: var(--color-stone-50);
 
   --color-primary: var(--color-blue-600);

@@ -9,6 +9,7 @@ import {
   Calculator,
   Film,
   ImageIcon,
+  Pipette,
 } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
@@ -16,6 +17,7 @@ import { TotpAppSkeleton } from "./totp/components/Skeleton";
 import { EmiSkeleton } from "./emi-calculator/components/Skeleton";
 import { VideoEditorSkeleton } from "./video-editor/components/Skeleton";
 import { ImageToolsSkeleton } from "./image-tools/components/Skeleton";
+import { ColorPickerSkeleton } from "./color-picker/components/Skeleton";
 import { operations as jsonOps } from "./json-formatter/operations";
 import { operations as base64Ops } from "./base64/operations";
 import { operations as hashOps } from "./hash-generator/operations";
@@ -145,6 +147,30 @@ export const plugins: Plugin[] = [
     },
     load: () => import("./image-tools/App"),
     skeleton: () => <ImageToolsSkeleton />,
+  },
+  {
+    id: "color-picker",
+    name: "Color Picker",
+    icon: <Pipette size={24} />,
+    meta: {
+      description:
+        "Advanced color picker supporting all CSS color formats and screen gamuts — HEX, RGB, HSL, HWB, LAB, LCH, OKLAB, OKLCH, Display P3, Rec. 2020",
+      keywords: [
+        "color picker",
+        "css colors",
+        "oklch",
+        "display-p3",
+        "gamut",
+        "contrast checker",
+        "color converter",
+        "hex",
+        "hsl",
+        "lab",
+        "wide gamut",
+      ],
+    },
+    load: () => import("./color-picker/App"),
+    skeleton: () => <ColorPickerSkeleton />,
   },
   {
     id: "video-editor",

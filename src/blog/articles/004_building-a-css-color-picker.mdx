@@ -1,0 +1,286 @@
+---
+title: "Building a CSS Color Picker That Speaks Every Color Language"
+date: "2026-03-10"
+description: "How we built a browser-based color picker supporting all CSS Color Level 4 formats — HEX, RGB, HSL, HWB, LAB, LCH, OKLAB, OKLCH, Display P3, A98-RGB, ProPhoto, and Rec. 2020 — with gamut checking, contrast analysis, and harmony generation."
+tags: ["color", "css", "oklch", "wide-gamut", "color-science"]
+---
+
+CSS Color Level 4 brought a revolution to how we specify colors on the web. We now have perceptually uniform color spaces like OKLCH, wide-gamut spaces like Display P3 and Rec. 2020, and device-independent models like CIE LAB. Most color picker tools still only understand HEX and RGB. We wanted one that speaks every color language CSS knows.
+
+## The Problem with Round-Tripping
+
+The first architectural decision was choosing an internal representation. The naive approach — store RGB and convert on the fly — breaks immediately. Try this: pick a gray in HSL, convert to RGB, convert back. The hue is gone. `hsl(210 80% 50%)` → `rgb(25, 118, 210)` → `hsl(210 78.9% 46.1%)` is close, but drag that gray through `hsl(0 0% 50%)` → `rgb(128, 128, 128)` → `hsl(0 0% 50.2%)` and the hue information is destroyed. Any hue you had before going gray is lost.
+
+We solve this by storing **HSV (Hue, Saturation, Value)** as the source of truth. The saturation–brightness panel is HSV-native, so the hue channel is preserved even when saturation hits zero. Every other format is derived on the fly:
+
+```ts
+// HSV → HSL → RGB conversion preserves the hue
+function hsvToRgb(h: number, s: number, v: number, a: number): RgbColor {
+  const sF = s / 100;
+  const vF = v / 100;
+  const l = vF * (1 - sF / 2);
+  const sl = l === 0 || l === 1 ? 0 : (vF - l) / Math.min(l, 1 - l);
+  return hslToRgb({ h, s: sl * 100, l: l * 100, a });
+}
+```
+
+## A Pure Conversion Engine
+
+The color engine in `utils/color.ts` is ~700 lines of pure math. No React, no side effects, no dependencies. Every conversion follows the same pattern: convert to a common intermediate (either linear-light sRGB or CIE XYZ D65) and then to the target space.
+
+### The Conversion Graph
+
+```
+sRGB ←→ Linear sRGB ←→ XYZ D65 ←→ Display P3
+                         ↕              ↕
+                       CIE LAB      A98-RGB
+                         ↕
+                       CIE LCH    ProPhoto (via D50)
+                                      ↕
+Linear sRGB ←→ OKLab ←→ OKLCH     Rec. 2020
+```
+
+Each color space has its own gamma/transfer function. sRGB and Display P3 share the same gamma curve. A98-RGB uses a simpler power function (`563/256 ≈ 2.2`). Rec. 2020 has a piecewise curve similar to sRGB but with different constants. ProPhoto RGB uses a `1.8` gamma.
+
+### OKLab: The Perceptual Foundation
+
+OKLab is the standout space in CSS Color Level 4. Unlike CIE LAB (which has known hue non-uniformity issues, particularly in the blue region), OKLab is designed for perceptual uniformity:
+
+```ts
+function linearRgbToOklab(r: number, g: number, b: number) {
+  const l_ = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m_ = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s_ = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  // ...matrix multiply to get L, a, b
+}
+```
+
+The cube root is doing the heavy lifting — it approximates the human eye's non-linear response to light. OKLCH is then just the polar form of OKLab (like HSL is the polar form of RGB), giving us the intuitive Lightness/Chroma/Hue model that makes OKLCH the recommended space for design tokens.
+
+## Gamut Checking: Not All Colors Fit
+
+A color that exists in OKLCH might not be representable in sRGB. This is the entire point of wide-gamut color spaces. But there's a subtlety: our internal model stores colors as 0–255 integer RGB, which is inherently clamped to sRGB. When you parse `color(display-p3 1 0 0)`, the conversion to sRGB produces linear values like `[1.225, -0.042, -0.020]` — clearly out of range — but `Math.round` and `clamp` flatten them to `[255, 0, 0]`. If we then check _those_ clamped values, every color looks like it fits in sRGB.
+
+The fix: when converting from a wide-gamut space, we preserve the **unclamped linear sRGB** triplet alongside the clamped display values:
+
+```ts
+function linearToRgbColor(
+  lr: number,
+  lg: number,
+  lb: number,
+  a: number,
+): RgbColor {
+  const outOfSrgb =
+    lr < -0.001 ||
+    lr > 1.001 ||
+    lg < -0.001 ||
+    lg > 1.001 ||
+    lb < -0.001 ||
+    lb > 1.001;
+  return {
+    r: clamp(Math.round(linearToSrgb(lr) * 255), 0, 255),
+    g: clamp(Math.round(linearToSrgb(lg) * 255), 0, 255),
+    b: clamp(Math.round(linearToSrgb(lb) * 255), 0, 255),
+    a,
+    // Preserve unclamped values for accurate gamut checking
+    ...(outOfSrgb ? { linear: [lr, lg, lb] } : {}),
+  };
+}
+```
+
+The gamut checks then use these unclamped values to go through the full conversion chain — linear sRGB → XYZ D65 → target space — and verify that all channels stay within `[0, 1]`:
+
+```ts
+function getLinearRgb(rgb: RgbColor): [number, number, number] {
+  if (rgb.linear) return rgb.linear;
+  return [
+    srgbToLinear(rgb.r / 255),
+    srgbToLinear(rgb.g / 255),
+    srgbToLinear(rgb.b / 255),
+  ];
+}
+
+export function isInP3(rgb: RgbColor): boolean {
+  const [x, y, z] = linearRgbToXyz(...getLinearRgb(rgb));
+  const [pr, pg, pb] = xyzToP3(x, y, z);
+  return isInRange(pr, 0, 1) && isInRange(pg, 0, 1) && isInRange(pb, 0, 1);
+}
+```
+
+This means `color(display-p3 1 0 0)` correctly shows sRGB ✕ and Display P3 ✓. The unclamped linear values survive through the HSV round-trip via a separate `linear` state that's cleared whenever the user interacts with the sRGB-native picker controls.
+
+This tells you at a glance: "this color works on a standard monitor" vs "this needs a P3-capable display" vs "this only exists in the full Rec. 2020 space."
+
+## Parsing Any CSS Color
+
+The parser handles every CSS color function: `rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, and the `color()` function with colorspace identifiers (`display-p3`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `srgb`). Plus hex codes and 148 named colors.
+
+The modern CSS syntax uses space-separated values with an optional `/ alpha` delimiter. We normalize commas to spaces and slashes to spaces, then parse positionally:
+
+```ts
+const parts = args
+  .replace(/,/g, " ")
+  .replace(/\//g, " ")
+  .split(/\s+/)
+  .filter(Boolean);
+```
+
+This handles both the legacy `rgb(255, 0, 0)` and modern `rgb(255 0 0 / 50%)` syntax transparently.
+
+## WCAG Contrast Without a Library
+
+The contrast checker implements WCAG 2.1's contrast ratio algorithm. Relative luminance uses the sRGB linearization formula and ITU-R BT.709 coefficients:
+
+```ts
+function relativeLuminance(rgb: RgbColor): number {
+  const r = srgbToLinear(rgb.r / 255);
+  const g = srgbToLinear(rgb.g / 255);
+  const b = srgbToLinear(rgb.b / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+```
+
+The ratio formula `(L1 + 0.05) / (L2 + 0.05)` then gives us a number we check against WCAG thresholds: 3:1 for large text AA, 4.5:1 for normal text AA, and 7:1 for AAA.
+
+## The Canvas Saturation Panel
+
+The 2D saturation–brightness picker uses a `<canvas>` with three layered gradients:
+
+1. A solid fill of the current hue at full saturation
+2. A left-to-right white gradient (adding whiteness = reducing saturation)
+3. A top-to-bottom black gradient (adding blackness = reducing brightness)
+
+```ts
+ctx.fillStyle = `hsl(${hue} 100% 50%)`;
+ctx.fillRect(0, 0, width, height);
+
+const whiteGrad = ctx.createLinearGradient(0, 0, width, 0);
+whiteGrad.addColorStop(0, "rgba(255,255,255,1)");
+whiteGrad.addColorStop(1, "rgba(255,255,255,0)");
+ctx.fillStyle = whiteGrad;
+ctx.fillRect(0, 0, width, height);
+
+const blackGrad = ctx.createLinearGradient(0, 0, 0, height);
+blackGrad.addColorStop(0, "rgba(0,0,0,0)");
+blackGrad.addColorStop(1, "rgba(0,0,0,1)");
+ctx.fillStyle = blackGrad;
+ctx.fillRect(0, 0, width, height);
+```
+
+The canvas is resized via `ResizeObserver` and redrawn only when the hue changes. Pointer events use `setPointerCapture` for reliable drag behavior even when the cursor leaves the element bounds.
+
+## Base UI Sliders with Color Gradients
+
+The 1D sliders — hue, opacity, and per-channel controls — use [Base UI's Slider](https://base-ui.com/react/components/slider) component. This gives us keyboard navigation (arrow keys, Home/End), ARIA attributes, and focus management out of the box. Each `<label>` is associated with its slider via `aria-labelledby` on `Slider.Root`.
+
+The interesting part is the channel slider tracks. Each track renders a CSS gradient showing how the color changes as that single channel varies, with all other channels held constant:
+
+```ts
+// RGB red channel: varies R from 0–255, keeps G and B fixed
+export function rgbRedGradient(rgb: RgbColor): string {
+  return stopsToGradient([
+    rgbToHex({ r: 0, g: rgb.g, b: rgb.b, a: 1 }),
+    rgbToHex({ r: 255, g: rgb.g, b: rgb.b, a: 1 }),
+  ]);
+}
+```
+
+RGB channels are simple two-stop gradients. But perceptual spaces like OKLCH don't interpolate linearly in sRGB, so we sample multiple stops and convert each through the color engine:
+
+```ts
+function sampleGradient(
+  count: number,
+  colorAt: (t: number) => RgbColor,
+): string {
+  const colors: string[] = [];
+  for (let i = 0; i <= count; i++) {
+    colors.push(rgbToHex({ ...colorAt(i / count), a: 1 }));
+  }
+  return `linear-gradient(to right, ${colors.join(", ")})`;
+}
+
+// OKLCH hue: 12 stops around the wheel at current L and C
+export function oklchHueGradient(oklch: OklchColor): string {
+  return sampleGradient(12, (t) =>
+    oklchToRgb({ l: oklch.l, c: oklch.c, h: lerp(0, 360, t), a: 1 }),
+  );
+}
+```
+
+The gradients update reactively — when you drag the hue slider, the saturation and lightness track gradients recompute to reflect the new hue context.
+
+## Harmony Generation
+
+Color harmonies are computed by rotating the hue angle in HSL space. The tool supports six types, each with a contextual explanation that updates when you switch:
+
+- **Complementary** (+180°) — Two opposing colors, maximum contrast. Bold and vibrant.
+- **Analogous** (±30°) — Neighboring colors, naturally harmonious. Common in nature.
+- **Triadic** (±120°) — Three evenly spaced colors. Balanced variety without clashing.
+- **Split Complementary** (±150°) — Like complementary but softer. The two accent colors sit next to the complement instead of on it.
+- **Tetradic** (±90°) — Four colors forming a rectangle. Rich palette, best with one dominant color.
+- **Monochromatic** — Same hue at different lightness levels. The safest harmony.
+
+### Visualizing Relationships on the Wheel
+
+For all hue-rotation harmonies (everything except monochromatic), an SVG color wheel renders below the swatches. The wheel is drawn as 60 arc segments — each a short `<path>` stroked with its hue's color at full saturation. This pure-SVG approach avoids `foreignObject` and `conic-gradient`, which are unreliable across browsers (we tried — Safari rendered a leaf shape instead of a ring).
+
+Dots are positioned at each harmony color's hue angle on the ring:
+
+```ts
+const rad = ((hsl.h - 90) * Math.PI) / 180; // CSS angles start at 12 o'clock
+const x = cx + radius * Math.cos(rad);
+const y = cy + radius * Math.sin(rad);
+```
+
+A dashed polygon connects the dots — complementary shows a straight line across the wheel, triadic forms a triangle, tetradic a rectangle, and so on. The base color gets a stronger stroke to distinguish it from the derived colors. The visual makes it immediately obvious _why_ these harmonies work: they're geometric relationships on the hue circle.
+
+Monochromatic skips the wheel since all colors share the same hue — it varies lightness instead:
+
+```ts
+case "monochromatic":
+  return [
+    hslToRgb({ ...hsl, l: clamp(hsl.l - 30, 0, 100) }),
+    hslToRgb({ ...hsl, l: clamp(hsl.l - 15, 0, 100) }),
+    rgb,
+    hslToRgb({ ...hsl, l: clamp(hsl.l + 15, 0, 100) }),
+    hslToRgb({ ...hsl, l: clamp(hsl.l + 30, 0, 100) }),
+  ];
+```
+
+Each swatch in the palette is clickable (to make it the active color) and has a copy button for the CSS value in the selected format.
+
+## Screen Color Picking Without EyeDropper
+
+The [EyeDropper API](https://developer.mozilla.org/en-US/docs/Web/API/EyeDropper_API) is the ideal way to sample colors from anywhere on screen — the user gets a native magnifying loupe and pixel-perfect selection. But it only works in Chromium browsers. Safari and Firefox don't support it.
+
+Our fallback uses `getDisplayMedia` — the screen sharing API — to capture a single frame:
+
+1. User clicks the pick button → we show a brief explanation and a "Capture Screen" button
+2. The browser prompts for screen share permission (a one-time consent)
+3. We grab one video frame, draw it to a canvas, and immediately stop the stream
+4. The captured screenshot is displayed full-screen as a clickable overlay
+5. A loupe follows the cursor showing the hex value under the pointer
+6. Click to pick, Esc to cancel
+
+```ts
+const stream = await navigator.mediaDevices.getDisplayMedia({
+  video: { width: { ideal: 3840 }, height: { ideal: 2160 } },
+});
+// ... draw one frame to canvas, then stop immediately
+stream.getTracks().forEach((t) => t.stop());
+```
+
+The key trade-off: `getDisplayMedia` requires an explicit permission prompt and can only capture what was visible when the stream started — you can't sample colors from windows behind the browser. But it works everywhere, and for the common case of picking a color from a design or reference image, it's perfectly adequate.
+
+When the native EyeDropper API is available, we use it (better UX, no permission prompt). The button icon changes to signal which method will be used — a pipette for native, a monitor icon for screen capture.
+
+## Key Takeaways
+
+Building a color picker that handles the full CSS color specification taught us several things:
+
+- **HSV is the right internal model for interactive pickers** — it preserves hue through achromatic colors where RGB and HSL lose it.
+- **Chromatic adaptation matters** — ProPhoto RGB uses D50 illuminant while everything else uses D65. Skipping the Bradford transform produces visibly wrong conversions.
+- **OKLab and OKLCH are the future** — they're perceptually uniform, simple to implement, and give designers intuitive control over lightness and saturation independently.
+- **Gamut boundaries are real** — a significant portion of the P3 and Rec. 2020 gamuts cannot be represented in sRGB. Knowing which gamut your color lives in prevents surprises on standard displays.
+- **Progressive enhancement works** — native EyeDropper where available, `getDisplayMedia` fallback everywhere else. Both paths produce an sRGB color value that feeds into the same conversion engine.
+- **Zero dependencies is achievable** — the entire color engine is pure math. No Color.js, no chroma.js. The CSS Color Level 4 spec provides all the matrices and formulas you need.
