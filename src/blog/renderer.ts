@@ -17,7 +17,7 @@ import { compile } from "@mdx-js/mdx";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkMdxFrontmatter from "remark-mdx-frontmatter";
 import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
+import rehypeShiki from "@shikijs/rehype";
 
 import type { ArticleMeta } from "./types.ts";
 
@@ -51,7 +51,15 @@ async function compileMdx(
 ): Promise<CompiledArticle> {
   const result = await compile(source, {
     remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter, remarkGfm],
-    rehypePlugins: [rehypeHighlight],
+    rehypePlugins: [
+      [
+        rehypeShiki,
+        {
+          themes: { light: "github-light", dark: "github-dark" },
+          defaultColor: false,
+        },
+      ],
+    ],
     outputFormat: "function-body",
     development: false,
   });

@@ -1,0 +1,225 @@
+---
+title: "Building a Live Markdown Preview Editor in the Browser"
+date: "2026-03-10"
+description: "How we built a real-time markdown editor with Monaco for editing and a remark/rehype/shiki pipeline for preview — with GFM support, scroll sync, HTML export, and a mobile-optimized UI."
+tags:
+  [
+    "markdown",
+    "remark",
+    "rehype",
+    "shiki",
+    "monaco",
+    "editor",
+    "gfm",
+    "responsive",
+  ]
+---
+
+There's something satisfying about a split-pane markdown editor: type on the left, see it rendered on the right. Every developer has used one. We wanted to build our own — one that runs entirely in the browser, uses a proper code editor, supports GitHub Flavored Markdown, highlights code blocks in the preview, generates a table of contents, and exports clean HTML. And we wanted the preview to share the same parsing pipeline as the blog system that serves the page you're reading right now.
+
+## Architecture: Monaco + remark/rehype
+
+The editor has two distinct halves with different rendering strategies:
+
+**Left pane (editor)** — A full Monaco editor instance loaded via [modern-monaco](https://github.com/esm-dev/modern-monaco). Monaco handles syntax highlighting, editing, undo/redo, find/replace, and all the keybindings developers expect. Language grammars and the editor core are loaded lazily from CDN — nothing is bundled.
+
+**Right pane (preview)** — The unified/remark/rehype pipeline processes the markdown source into HTML. Code blocks in the preview are highlighted by `@shikijs/rehype` with lazy grammar loading. The preview renders identically to how the blog renders its articles — same GFM table handling, same syntax highlighting engine, same heading ID generation. One ecosystem, two contexts.
+
+```
+Editor (Monaco)  →  source text  →  remark/rehype/shiki  →  Preview (HTML)
+```
+
+## A shared CodeEditor component
+
+Rather than embedding Monaco directly in the markdown plugin, we built a generic `CodeEditor` component in `src/components/` that any plugin can use. It wraps modern-monaco's `init()` API with React lifecycle management:
+
+```typescript
+export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
+  function CodeEditor({ value, onChange, language, ... }, ref) {
+    // Monaco instance is a singleton — loaded once, shared across editors
+    const monaco = await getMonaco();
+    const editor = monaco.editor.create(container, { ... });
+    // ...
+  }
+);
+```
+
+Key design decisions:
+
+- **Singleton init** — `getMonaco()` loads `monaco-editor-core` from CDN exactly once. All `CodeEditor` instances share the same Monaco namespace. The initial load fetches the editor core and shiki themes; subsequent mounts are instant.
+- **Controlled value** — `value`/`onChange` props with a guard (`isUpdatingRef`) to prevent echo loops when the parent sets a value that triggers `onDidChangeContent`.
+- **Theme sync** — Reads the app's light/dark mode from `useTheme()` and calls `monaco.editor.setTheme()` on changes. The initial theme is read from the DOM (`document.documentElement.classList.contains("dark")`) before Monaco loads.
+- **Font size from theme** — The editor font size is derived from the app-wide font size setting via `FONT_SIZE_PRESETS`, not a hardcoded prop. Change the app's font size in settings and every editor updates.
+- **Scroll sync API** — The imperative handle exposes `getScrollFraction()` / `setScrollFraction()` for proportional scroll sync between the editor and any companion pane.
+- **Loading skeleton** — While Monaco loads from CDN, a full-size animated skeleton mimics the editor layout (gutter + code lines). It's absolutely positioned over the container and disappears the instant the editor renders.
+
+The component accepts `language`, `readOnly`, `wordWrap`, `minimap`, `lineNumbers`, and `onScroll` props — all synced to Monaco via individual `useEffect` hooks calling `editor.updateOptions()`.
+
+## The remark/rehype pipeline
+
+The project already uses `remark-gfm` and `@shikijs/rehype` to compile MDX blog articles at build time. Rather than pulling in a separate markdown library, we reused the same unified ecosystem on the client:
+
+```
+remark-parse → remark-gfm → remark-rehype → rehype-slug → @shikijs/rehype/core → rehype-stringify
+```
+
+For the preview, we use `@shikijs/rehype/core` with a custom highlighter built from `shiki/core` and the JavaScript regex engine. This avoids bundling the full shiki distribution — which includes 300+ language grammars and the Oniguruma WASM binary — and instead ships a curated set of ~17 popular languages (TypeScript, Python, Bash, HTML, CSS, JSON, Go, Rust, etc.) that cover the vast majority of code blocks in practice. Unsupported languages fall back to plain text. The blog renderer, which runs at build time in Node, still uses the full `@shikijs/rehype` with all bundled languages — there's no bundle size concern on the server.
+
+```typescript
+import { createHighlighterCore } from "shiki/core";
+import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
+
+const highlighter = await createHighlighterCore({
+  themes: [githubLight, githubDark],
+  langs: [langTs, langPython, langBash /* ... 14 more */],
+  engine: createJavaScriptRegexEngine(),
+});
+```
+
+Both the preview and the blog use shiki's dual-theme CSS variable mode — `--shiki-light` and `--shiki-dark` on every token span, toggled by a CSS rule based on the `.dark` class. No re-highlighting on theme switch, just CSS.
+
+## Deferred rendering with useDeferredValue
+
+The preview pipeline is async — `@shikijs/rehype` lazy-loads grammars, and the unified pipeline does real work. Instead of debouncing or showing a loading spinner on every keystroke, we use React's `useDeferredValue`:
+
+```typescript
+const deferredSource = useDeferredValue(source);
+const isParsing = deferredSource !== source;
+
+useEffect(() => {
+  parseMarkdown(deferredSource).then((result) => {
+    setHtml(result.html);
+  });
+}, [deferredSource]);
+```
+
+While the user types, `source` updates instantly (Monaco is responsive), but `deferredSource` lags behind. The old preview stays visible with stale-but-valid HTML. React batches the deferred update and only triggers the parse when there's idle time. `isParsing` is a derived boolean — no manual state, no timers — that drives a subtle spinner in the preview title bar for the rare case where a parse takes noticeable time (e.g., first load of a new language grammar).
+
+## GFM: tables, tasks, and more
+
+GitHub Flavored Markdown extends standard markdown with features developers use daily. `remark-gfm` handles all of them — tables with alignment, task list checkboxes, ~~strikethrough~~, and autolinked URLs. One plugin, no custom parsing.
+
+We also normalize `- []` to `- [ ]` before parsing — the GFM spec requires a space inside the brackets, but `- []` is a common shorthand people expect to work.
+
+## Table of contents
+
+The TOC is extracted by scanning raw markdown for ATX headings (`#`, `##`, etc.) rather than walking the rehype AST. This keeps it simple and decoupled:
+
+````typescript
+function extractToc(source: string): TocEntry[] {
+  const entries: TocEntry[] = [];
+  let inCodeFence = false;
+  for (const line of source.split("\n")) {
+    if (line.trimStart().startsWith("```")) {
+      inCodeFence = !inCodeFence;
+      continue;
+    }
+    if (inCodeFence) continue;
+    const match = line.match(/^(#{1,6})\s+(.+)$/);
+    if (match)
+      entries.push({
+        level: match[1].length,
+        text: match[2],
+        id: slugify(match[2]),
+      });
+  }
+  return entries;
+}
+````
+
+Code fence detection ensures headings inside code blocks are ignored. The slug algorithm matches `rehype-slug` so anchor links work correctly. The TOC renders as a styled nav block at the top of the preview, toggled via a toolbar button. When enabled, the TOC is also included in exported HTML and print output.
+
+## Scroll sync
+
+Proportional scroll sync between Monaco and the preview pane uses the editor's scroll API:
+
+```typescript
+// Editor → Preview
+const fraction = editorRef.current.getScrollFraction();
+previewEl.scrollTop =
+  fraction * (previewEl.scrollHeight - previewEl.clientHeight);
+
+// Preview → Editor
+const fraction =
+  previewEl.scrollTop / (previewEl.scrollHeight - previewEl.clientHeight);
+editorRef.current.setScrollFraction(fraction);
+```
+
+Not line-accurate — a heading in the editor might not align pixel-perfectly with its rendered version. But proportional sync is simple, predictable, and works well for most documents. A re-entrancy guard prevents the two panels from ping-ponging scroll events. Monaco's `onDidScrollChange` event drives the editor→preview direction.
+
+## Mobile: a different UI, not a broken one
+
+Monaco is a desktop editor. It's heavy, touch interaction is clunky, and side-by-side panels don't fit on a phone screen. Rather than shipping a degraded version of the desktop experience, we built a separate mobile layout that makes sense on small screens.
+
+A `useIsDesktop()` hook backed by `useSyncExternalStore` listens to `matchMedia("(min-width: 768px)")`:
+
+```typescript
+const mql = window.matchMedia("(min-width: 768px)");
+
+function useIsDesktop() {
+  return useSyncExternalStore(
+    (cb) => {
+      mql.addEventListener("change", cb);
+      return () => mql.removeEventListener("change", cb);
+    },
+    () => mql.matches,
+    () => true, // SSR default
+  );
+}
+```
+
+**Desktop** gets the full split-panel layout with Monaco + scroll sync.
+
+**Mobile** gets:
+
+- A **tab switcher** using Base UI's `ToggleGroup` with two toggles: ✏️ Editor and 👁 Preview. Only one is active at a time. The currently active tab fills the remaining screen height.
+- A plain **`<textarea>`** for editing — lightweight, touch-friendly, no CDN fetch needed. Same monospace font and sizing as the desktop editor.
+- The same **Preview** component for the rendered view.
+- A **compact toolbar** — export and print buttons are hidden below `sm` breakpoint (they're less useful on mobile), while copy and TOC toggle remain accessible. The TOC label hides on small screens, keeping just the icon.
+- **Compact stats** in the tab bar (`45w · 12L`) instead of the full label.
+
+The key insight: mobile users editing markdown on their phone want a textarea they can type in, not a full IDE. The preview tab lets them check rendering. No scroll sync needed — you're looking at one pane at a time.
+
+Crucially, the desktop split-panel layout (which imports Monaco and `SplitPanel`) is wrapped in `React.lazy()` and only rendered when `isDesktop` is true. On mobile, that chunk is never fetched — no Monaco download, no editor core, no CDN request. The entire desktop layout lives in its own `DesktopLayout` component behind a `<Suspense>` boundary.
+
+## Export and print
+
+Export builds a standalone HTML document with embedded styles and shiki CSS variable support, including a `prefers-color-scheme: dark` media query for automatic dark mode. When the TOC toggle is active, the table of contents is included at the top of the exported document with its own styled nav block and an `<hr>` separator. Print opens the same document in a new window and triggers `window.print()`.
+
+## Plugin-scoped CSS
+
+The markdown preview prose styles (`.md-preview` selectors, shiki theme toggles, TOC styling) live in `md-preview.css` inside the plugin directory, imported from the plugin's entry component. Vite code-splits this into its own CSS chunk — it's only fetched when you navigate to the markdown preview, never included in the main app bundle.
+
+## Migrating the blog to shiki
+
+Since we were already adding shiki for the markdown preview, we migrated the blog system from `rehype-highlight` (highlight.js) to `@shikijs/rehype`. The change was surgical:
+
+```typescript
+// Before
+rehypePlugins: [rehypeHighlight];
+
+// After
+rehypePlugins: [
+  [
+    rehypeShiki,
+    {
+      themes: { light: "github-light", dark: "github-dark" },
+      defaultColor: false,
+    },
+  ],
+];
+```
+
+The blog CSS replaced all `.hljs-*` class-based rules with a single pair of shiki CSS variable toggles. The result: better highlighting accuracy (TextMate grammars vs regex-based), consistent rendering between the blog and the markdown preview plugin, and fewer CSS rules to maintain.
+
+## What we learned
+
+**Monaco via CDN is surprisingly viable.** modern-monaco loads the editor core lazily from esm.sh — no bundling, no webpack worker config, no CSS loaders. The tradeoff is a ~2s first load over the network, but a skeleton keeps the UI responsive and the module is cached after that. For a utilities app where the editor isn't the first thing on screen, this is a good deal.
+
+**`useDeferredValue` is the right primitive for live preview.** It's simpler than debouncing (no timers, no stale closure bugs), keeps the editor responsive, and gives React control over scheduling the expensive parse. The derived `isParsing` boolean is free.
+
+**A generic CodeEditor pays for itself quickly.** Once we had it, every plugin that uses a textarea for code input became a candidate for upgrade — JSON formatter, base64 encoder, hash generator. Same Monaco instance, same theme sync, same font size. One component.
+
+**Shiki's full bundle is enormous — use `shiki/core` in the browser.** Our first approach used `@shikijs/rehype` with `lazy: true`, which sounds reasonable until you realize it imports `bundledLanguages` — a map of 300+ dynamic `import()` calls. Vite dutifully generates a chunk for every grammar, resulting in 300+ JS files in the build output. The Oniguruma WASM binary adds another 600KB. Switching to `shiki/core` with the JavaScript regex engine and explicit imports for ~17 common languages cut the output from 342 JS files to 41, eliminated the WASM binary entirely, and still highlights the languages that matter most in practice.
+
+**Mobile deserves its own layout, not a responsive hack.** Conditionally rendering a completely different UI (textarea + tabs) instead of trying to make split panels and Monaco work on a 375px screen gives a much better result with less CSS complexity. The `useSyncExternalStore` + `matchMedia` pattern makes the switch clean and SSR-safe.

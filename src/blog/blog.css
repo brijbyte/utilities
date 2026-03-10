@@ -1,10 +1,5 @@
 @import "tailwindcss";
 
-/* Scan AppInfo and its dependencies for class usage */
-@source "../shell/AppInfo.tsx";
-@source "../components/Popover.tsx";
-@source "../components/Button.tsx";
-
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -245,76 +240,22 @@
     font-weight: 600;
   }
 
-  /* highlight.js syntax theme */
-  .hljs {
-    color: var(--color-text);
-    background: var(--color-bg-inset);
-  }
-  .hljs-keyword,
-  .hljs-selector-tag,
-  .hljs-literal,
-  .hljs-section,
-  .hljs-link {
-    color: #8250df;
-  }
-  .hljs-string,
-  .hljs-title,
-  .hljs-name,
-  .hljs-type,
-  .hljs-attribute,
-  .hljs-symbol,
-  .hljs-bullet,
-  .hljs-addition,
-  .hljs-variable,
-  .hljs-template-tag,
-  .hljs-template-variable {
-    color: #0a3069;
-  }
-  .hljs-comment,
-  .hljs-quote,
-  .hljs-deletion,
-  .hljs-meta {
-    color: var(--color-text-muted);
-  }
-  .hljs-number,
-  .hljs-regexp,
-  .hljs-selector-id,
-  .hljs-selector-class {
-    color: #0550ae;
-  }
-  .hljs-emphasis {
-    font-style: italic;
-  }
-  .hljs-strong {
-    font-weight: bold;
+  /* shiki dual-theme: CSS variable toggle */
+  .blog-prose .shiki,
+  .blog-prose .shiki span {
+    color: var(--shiki-light);
+    font-weight: var(--shiki-light-font-weight);
+    font-style: var(--shiki-light-font-style);
+    text-decoration: var(--shiki-light-text-decoration);
   }
 }
 
 @layer base {
-  .dark .hljs-keyword,
-  .dark .hljs-selector-tag,
-  .dark .hljs-literal,
-  .dark .hljs-section,
-  .dark .hljs-link {
-    color: #d2a8ff;
-  }
-  .dark .hljs-string,
-  .dark .hljs-title,
-  .dark .hljs-name,
-  .dark .hljs-type,
-  .dark .hljs-attribute,
-  .dark .hljs-symbol,
-  .dark .hljs-bullet,
-  .dark .hljs-addition,
-  .dark .hljs-variable,
-  .dark .hljs-template-tag,
-  .dark .hljs-template-variable {
-    color: #a5d6ff;
-  }
-  .dark .hljs-number,
-  .dark .hljs-regexp,
-  .dark .hljs-selector-id,
-  .dark .hljs-selector-class {
-    color: #79c0ff;
+  .dark .blog-prose .shiki,
+  .dark .blog-prose .shiki span {
+    color: var(--shiki-dark);
+    font-weight: var(--shiki-dark-font-weight);
+    font-style: var(--shiki-dark-font-style);
+    text-decoration: var(--shiki-dark-text-decoration);
   }
 }

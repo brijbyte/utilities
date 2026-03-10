@@ -10,6 +10,7 @@ import {
   Film,
   ImageIcon,
   Pipette,
+  FileText,
 } from "lucide-react";
 import type { Plugin } from "../types";
 import { TwoPanelSkeleton } from "./skeletons";
@@ -18,6 +19,7 @@ import { EmiSkeleton } from "./emi-calculator/components/Skeleton";
 import { VideoEditorSkeleton } from "./video-editor/components/Skeleton";
 import { ImageToolsSkeleton } from "./image-tools/components/Skeleton";
 import { ColorPickerSkeleton } from "./color-picker/components/Skeleton";
+import { MarkdownPreviewSkeleton } from "./markdown-preview/components/Skeleton";
 import { operations as jsonOps } from "./json-formatter/operations";
 import { operations as base64Ops } from "./base64/operations";
 import { operations as hashOps } from "./hash-generator/operations";
@@ -171,6 +173,27 @@ export const plugins: Plugin[] = [
     },
     load: () => import("./color-picker/App"),
     skeleton: () => <ColorPickerSkeleton />,
+  },
+  {
+    id: "markdown-preview",
+    name: "Markdown Preview",
+    icon: <FileText size={24} />,
+    meta: {
+      description:
+        "Live markdown editor with real-time preview, GFM tables, syntax highlighting, TOC, scroll sync, and HTML export",
+      keywords: [
+        "markdown",
+        "preview",
+        "editor",
+        "gfm",
+        "tables",
+        "syntax highlighting",
+        "table of contents",
+        "export html",
+      ],
+    },
+    load: () => import("./markdown-preview/App"),
+    skeleton: () => <MarkdownPreviewSkeleton />,
   },
   {
     id: "video-editor",
