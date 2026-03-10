@@ -931,6 +931,121 @@ function search(boundL: number): RgbColor | null {
   </div>
 </div>
 
+## Color Blindness Simulation
+
+About 8% of males and 0.5% of females have some form of color vision deficiency. If you're designing with color — choosing accessible palettes, building data visualizations, or picking status indicator colors — you need to know how your colors appear to these users.
+
+### Viénot Simulation Matrices
+
+We use the Viénot et al. (1999) method: a 3×3 matrix applied in linear sRGB space that simulates complete dichromacy. Four types are supported:
+
+- **Protanopia** — No red cones (~1% of males). Reds appear dark; red and green become indistinguishable.
+- **Deuteranopia** — No green cones (~1% of males). The most common form. Similar red-green confusion but reds stay visible.
+- **Tritanopia** — No blue cones (~0.003%). Blue-yellow confusion; blues appear greenish.
+- **Achromatopsia** — No functioning cones (~0.003%). Complete color blindness — only luminance is perceived.
+
+```ts
+const PROTANOPIA_MATRIX = [
+  0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882,
+  -0.048116, 1.051998,
+];
+
+function simulateCVD(rgb: RgbColor, matrix: number[]): RgbColor {
+  const lr = srgbToLinear(rgb.r / 255);
+  const lg = srgbToLinear(rgb.g / 255);
+  const lb = srgbToLinear(rgb.b / 255);
+  const sr = matrix[0] * lr + matrix[1] * lg + matrix[2] * lb;
+  const sg = matrix[3] * lr + matrix[4] * lg + matrix[5] * lb;
+  const sb = matrix[6] * lr + matrix[7] * lg + matrix[8] * lb;
+  // Gamma-encode back to sRGB and clamp
+  return { r: toSrgb(sr), g: toSrgb(sg), b: toSrgb(sb), a: rgb.a };
+}
+```
+
+The linearization step is critical — applying these matrices in gamma-encoded space produces visibly wrong results. The matrices were derived from cone fundamentals and assume linear-light input.
+
+### Verifying Without Color Blindness
+
+How do you test a simulation you can't directly perceive? Three approaches:
+
+1. **Chrome DevTools** has a built-in "Emulate vision deficiencies" option (Rendering panel). Enable protanopia emulation and look at the original color swatch — it should match the hex our simulator produces for that type.
+2. **Invariants**: any pure gray (R=G=B) must be unchanged across all four types, and achromatopsia must always produce grayscale. These are easy to verify mechanically.
+3. **Known pairs**: `#ff0000` (red) and `#00ff00` (green) should simulate to nearly the same color under protanopia — that's the whole point of red-green color blindness.
+
+<div style={demoBox}>
+  <div
+    style={{
+      display: "flex",
+      gap: "4px",
+      justifyContent: "center",
+      alignItems: "center",
+      flexWrap: "wrap",
+    }}
+  >
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "56px",
+          height: "40px",
+          borderRadius: "6px",
+          background: "#ef4444",
+        }}
+      />
+      <div style={demoLabel}>Original</div>
+    </div>
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "56px",
+          height: "40px",
+          borderRadius: "6px",
+          background: "#766c42",
+        }}
+      />
+      <div style={demoLabel}>Protan</div>
+    </div>
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "56px",
+          height: "40px",
+          borderRadius: "6px",
+          background: "#a0913e",
+        }}
+      />
+      <div style={demoLabel}>Deutan</div>
+    </div>
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "56px",
+          height: "40px",
+          borderRadius: "6px",
+          background: "#ff0046",
+        }}
+      />
+      <div style={demoLabel}>Tritan</div>
+    </div>
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "56px",
+          height: "40px",
+          borderRadius: "6px",
+          background: "#848484",
+        }}
+      />
+      <div style={demoLabel}>Achrom</div>
+    </div>
+  </div>
+  <div style={demoLabel}>
+    Red (#ef4444) seen under four types of color vision deficiency — protanopia
+    and deuteranopia turn it olive/brown
+  </div>
+</div>
+
+The visual comparison strip in the tool shows the original color alongside all four simulations, making it easy to check whether your color choices remain distinguishable for color-blind users.
+
 ## Screen Color Picking Without EyeDropper
 
 The [EyeDropper API](https://developer.mozilla.org/en-US/docs/Web/API/EyeDropper_API) is the ideal way to sample colors from anywhere on screen — the user gets a native magnifying loupe and pixel-perfect selection. But it only works in Chromium browsers. Safari and Firefox don't support it.

@@ -94,6 +94,12 @@ export type HarmonyType =
   | "tetradic"
   | "monochromatic";
 
+export type ColorVisionType =
+  | "protanopia"
+  | "deuteranopia"
+  | "tritanopia"
+  | "achromatopsia";
+
 export interface ContrastResult {
   ratio: number;
   aa: boolean;

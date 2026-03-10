@@ -21,6 +21,7 @@ import type {
   Gamut,
   HarmonyType,
   ContrastResult,
+  ColorVisionType,
 } from "./types";
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -952,6 +953,49 @@ export function suggestContrast(
   return {
     lighter: search(1),
     darker: search(0),
+  };
+}
+
+// ── Color Vision Deficiency Simulation ───────────────────────
+
+/** Viénot et al. (1999) simulation matrices, applied in linear sRGB.
+ *  Each matrix simulates complete dichromacy (full severity). */
+const CVD_MATRICES: Record<
+  ColorVisionType,
+  [number, number, number, number, number, number, number, number, number]
+> = {
+  protanopia: [
+    0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882,
+    -0.048116, 1.051998,
+  ],
+  deuteranopia: [
+    0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413, -0.01182,
+    0.04294, 0.968881,
+  ],
+  tritanopia: [
+    1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733,
+    0.691367, 0.3039,
+  ],
+  achromatopsia: [
+    0.2126, 0.7152, 0.0722, 0.2126, 0.7152, 0.0722, 0.2126, 0.7152, 0.0722,
+  ],
+};
+
+/** Simulate how a color appears under a color vision deficiency.
+ *  Operates in linear sRGB space for accuracy. */
+export function simulateCVD(rgb: RgbColor, type: ColorVisionType): RgbColor {
+  const lr = srgbToLinear(rgb.r / 255);
+  const lg = srgbToLinear(rgb.g / 255);
+  const lb = srgbToLinear(rgb.b / 255);
+  const m = CVD_MATRICES[type];
+  const sr = m[0] * lr + m[1] * lg + m[2] * lb;
+  const sg = m[3] * lr + m[4] * lg + m[5] * lb;
+  const sb = m[6] * lr + m[7] * lg + m[8] * lb;
+  return {
+    r: clamp(Math.round(linearToSrgb(Math.max(0, sr)) * 255), 0, 255),
+    g: clamp(Math.round(linearToSrgb(Math.max(0, sg)) * 255), 0, 255),
+    b: clamp(Math.round(linearToSrgb(Math.max(0, sb)) * 255), 0, 255),
+    a: rgb.a,
   };
 }
 

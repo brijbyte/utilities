@@ -62,6 +62,7 @@ export function ColorPickerSkeleton() {
             "Color Harmony",
             "Color Scale",
             "Contrast Checker",
+            "Color Blindness",
             "Color Details",
           ].map((_, i) => (
             <div

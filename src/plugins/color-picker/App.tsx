@@ -21,7 +21,8 @@ import { CssInput } from "./components/CssInput";
 import { Select } from "../../components/Select";
 import { CollapsibleGroup, Collapsible } from "../../components/Collapsible";
 import { ColorScale } from "./components/ColorScale";
-import { Palette, ScanEye, SwatchBook, Code, Layers } from "lucide-react";
+import { ColorBlindness } from "./components/ColorBlindness";
+import { Palette, ScanEye, SwatchBook, Code, Layers, Eye } from "lucide-react";
 
 /**
  * Internal state: we store HSV (hue, saturation, value/brightness)
@@ -221,6 +222,15 @@ export default function ColorPicker() {
             badge={`L:${Math.round(hsl.l)}%`}
           >
             <ContrastChecker rgb={rgb} onColorChange={setFromRgb} />
+          </Collapsible>
+
+          <Collapsible
+            value="cvd"
+            title="Color Blindness"
+            icon={<Eye size={14} className="text-primary" />}
+            badge="4 types"
+          >
+            <ColorBlindness rgb={rgb} onColorChange={setFromRgb} />
           </Collapsible>
 
           <Collapsible
