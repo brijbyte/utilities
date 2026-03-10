@@ -82,11 +82,106 @@ export function HarmonyPalette({ rgb, onColorChange }: Props) {
         ))}
       </div>
 
+      <PaletteExport colors={colors} harmony={harmony} format={format} />
+
       {harmony !== "monochromatic" && <HarmonyWheel colors={colors} />}
 
       <p className="text-xs text-text-muted leading-relaxed">
         {HARMONY_DESCRIPTIONS[harmony]}
       </p>
+    </div>
+  );
+}
+
+const EXPORT_LABELS: Record<string, string> = {
+  css: "CSS Variables",
+  scss: "SCSS",
+  json: "JSON",
+};
+
+function formatPaletteExport(
+  colors: RgbColor[],
+  harmony: HarmonyType,
+  format: ColorFormat,
+  exportFmt: string,
+): string {
+  const names =
+    colors.length === 2
+      ? ["base", "accent"]
+      : colors.map((_, i) => (i === 0 ? "base" : `accent-${i}`));
+
+  switch (exportFmt) {
+    case "css":
+      return (
+        `:root {\n` +
+        colors
+          .map((c, i) => `  --${harmony}-${names[i]}: ${formatCss(c, format)};`)
+          .join("\n") +
+        `\n}`
+      );
+    case "scss":
+      return colors
+        .map((c, i) => `$${harmony}-${names[i]}: ${formatCss(c, format)};`)
+        .join("\n");
+    case "json":
+      return JSON.stringify(
+        Object.fromEntries(
+          colors.map((c, i) => [names[i], formatCss(c, format)]),
+        ),
+        null,
+        2,
+      );
+    default:
+      return "";
+  }
+}
+
+function PaletteExport({
+  colors,
+  harmony,
+  format,
+}: {
+  colors: RgbColor[];
+  harmony: HarmonyType;
+  format: ColorFormat;
+}) {
+  const [exportFmt, setExportFmt] = useState("css");
+  const [copied, setCopied] = useState(false);
+
+  const text = useMemo(
+    () => formatPaletteExport(colors, harmony, format, exportFmt),
+    [colors, harmony, format, exportFmt],
+  );
+
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [text]);
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Select
+        value={exportFmt}
+        onValueChange={setExportFmt}
+        options={Object.entries(EXPORT_LABELS).map(([value, label]) => ({
+          value,
+          label,
+        }))}
+        align="end"
+      />
+      <button
+        onClick={handleCopy}
+        title={`Copy as ${EXPORT_LABELS[exportFmt]}`}
+        className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-text-muted hover:text-text hover:bg-bg-hover border border-border-muted transition-colors cursor-pointer"
+      >
+        {copied ? (
+          <Check size={12} className="text-success" />
+        ) : (
+          <Copy size={12} />
+        )}
+        {copied ? "Copied!" : "Copy"}
+      </button>
     </div>
   );
 }

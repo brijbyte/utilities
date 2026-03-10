@@ -1,7 +1,7 @@
 ---
 title: "Building a CSS Color Picker That Speaks Every Color Language"
 date: "2026-03-10"
-description: "How we built a browser-based color picker supporting all CSS Color Level 4 formats — HEX, RGB, HSL, HWB, LAB, LCH, OKLAB, OKLCH, Display P3, A98-RGB, ProPhoto, and Rec. 2020 — with gamut checking, contrast analysis, and harmony generation."
+description: "How we built a browser-based color picker supporting all CSS Color Level 4 formats — HEX, RGB, HSL, HWB, LAB, LCH, OKLAB, OKLCH, Display P3, A98-RGB, ProPhoto, and Rec. 2020 — with gamut checking, contrast suggestions, harmony palettes, shade scale generation, and palette export."
 tags: ["color", "css", "oklch", "wide-gamut", "color-science"]
 ---
 
@@ -117,99 +117,94 @@ This means `color(display-p3 1 0 0)` correctly shows sRGB ✕ and Display P3 ✓
 This tells you at a glance: "this color works on a standard monitor" vs "this needs a P3-capable display" vs "this only exists in the full Rec. 2020 space."
 
 <div style={demoBox}>
-  <svg
-    viewBox="0 0 360 180"
-    style={{
-      width: "100%",
-      maxWidth: "400px",
-      display: "block",
-      margin: "0 auto",
-    }}
-  >
-    <rect
-      x="10"
-      y="10"
-      width="340"
-      height="160"
-      rx="12"
-      fill="none"
-      stroke="#78716c"
-      strokeWidth="1.5"
-      strokeDasharray="4 3"
-    />
-    <text
-      x="340"
-      y="28"
-      textAnchor="end"
-      fontSize="11"
-      fontFamily="monospace"
-      fill="#78716c"
+  <div style={{ maxWidth: "400px", margin: "0 auto" }}>
+    <div
+      style={{
+        border: "2px dashed #78716c",
+        borderRadius: "12px",
+        padding: "12px",
+        position: "relative",
+      }}
     >
-      Rec. 2020
-    </text>
-    <rect
-      x="35"
-      y="30"
-      width="280"
-      height="130"
-      rx="10"
-      fill="none"
-      stroke="#a78bfa"
-      strokeWidth="1.5"
-      strokeDasharray="4 3"
-    />
-    <text
-      x="305"
-      y="48"
-      textAnchor="end"
-      fontSize="11"
-      fontFamily="monospace"
-      fill="#a78bfa"
-    >
-      ProPhoto
-    </text>
-    <rect
-      x="60"
-      y="50"
-      width="220"
-      height="100"
-      rx="8"
-      fill="none"
-      stroke="#f97316"
-      strokeWidth="1.5"
-    />
-    <text
-      x="270"
-      y="68"
-      textAnchor="end"
-      fontSize="11"
-      fontFamily="monospace"
-      fill="#f97316"
-    >
-      Display P3
-    </text>
-    <rect
-      x="95"
-      y="70"
-      width="150"
-      height="70"
-      rx="6"
-      fill="#3b82f620"
-      stroke="#3b82f6"
-      strokeWidth="1.5"
-    />
-    <text
-      x="170"
-      y="110"
-      textAnchor="middle"
-      fontSize="12"
-      fontFamily="monospace"
-      fontWeight="bold"
-      fill="#3b82f6"
-    >
-      sRGB
-    </text>
-  </svg>
+      <span
+        style={{
+          position: "absolute",
+          top: "4px",
+          right: "8px",
+          fontSize: "11px",
+          fontFamily: "monospace",
+          color: "#78716c",
+        }}
+      >
+        Rec. 2020
+      </span>
+      <div
+        style={{
+          border: "2px dashed #a78bfa",
+          borderRadius: "10px",
+          padding: "12px",
+          marginTop: "8px",
+          position: "relative",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: "4px",
+            right: "8px",
+            fontSize: "11px",
+            fontFamily: "monospace",
+            color: "#a78bfa",
+          }}
+        >
+          ProPhoto
+        </span>
+        <div
+          style={{
+            border: "2px solid #f97316",
+            borderRadius: "8px",
+            padding: "12px",
+            marginTop: "8px",
+            position: "relative",
+          }}
+        >
+          <span
+            style={{
+              position: "absolute",
+              top: "4px",
+              right: "8px",
+              fontSize: "11px",
+              fontFamily: "monospace",
+              color: "#f97316",
+            }}
+          >
+            Display P3
+          </span>
+          <div
+            style={{
+              border: "2px solid #3b82f6",
+              borderRadius: "6px",
+              padding: "16px 12px",
+              marginTop: "8px",
+              background: "rgba(59, 130, 246, 0.08)",
+              textAlign: "center",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "12px",
+                fontFamily: "monospace",
+                fontWeight: "bold",
+                color: "#3b82f6",
+              }}
+            >
+              sRGB
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div style={demoLabel}>
     Color gamuts nest like Russian dolls — each wider gamut contains all colors
     of the narrower ones
@@ -749,6 +744,193 @@ case "monochromatic":
 
 Each swatch in the palette is clickable (to make it the active color) and has a copy button for the CSS value in the selected format.
 
+### Exporting Palettes
+
+Harmony palettes can be exported as CSS custom properties, SCSS variables, or JSON — in any of the supported color formats. Colors are named semantically: `base` and `accent` for complementary, `base`/`accent-1`/`accent-2` for multi-color harmonies. This makes the output paste-ready for a design system or component library.
+
+## Color Scale Generation
+
+Tailwind popularized the 50–950 shade scale: a single hue at 11 carefully chosen lightness levels. Most tools generate these by linearly interpolating HSL lightness, which produces muddy midtones and uneven perceptual steps. We use OKLCH instead.
+
+The key insight: Tailwind's own built-in palettes, when analyzed in OKLCH, follow a consistent lightness curve. We extracted target L values for each step:
+
+```ts
+const SCALE_LIGHTNESS = {
+  50: 0.97,
+  100: 0.93,
+  200: 0.87,
+  300: 0.78,
+  400: 0.68,
+  500: 0.58,
+  600: 0.48,
+  700: 0.4,
+  800: 0.33,
+  900: 0.27,
+  950: 0.18,
+};
+```
+
+The hue stays constant across all shades. Chroma scales proportionally — lighter and darker extremes naturally need less saturation to avoid clipping, while mid-range shades can be more vivid. This produces scales that feel balanced without any manual tuning.
+
+<div style={demoBox}>
+  <div
+    style={{
+      display: "flex",
+      borderRadius: "8px",
+      overflow: "hidden",
+      border: "1px solid #d6d3d1",
+    }}
+  >
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(97% 0.02 250)" }}
+    />
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(93% 0.04 250)" }}
+    />
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(87% 0.08 250)" }}
+    />
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(78% 0.12 250)" }}
+    />
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(68% 0.15 250)" }}
+    />
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(58% 0.18 250)" }}
+    />
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(48% 0.16 250)" }}
+    />
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(40% 0.13 250)" }}
+    />
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(33% 0.10 250)" }}
+    />
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(27% 0.08 250)" }}
+    />
+    <div
+      style={{ flex: 1, height: "40px", background: "oklch(18% 0.05 250)" }}
+    />
+  </div>
+  <div style={demoLabel}>
+    An OKLCH-generated scale for blue (hue 250°) — 50 through 950
+  </div>
+</div>
+
+The scale includes a built-in export system: CSS custom properties, Tailwind config objects, SCSS variables, or JSON — in any color format. Click any shade to make it the active color and explore its properties.
+
+## Contrast Suggestions
+
+The contrast checker doesn't just flag failures — when a color doesn't meet a WCAG level, it suggests the closest alternatives that would pass. The goal: change the color as little as possible while making it accessible.
+
+### Why OKLCH Lightness?
+
+Contrast ratio is fundamentally about luminance — how bright a color appears. We could adjust RGB channels, but that shifts hue and saturation unpredictably. HSL lightness is better but not perceptually linear. OKLCH lightness maps directly to perceived brightness, so adjusting L while holding C (chroma) and H (hue) constant produces a color that _looks_ the same, just lighter or darker. The character of the color is preserved.
+
+### The Binary Search
+
+For each direction (lighter toward L=1, darker toward L=0), we first check whether the extreme even passes — if pure white on this background can't reach 7:1, there's no AAA-passing lighter variant. Then we binary-search for the L value closest to the original that still meets the target:
+
+```ts
+function search(boundL: number): RgbColor | null {
+  // Check if extreme passes at all
+  const extreme = oklchToRgb({ ...oklch, l: boundL });
+  if (contrastRatio(extreme, bg).ratio < targetRatio) return null;
+
+  let lo = Math.min(oklch.l, boundL);
+  let hi = Math.max(oklch.l, boundL);
+  for (let i = 0; i < 30; i++) {
+    const mid = (lo + hi) / 2;
+    const candidate = oklchToRgb({ ...oklch, l: mid });
+    if (contrastRatio(candidate, bg).ratio >= targetRatio) {
+      // Passes — move closer to original
+      if (boundL > oklch.l) hi = mid;
+      else lo = mid;
+    } else {
+      // Fails — move toward extreme
+      if (boundL > oklch.l) lo = mid;
+      else hi = mid;
+    }
+  }
+  // ...
+}
+```
+
+30 iterations of bisection gives sub-0.01% lightness precision — far more than 8-bit color can represent. The result: two suggestions (lighter and darker), each the minimum perceptual shift needed to pass. Click either to apply it instantly.
+
+<div style={demoBox}>
+  <div
+    style={{
+      display: "flex",
+      gap: "12px",
+      justifyContent: "center",
+      alignItems: "center",
+      flexWrap: "wrap",
+    }}
+  >
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "48px",
+          height: "48px",
+          borderRadius: "8px",
+          background: "#7c6f64",
+          border: "1px solid #d6d3d1",
+        }}
+      />
+      <div style={demoLabel}>Darker</div>
+      <div
+        style={{ fontSize: "10px", fontFamily: "monospace", color: "#78716c" }}
+      >
+        5.2:1 ✓
+      </div>
+    </div>
+    <div style={{ fontSize: "14px", color: "#a8a29e" }}>←</div>
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "56px",
+          height: "56px",
+          borderRadius: "8px",
+          background: "#a89984",
+          border: "2px solid #ef4444",
+        }}
+      />
+      <div style={demoLabel}>Original</div>
+      <div
+        style={{ fontSize: "10px", fontFamily: "monospace", color: "#ef4444" }}
+      >
+        3.4:1 ✕
+      </div>
+    </div>
+    <div style={{ fontSize: "14px", color: "#a8a29e" }}>→</div>
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "48px",
+          height: "48px",
+          borderRadius: "8px",
+          background: "#c4b5a5",
+          border: "1px solid #d6d3d1",
+        }}
+      />
+      <div style={demoLabel}>Lighter</div>
+      <div
+        style={{ fontSize: "10px", fontFamily: "monospace", color: "#78716c" }}
+      >
+        4.6:1 ✓
+      </div>
+    </div>
+  </div>
+  <div style={{ ...demoLabel, marginTop: "12px" }}>
+    A warm gray that fails AA (4.5:1) on white — the suggestions preserve the
+    hue while nudging lightness just enough to pass
+  </div>
+</div>
+
 ## Screen Color Picking Without EyeDropper
 
 The [EyeDropper API](https://developer.mozilla.org/en-US/docs/Web/API/EyeDropper_API) is the ideal way to sample colors from anywhere on screen — the user gets a native magnifying loupe and pixel-perfect selection. But it only works in Chromium browsers. Safari and Firefox don't support it.
@@ -783,6 +965,8 @@ Building a color picker that handles the full CSS color specification taught us 
 - **OKLab and OKLCH are the future** — they're perceptually uniform, simple to implement, and give designers intuitive control over lightness and saturation independently.
 - **Gamut boundaries are real** — a significant portion of the P3 and Rec. 2020 gamuts cannot be represented in sRGB. Knowing which gamut your color lives in prevents surprises on standard displays.
 - **Progressive enhancement works** — native EyeDropper where available, `getDisplayMedia` fallback everywhere else. Both paths produce an sRGB color value that feeds into the same conversion engine.
+- **OKLCH is the right space for scale generation** — linear HSL lightness produces uneven perceptual steps. OKLCH lightness maps directly to perceived brightness, making shade scales that feel balanced without manual tweaking.
+- **Binary search beats lookup tables for contrast suggestions** — 30 iterations of bisection on OKLCH lightness converges to sub-0.01% precision. It's fast, produces the minimal adjustment needed, and preserves hue and chroma.
 - **Zero dependencies is achievable** — the entire color engine is pure math. No Color.js, no chroma.js. The CSS Color Level 4 spec provides all the matrices and formulas you need.
 
 ---

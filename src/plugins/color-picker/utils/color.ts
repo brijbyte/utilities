@@ -955,6 +955,58 @@ export function suggestContrast(
   };
 }
 
+// ── Color Scale ─────────────────────────────────────────────
+
+/** Tailwind-style shade steps: 50, 100, 200, ..., 900, 950 */
+export const SCALE_STEPS = [
+  50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950,
+] as const;
+
+/** Target OKLCH lightness for each Tailwind shade step.
+ *  Derived from analyzing Tailwind's built-in color palettes in OKLCH. */
+const SCALE_LIGHTNESS: Record<number, number> = {
+  50: 0.97,
+  100: 0.93,
+  200: 0.87,
+  300: 0.78,
+  400: 0.68,
+  500: 0.58,
+  600: 0.48,
+  700: 0.4,
+  800: 0.33,
+  900: 0.27,
+  950: 0.18,
+};
+
+/** Generate a full color scale (50–950) from a base color.
+ *  Preserves the base color's hue and adjusts chroma proportionally
+ *  as lightness changes (lighter shades naturally have less chroma). */
+export function generateScale(
+  rgb: RgbColor,
+): { step: number; color: RgbColor }[] {
+  const oklch = rgbToOklch(rgb);
+  // Find which step the base color is closest to
+  const baseL = oklch.l;
+  const baseC = oklch.c;
+
+  return SCALE_STEPS.map((step) => {
+    const targetL = SCALE_LIGHTNESS[step];
+    // Scale chroma proportionally — reduce as we move away from mid-lightness
+    // Peak chroma is around L=0.55–0.65, taper toward both ends
+    const peakL = 0.58;
+    const baseDist = Math.abs(baseL - peakL);
+    const targetDist = Math.abs(targetL - peakL);
+    const chromaScale =
+      baseDist < 0.01 ? 1 : Math.max(0.15, 1 - (targetDist - baseDist) * 1.2);
+    const c = Math.max(0, baseC * chromaScale);
+
+    return {
+      step,
+      color: oklchToRgb({ l: targetL, c, h: oklch.h, a: rgb.a }),
+    };
+  });
+}
+
 // ── Harmony / Palette ───────────────────────────────────────
 
 export function generateHarmony(rgb: RgbColor, type: HarmonyType): RgbColor[] {

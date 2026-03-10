@@ -20,7 +20,8 @@ import { HarmonyPalette } from "./components/HarmonyPalette";
 import { CssInput } from "./components/CssInput";
 import { Select } from "../../components/Select";
 import { CollapsibleGroup, Collapsible } from "../../components/Collapsible";
-import { Palette, ScanEye, SwatchBook, Code } from "lucide-react";
+import { ColorScale } from "./components/ColorScale";
+import { Palette, ScanEye, SwatchBook, Code, Layers } from "lucide-react";
 
 /**
  * Internal state: we store HSV (hue, saturation, value/brightness)
@@ -202,6 +203,15 @@ export default function ColorPicker() {
             badge={`H:${Math.round(hue)}°`}
           >
             <HarmonyPalette rgb={rgb} onColorChange={setFromRgb} />
+          </Collapsible>
+
+          <Collapsible
+            value="scale"
+            title="Color Scale"
+            icon={<Layers size={14} className="text-primary" />}
+            badge="11 shades"
+          >
+            <ColorScale rgb={rgb} onColorChange={setFromRgb} />
           </Collapsible>
 
           <Collapsible

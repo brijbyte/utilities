@@ -60,6 +60,7 @@ export function ColorPickerSkeleton() {
           {[
             "CSS Values",
             "Color Harmony",
+            "Color Scale",
             "Contrast Checker",
             "Color Details",
           ].map((_, i) => (
