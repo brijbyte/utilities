@@ -1,0 +1,129 @@
+---
+title: "Hello World — Welcome to the Utilities Blog"
+description: "Introducing the utilities blog — how we built a zero-JS static blog system using MDX, React SSR, and Tailwind CSS, fully separate from the main app."
+tags: ["announcement", "architecture"]
+---
+
+Welcome to the **utilities** blog! This is where we'll share updates about new tools, tips for getting the most out of browser-based developer utilities, and deep dives into how things work under the hood.
+
+For the inaugural post, let's look at how this blog itself is built — because it's a good example of the kind of engineering choices we make across the whole project.
+
+## The Challenge
+
+The utilities app is a single-page application (SPA) built with React, Tailwind CSS, and Vite. Every tool runs entirely in the browser — no server, no tracking, no data ever leaving your device.
+
+We wanted a blog that lives inside this same codebase and shares the same visual design system (Tailwind tokens, dark mode, typography), but produces **zero-JavaScript static HTML** in production. Blog posts are content — they don't need React hydration, a router, or 200KB of JS bundles. And none of the blog code should end up in the main app's production bundle.
+
+## The Architecture
+
+Here's the full pipeline:
+
+```
+MDX article (frontmatter + markdown)
+  → @mdx-js/mdx compile (remark-gfm, rehype-highlight)
+  → React.createElement + renderToStaticMarkup
+  → HTML fragment string
+  → virtual:blog-data Vite module (JSON)
+  → React components (BlogIndex, BlogArticle) with Tailwind classes
+  → Dev:   Vite middleware SSR into blog.html template
+  → Build: blog entry-server SSR + own CSS bundle + blog.html template
+```
+
+### Full Separation from the Main App
+
+The blog is fully decoupled from the main app at every level:
+
+- **Own HTML template** (`blog.html`) — clean, purpose-built. No `<script type="module">`, no app version script, no PWA manifest. Just the theme-detection inline snippet, meta tags, and a CSS link.
+- **Own CSS bundle** (`blog.css`) — a separate Tailwind entry point with the theme tokens, base reset, prose styles, and syntax highlight theme. The main app's CSS has zero blog-related styles.
+- **Own SSR entry** (`entry-server.tsx`) — renders blog routes via `StaticRouter` independently, without app providers (ThemeProvider, Toast, etc).
+- **Zero blog code in the production JS bundle** — blog components, the virtual data module, and blog page components are never imported by the main app's client build.
+
+### Dev Mode: Vite Middleware SSR
+
+In development, blog routes aren't part of the React SPA at all. Instead, the Vite plugin's `configureServer` middleware intercepts `/blog` and `/blog/:slug` requests:
+
+1. Read the `blog.html` template and transform it through Vite's pipeline
+2. Inject a `<link>` to `blog.css` (served and hot-reloaded by Vite's dev server)
+3. SSR-render the blog React components via `entry-server.tsx`
+4. Return the complete HTML page
+
+This means the dev and production rendering paths are identical — both SSR the same components into the same template. You edit an MDX file, refresh, and see the changes.
+
+### The MDX Pipeline
+
+Each article is an MDX file in `src/blog/articles/` with a specific naming convention:
+
+```
+YYYY-MM-DD_article-slug.mdx
+```
+
+The date and slug are extracted from the filename. Frontmatter provides the title, description, and tags:
+
+```yaml
+---
+title: "Article Title"
+description: "Short description for SEO and cards."
+tags: ["tag1", "tag2"]
+---
+```
+
+At compile time, the MDX goes through:
+
+- **remark-frontmatter** + **remark-mdx-frontmatter** — parses YAML frontmatter and exports it
+- **remark-gfm** — GitHub Flavored Markdown (tables, strikethrough, autolinks)
+- **rehype-highlight** — syntax highlighting via highlight.js at build time (no client-side JS)
+
+The compiled MDX is evaluated with React's JSX runtime and rendered to an HTML string via `renderToStaticMarkup`. This happens at Vite's module-load time through a virtual module.
+
+### The Virtual Module
+
+A Vite plugin (`blogPlugin`) provides `virtual:blog-data` — a module that exports:
+
+```ts
+export const articles: ArticleMeta[]; // all articles, newest first
+export const articleMap: Record<
+  string,
+  {
+    // keyed by slug
+    meta: ArticleMeta;
+    contentHtml: string; // pre-rendered HTML fragment
+  }
+>;
+```
+
+The blog page components import from this virtual module. In dev, Vite resolves it on demand. In SSR, the same plugin runs server-side.
+
+### Styling
+
+Blog components use **Tailwind classes** — the same visual language as the rest of the app, but processed through `blog.css` (its own Tailwind entry point). The theme tokens are replicated so colors, fonts, and spacing are consistent.
+
+MDX content is rendered as raw HTML and injected via `dangerouslySetInnerHTML` inside a `.blog-prose` wrapper. The `.blog-prose` styles in `blog.css` handle headings, paragraphs, lists, code blocks, tables, and blockquotes. Syntax highlighting uses `hljs-*` classes with light/dark variants.
+
+### The Build Step
+
+The prerender script (`prerender.js`) generates blog pages in three steps:
+
+1. **Build blog CSS** — runs a separate Vite build with `blog.css` as entry, processed through `@tailwindcss/vite`. Produces a hashed CSS file in `dist/assets/`.
+2. **SSR each route** — loads the blog `entry-server.tsx` via `ssrLoadModule`, renders each blog URL through `StaticRouter`.
+3. **Assemble HTML** — fills the `blog.html` template with meta tags, JSON-LD structured data (`Blog`/`BlogPosting` schema), the blog CSS `<link>`, and SSR content.
+
+Output: `dist/blog/index.html` and `dist/blog/:slug/index.html` per article. No JS files, no modulepreloads, no manifest link.
+
+## Why This Approach?
+
+We considered simpler alternatives:
+
+- **Separate static site generator** (Astro, Hugo, etc.) — adds tooling complexity, splits the codebase, can't share the Tailwind config
+- **Blog routes inside the SPA** — blog code ends up in the production JS bundle even if routes are guarded, and blog pages would need React hydration
+- **Inline styles in a standalone template** — can't use Tailwind utilities, duplicates the design system, hard to maintain
+- **Full SSG with hydration** — unnecessary for content pages, ships JS for no reason
+
+The approach we landed on gives us complete separation: the blog shares the same codebase and visual design system, but has its own HTML template, CSS bundle, and SSR entry. Zero blog code in the production app. Zero JavaScript on blog pages.
+
+## What's Next
+
+- **Release notes** when we ship new tools
+- **Technical deep dives** into how specific utilities work (FFmpeg WASM, WebAuthn PRF, Web Workers)
+- **Tips and tricks** for power users
+
+Stay tuned. In the meantime, check out the [tools](/) and let us know what you'd like to see next.

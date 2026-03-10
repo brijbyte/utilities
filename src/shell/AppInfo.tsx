@@ -1,7 +1,15 @@
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
-import { Github, Globe, Info, Monitor, Moon, Sun } from "lucide-react";
+import {
+  Github,
+  Globe,
+  Info,
+  Monitor,
+  Moon,
+  NotebookPen,
+  Sun,
+} from "lucide-react";
 import { isPwa } from "../pwa";
 import { applyUpdate } from "../sw-update";
 import {
@@ -154,6 +162,13 @@ export function AppInfo() {
               </div>
 
               <div className="border-t border-border px-4 py-2 flex items-center justify-end gap-3">
+                <a
+                  href="/blog"
+                  className="text-text-muted hover:text-text transition-colors"
+                  title="Blog"
+                >
+                  <NotebookPen size={14} />
+                </a>
                 <a
                   href="https://github.com/brijbyte/utilities"
                   target="_blank"

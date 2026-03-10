@@ -259,6 +259,143 @@ async function prerender() {
     `✓ Generated ${shortcuts.length} shortcut icons and updated manifest`,
   );
 
+  // --- Generate blog pages ---
+  // Blog pages are fully separate from the main app: own HTML template,
+  // own CSS bundle, own SSR entry. No JS loads at all.
+
+  // 1. Build blog CSS via Vite (processes blog.css through Tailwind,
+  //    scanning blog components for class usage).
+  const { build: viteBuild } = await import("vite");
+  const blogCssBuild = await viteBuild({
+    configFile: false,
+    plugins: [(await import("@tailwindcss/vite")).default()],
+    build: {
+      emptyOutDir: false,
+      outDir: "dist",
+      rolldownOptions: {
+        input: { "blog-style": path.resolve(__dirname, "src/blog/blog.css") },
+        output: {
+          assetFileNames: "assets/[name]-[hash][extname]",
+          // The CSS input becomes an empty JS file + a CSS asset.
+          // We only care about the CSS asset.
+          entryFileNames: "assets/[name]-[hash].js",
+        },
+      },
+    },
+    logLevel: "silent",
+  });
+
+  // Find the emitted CSS file from the blog build
+  const blogBuildOutput = Array.isArray(blogCssBuild)
+    ? blogCssBuild[0]
+    : blogCssBuild;
+  const blogCssAsset = blogBuildOutput.output.find(
+    (o) => o.type === "asset" && o.fileName.endsWith(".css"),
+  );
+  const blogCssPath = blogCssAsset ? `/${blogCssAsset.fileName}` : "";
+
+  // Clean up the empty JS stub emitted for the CSS entry
+  const blogJsStub = blogBuildOutput.output.find(
+    (o) => o.type === "chunk" && o.fileName.includes("blog-style"),
+  );
+  if (blogJsStub) {
+    await fs.rm(path.join(distDir, blogJsStub.fileName), { force: true });
+  }
+
+  // 3. Read blog.html template
+  const blogTemplate = await fs.readFile(
+    path.resolve(__dirname, "src/blog/blog.html"),
+    "utf-8",
+  );
+
+  // 3. Load blog SSR entry and article data
+  const { renderBlog } = await vite.ssrLoadModule(
+    "./src/blog/entry-server.tsx",
+  );
+  const { getAllArticles } = await vite.ssrLoadModule("./src/blog/renderer.ts");
+  const articles = await getAllArticles();
+
+  // 4. Generate each blog page
+  const blogRoutes = [
+    { path: "/blog", dir: path.join(distDir, "blog") },
+    ...articles.map((a) => ({
+      path: `/blog/${a.slug}`,
+      dir: path.join(distDir, "blog", a.slug),
+    })),
+  ];
+
+  for (const route of blogRoutes) {
+    const article = articles.find((a) => route.path === `/blog/${a.slug}`);
+    const blogTitle =
+      route.path === "/blog"
+        ? "blog — utilities"
+        : `${article?.title ?? "blog"} — utilities blog`;
+    const blogDesc =
+      route.path === "/blog"
+        ? "Updates, tips, and deep dives into browser-based developer tools that run entirely in your browser."
+        : (article?.description ?? "");
+    const blogUrl = `${baseUrl}${route.path}`;
+    const blogKeywords =
+      route.path === "/blog"
+        ? "blog, developer tools, browser tools, offline, privacy first"
+        : [
+            ...(article?.tags ?? []),
+            "blog",
+            "developer tools",
+            "browser tools",
+          ].join(", ");
+    const blogJsonLd =
+      route.path === "/blog"
+        ? JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Blog",
+            name: "utilities blog",
+            url: blogUrl,
+            description: blogDesc,
+            author: { "@type": "Person", name: "brijbyte" },
+          })
+        : JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            headline: article?.title ?? "",
+            description: blogDesc,
+            url: blogUrl,
+            datePublished: article?.date ?? "",
+            author: { "@type": "Person", name: "brijbyte" },
+            isPartOf: {
+              "@type": "Blog",
+              name: "utilities blog",
+              url: `${baseUrl}/blog`,
+            },
+          });
+
+    const blogSsrHtml = renderBlog(route.path);
+
+    let blogPageHtml = blogTemplate;
+    blogPageHtml = blogPageHtml.replaceAll("<!--app:hash-->", commitHash);
+    blogPageHtml = blogPageHtml.replaceAll("<!--app:date-->", commitDate);
+    blogPageHtml = blogPageHtml.replaceAll("<!--meta:title-->", blogTitle);
+    blogPageHtml = blogPageHtml.replaceAll("<!--meta:description-->", blogDesc);
+    blogPageHtml = blogPageHtml.replaceAll("<!--meta:url-->", blogUrl);
+    blogPageHtml = blogPageHtml.replaceAll(
+      "<!--meta:keywords-->",
+      blogKeywords,
+    );
+    blogPageHtml = blogPageHtml.replace("<!--meta:jsonld-->", blogJsonLd);
+    blogPageHtml = blogPageHtml.replace(
+      "<!--blog:css-->",
+      blogCssPath ? `<link rel="stylesheet" href="${blogCssPath}">` : "",
+    );
+    blogPageHtml = blogPageHtml.replace("<!--ssr-outlet-->", blogSsrHtml);
+
+    await fs.mkdir(route.dir, { recursive: true });
+    await fs.writeFile(path.join(route.dir, "index.html"), blogPageHtml);
+  }
+
+  console.log(
+    `✓ Generated blog index + ${articles.length} article pages (CSS: ${blogCssPath})`,
+  );
+
   await vite.close();
 }
 

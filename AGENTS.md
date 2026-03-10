@@ -9,7 +9,7 @@ A browser-based developer utilities app built as a plugin shell. The shell provi
 ```
 src/
   main.tsx                  Entry point. Hydrates on "/" (SSG), createRoot otherwise.
-  App.tsx                   Top-level providers: RegistryProvider → ThemeProvider → Routes.
+  App.tsx                   Top-level providers: RegistryProvider → ThemeProvider → Routes. No blog routes (those are separate).
   entry-server.tsx          SSR entry for pre-rendering. Uses StaticRouter. No AppUtilsProvider (toasts are client-only).
   types.ts                  Plugin and PluginMeta interfaces.
   registry.ts               React context for plugin registry. Exports RegistryProvider, usePlugins(), usePlugin(id).
@@ -62,7 +62,22 @@ src/
         ShareTab.tsx        Secondary view: save to localStorage, share via URL, copy summary.
         Skeleton.tsx        Loading skeleton.
 
-  prerender.js              SSG script. Builds SSR bundle, renders "/" to string, injects into dist/index.html.
+  blog/                     Static blog system — fully separate from main app. Own HTML template, own CSS bundle, own SSR entry.
+    types.ts                ArticleMeta interface (slug, date, title, description, tags).
+    renderer.ts             Node-only module. Compiles MDX → React elements → HTML fragments via renderToStaticMarkup.
+    vite-plugin.ts          Vite plugin: provides `virtual:blog-data` module + dev middleware for /blog/* SSR.
+    entry-server.tsx        Blog SSR entry. Renders blog routes via StaticRouter, independent of main app.
+    blog.html               Clean HTML template for blog pages. No JS, no manifest, no app version script.
+    blog.css                Blog's own Tailwind entry point. Theme tokens, base reset, prose styles, syntax highlight theme.
+    BlogIndexPage.tsx       Route component for /blog. Imports from virtual:blog-data, renders BlogIndex.
+    BlogArticlePage.tsx     Route component for /blog/:slug. Imports from virtual:blog-data, renders BlogArticle.
+    articles/               MDX article files. Named YYYY-MM-DD_<slug>.mdx with YAML frontmatter.
+    components/
+      BlogHeader.tsx        Breadcrumb header: home / blog / article-title. Uses react-router Link.
+      BlogIndex.tsx          Blog index layout: header + article cards list. Tailwind styled.
+      BlogArticle.tsx        Article layout: header + meta + rendered MDX content via dangerouslySetInnerHTML. Tailwind styled.
+
+  prerender.js              SSG script. Pre-renders home page, plugin pages, and blog (own CSS build + SSR + blog.html template).
 ```
 
 ## Key Architecture Decisions
@@ -455,6 +470,96 @@ plugins/video-editor/
 - `@ffmpeg/ffmpeg` — FFmpeg WASM JavaScript API.
 - `@ffmpeg/util` — `fetchFile` and `toBlobURL` helpers.
 - `@ffmpeg/core` — FFmpeg WASM binary (loaded from unpkg CDN at runtime, not bundled).
+
+### Blog System
+
+Fully separate blog system — own HTML template (`blog.html`), own Tailwind CSS bundle (`blog.css`), own SSR entry (`entry-server.tsx`). Zero overlap with the main app's JS or CSS bundles. No JavaScript files load on blog pages.
+
+#### How It Works
+
+```
+MDX file (frontmatter + content)
+  → @mdx-js/mdx compile (remark-gfm, remark-frontmatter, rehype-highlight)
+  → renderToStaticMarkup → HTML fragment
+  → virtual:blog-data module (JSON with meta + contentHtml)
+  → React components (BlogIndex, BlogArticle) with Tailwind classes
+  → Dev: Vite middleware SSRs into blog.html, serves blog.css via dev pipeline
+  → Build: blog entry-server.tsx SSR → blog.html template + separate blog CSS bundle
+```
+
+#### Article Format
+
+Files in `src/blog/articles/` named `YYYY-MM-DD_<slug>.mdx`:
+
+```mdx
+---
+title: "Article Title"
+description: "Short description for SEO and index cards."
+tags: ["tag1", "tag2"]
+---
+
+Article content in MDX (Markdown + JSX). The title from frontmatter is
+rendered by the template — do NOT include a top-level `# Heading` in the body.
+```
+
+#### Routes
+
+- `/blog` → blog index (list of articles)
+- `/blog/:slug` → individual article page
+
+These are **not** React Router routes in the main app. Blog is entirely handled by the Vite plugin middleware (dev) and pre-rendered static HTML (prod).
+
+#### Virtual Module (`virtual:blog-data`)
+
+Vite plugin (`blogPlugin` in `vite-plugin.ts`) provides `virtual:blog-data` which exports:
+
+- `articles: ArticleMeta[]` — all articles sorted newest-first.
+- `articleMap: Record<string, { meta, contentHtml }>` — compiled article data keyed by slug.
+
+The plugin calls `renderer.ts` (Node-only, uses `@mdx-js/mdx`) to compile MDX at load time.
+
+#### Dev Mode
+
+The Vite plugin's `configureServer` middleware intercepts `/blog` and `/blog/:slug` requests. For each:
+
+1. Reads `blog.html` template and transforms it through Vite's pipeline
+2. Injects a `<link>` to `blog.css` (processed by Tailwind via Vite's dev server)
+3. SSR-renders the blog React components via `entry-server.tsx`
+4. Returns the complete HTML page
+
+The main `App.tsx` has no blog routes — blog is completely outside the SPA.
+
+#### Build Mode
+
+`prerender.js` generates blog pages in three steps:
+
+1. **Build blog CSS** — runs a separate Vite build with `blog.css` as entry, processed through `@tailwindcss/vite`. Produces a hashed CSS file in `dist/assets/`.
+2. **SSR each route** — loads `entry-server.tsx` via `ssrLoadModule`, renders each blog URL through `StaticRouter`.
+3. **Assemble HTML** — fills `blog.html` template with meta tags, JSON-LD (`Blog`/`BlogPosting` schema), the blog CSS `<link>`, and SSR content.
+
+Output: `dist/blog/index.html` + `dist/blog/:slug/index.html` per article. No JS files, no modulepreloads, no manifest link — just the theme-detection inline script, structured data, and the blog CSS bundle.
+
+#### Separation from Main App
+
+- **No blog code in prod JS** — blog components, `virtual:blog-data`, React Router for blog are never imported by the main app's client build.
+- **Own CSS bundle** — `blog.css` is a separate Tailwind entry with its own theme tokens, prose styles, and syntax highlight theme. The main app's `index.css` has zero blog-related styles.
+- **Own HTML template** — `blog.html` is purpose-built: no `<script type="module">`, no `__APP_VERSION__`, no `<link rel="manifest">`.
+- **Own SSR entry** — `entry-server.tsx` renders blog routes independently, without app providers (ThemeProvider, Toast, etc).
+
+#### Styling
+
+- Blog components use **Tailwind classes** processed through `blog.css` (its own Tailwind entry).
+- `blog.css` defines the subset of theme tokens needed (colors, font, spacing) + prose styles + syntax highlight theme.
+- MDX content is injected via `dangerouslySetInnerHTML` inside a `.blog-prose` wrapper with styles for headings, code, lists, tables, blockquotes.
+- Syntax highlighting uses `rehype-highlight` at compile time + `hljs-*` classes with light/dark variants.
+
+#### Key Design Decisions
+
+- **Full separation** — blog has its own HTML template, CSS bundle, and SSR entry. Zero code shared with the main app's client build.
+- **Zero JS** — no script files load on blog pages. Only an inline theme-detection snippet and `application/ld+json` metadata.
+- **Same design system** — `blog.css` replicates the app's Tailwind theme tokens so the visual language is consistent.
+- **Dev via middleware, not SPA** — blog routes are served by Vite middleware SSR in dev, not React Router in the SPA. This means the dev and prod rendering paths are identical.
+- **Breadcrumb header** — `BlogHeader` component with `home / blog / article-title` navigation using react-router `Link` (works in SSR via `StaticRouter`).
 
 ## Conventions
 

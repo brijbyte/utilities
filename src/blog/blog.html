@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function () {
+        var t = localStorage.getItem("utilities-theme") || "system";
+        var d =
+          t === "dark" ||
+          (t === "system" && matchMedia("(prefers-color-scheme:dark)").matches);
+        if (d) document.documentElement.classList.add("dark");
+        var fs = localStorage.getItem("utilities-font-size");
+        var sizes = { sm: 14, base: 16, lg: 18, xl: 20 };
+        if (fs && sizes[fs])
+          document.documentElement.style.fontSize = sizes[fs] + "px";
+      })();
+    </script>
+    <script>
+      globalThis.__APP_VERSION__ = "<!--app:hash-->";
+      globalThis.__APP_DATE__ = "<!--app:date-->";
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary -->
+    <title><!--meta:title--></title>
+    <meta name="description" content="<!--meta:description-->" />
+    <meta name="keywords" content="<!--meta:keywords-->" />
+    <meta name="author" content="brijbyte" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="<!--meta:url-->" />
+    <meta property="og:title" content="<!--meta:title-->" />
+    <meta property="og:description" content="<!--meta:description-->" />
+    <meta property="og:site_name" content="utilities" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="<!--meta:title-->" />
+    <meta name="twitter:description" content="<!--meta:description-->" />
+
+    <!-- Technical -->
+    <meta
+      name="theme-color"
+      content="#1c1917"
+      media="(prefers-color-scheme: dark)"
+    />
+    <meta
+      name="theme-color"
+      content="#f5f5f4"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="<!--meta:url-->" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+      <!--meta:jsonld-->
+    </script>
+
+    <!--blog:css-->
+  </head>
+
+  <body class="isolate">
+    <div id="root"><!--ssr-outlet--></div>
+    <!--blog:script-->
+  </body>
+</html>

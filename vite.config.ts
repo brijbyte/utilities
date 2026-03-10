@@ -3,6 +3,7 @@ import { execSync } from "child_process";
 import { build } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { blogPlugin } from "./src/blog/vite-plugin.ts";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
 
@@ -121,6 +122,7 @@ function buildServiceWorker(): Plugin {
 
 export default defineConfig({
   plugins: [
+    blogPlugin(),
     react({
       babel: {
         plugins: [["babel-plugin-react-compiler"]],
