@@ -671,6 +671,10 @@ export function getGamuts(rgb: RgbColor): Gamut[] {
 export function formatCss(rgb: RgbColor, format: ColorFormat): string {
   const alphaStr = (a: number) => (a < 1 ? ` / ${round(a * 100, 1)}%` : "");
 
+  // For wide-gamut / perceptual formats, use unclamped linear sRGB → XYZ path
+  // so parsed wide-gamut colors round-trip accurately.
+  const [lr, lg, lb] = getLinearRgb(rgb);
+
   switch (format) {
     case "hex":
       return rgbToHex(rgb);
@@ -689,43 +693,62 @@ export function formatCss(rgb: RgbColor, format: ColorFormat): string {
     }
 
     case "lab": {
-      const lab = rgbToLab(rgb);
-      return `lab(${round(lab.l, 2)}% ${round(lab.a, 2)} ${round(lab.b, 2)}${alphaStr(lab.alpha)})`;
+      const [x, y, z] = linearRgbToXyz(lr, lg, lb);
+      const [x50, y50, z50] = d65ToD50(x, y, z);
+      const L = labF(y50 / D65[1]) * 116 - 16;
+      const a = (labF(x50 / D65[0]) - labF(y50 / D65[1])) * 500;
+      const b = (labF(y50 / D65[1]) - labF(z50 / D65[2])) * 200;
+      return `lab(${round(L, 2)}% ${round(a, 2)} ${round(b, 2)}${alphaStr(rgb.a)})`;
     }
 
     case "lch": {
-      const lch = rgbToLch(rgb);
-      return `lch(${round(lch.l, 2)}% ${round(lch.c, 2)} ${round(lch.h, 1)}${alphaStr(lch.a)})`;
+      const [x, y, z] = linearRgbToXyz(lr, lg, lb);
+      const [x50, y50, z50] = d65ToD50(x, y, z);
+      const L = labF(y50 / D65[1]) * 116 - 16;
+      const a = (labF(x50 / D65[0]) - labF(y50 / D65[1])) * 500;
+      const b = (labF(y50 / D65[1]) - labF(z50 / D65[2])) * 200;
+      const c = Math.sqrt(a * a + b * b);
+      const h = mod(Math.atan2(b, a) * (180 / Math.PI), 360);
+      return `lch(${round(L, 2)}% ${round(c, 2)} ${round(h, 1)}${alphaStr(rgb.a)})`;
     }
 
     case "oklab": {
-      const oklab = rgbToOklab(rgb);
-      return `oklab(${round(oklab.l * 100, 2)}% ${round(oklab.a, 4)} ${round(oklab.b, 4)}${alphaStr(oklab.alpha)})`;
+      const [ol, oa, ob] = linearRgbToOklab(lr, lg, lb);
+      return `oklab(${round(ol * 100, 2)}% ${round(oa, 4)} ${round(ob, 4)}${alphaStr(rgb.a)})`;
     }
 
     case "oklch": {
-      const oklch = rgbToOklch(rgb);
-      return `oklch(${round(oklch.l * 100, 2)}% ${round(oklch.c, 4)} ${round(oklch.h, 1)}${alphaStr(oklch.a)})`;
+      const [ol, oa, ob] = linearRgbToOklab(lr, lg, lb);
+      const c = Math.sqrt(oa * oa + ob * ob);
+      const h = mod(Math.atan2(ob, oa) * (180 / Math.PI), 360);
+      return `oklch(${round(ol * 100, 2)}% ${round(c, 4)} ${round(h, 1)}${alphaStr(rgb.a)})`;
     }
 
     case "display-p3": {
-      const p3 = rgbToP3(rgb);
-      return `color(display-p3 ${round(p3.r, 4)} ${round(p3.g, 4)} ${round(p3.b, 4)}${alphaStr(p3.a)})`;
+      const [x, y, z] = linearRgbToXyz(lr, lg, lb);
+      const [pr, pg, pb] = xyzToP3(x, y, z);
+      return `color(display-p3 ${round(pr, 4)} ${round(pg, 4)} ${round(pb, 4)}${alphaStr(rgb.a)})`;
     }
 
     case "a98-rgb": {
-      const a98 = rgbToA98(rgb);
-      return `color(a98-rgb ${round(a98.r, 4)} ${round(a98.g, 4)} ${round(a98.b, 4)}${alphaStr(a98.a)})`;
+      const [x, y, z] = linearRgbToXyz(lr, lg, lb);
+      const [ar, ag, ab] = xyzToA98Linear(x, y, z);
+      return `color(a98-rgb ${round(linearToA98(ar), 4)} ${round(linearToA98(ag), 4)} ${round(linearToA98(ab), 4)}${alphaStr(rgb.a)})`;
     }
 
     case "prophoto-rgb": {
-      const pp = rgbToProphoto(rgb);
-      return `color(prophoto-rgb ${round(pp.r, 4)} ${round(pp.g, 4)} ${round(pp.b, 4)}${alphaStr(pp.a)})`;
+      const [x65, y65, z65] = linearRgbToXyz(lr, lg, lb);
+      const [x50, y50, z50] = d65ToD50(x65, y65, z65);
+      const pr = 1.345943301 * x50 - 0.2556075298 * y50 - 0.0511118294 * z50;
+      const pg = -0.5445989113 * x50 + 1.508167343 * y50 + 0.0205351443 * z50;
+      const pb = 0.0 * x50 + 0.0 * y50 + 1.2118127757 * z50;
+      return `color(prophoto-rgb ${round(linearToProphoto(pr), 4)} ${round(linearToProphoto(pg), 4)} ${round(linearToProphoto(pb), 4)}${alphaStr(rgb.a)})`;
     }
 
     case "rec2020": {
-      const rec = rgbToRec2020(rgb);
-      return `color(rec2020 ${round(rec.r, 4)} ${round(rec.g, 4)} ${round(rec.b, 4)}${alphaStr(rec.a)})`;
+      const [x, y, z] = linearRgbToXyz(lr, lg, lb);
+      const [rr, rg, rb] = xyzToRec2020Linear(x, y, z);
+      return `color(rec2020 ${round(linearToRec2020(rr), 4)} ${round(linearToRec2020(rg), 4)} ${round(linearToRec2020(rb), 4)}${alphaStr(rgb.a)})`;
     }
   }
 }
@@ -884,6 +907,51 @@ export function contrastRatio(c1: RgbColor, c2: RgbColor): ContrastResult {
     aaLarge: ratio >= 3,
     aaa: ratio >= 7,
     aaaLarge: ratio >= 4.5,
+  };
+}
+
+/** Suggest a foreground color that meets the given contrast ratio against `bg`.
+ *  Adjusts OKLCH lightness via binary search while preserving chroma and hue.
+ *  Searches in one direction (lighter or darker) and finds the value closest
+ *  to the original lightness that still meets the target ratio.
+ *  Returns null if no solution exists in the given direction. */
+export function suggestContrast(
+  fg: RgbColor,
+  bg: RgbColor,
+  targetRatio: number,
+): { lighter: RgbColor | null; darker: RgbColor | null } {
+  const oklch = rgbToOklch(fg);
+
+  function search(boundL: number): RgbColor | null {
+    // boundL is the extreme end (0 or 1). Check if extreme even passes.
+    const extreme = oklchToRgb({ ...oklch, l: boundL });
+    if (contrastRatio(extreme, bg).ratio < targetRatio) return null;
+
+    // Binary search: find L closest to oklch.l that still meets target
+    let lo = Math.min(oklch.l, boundL);
+    let hi = Math.max(oklch.l, boundL);
+    for (let i = 0; i < 30; i++) {
+      const mid = (lo + hi) / 2;
+      const candidate = oklchToRgb({ ...oklch, l: mid });
+      const r = contrastRatio(candidate, bg).ratio;
+      if (r >= targetRatio) {
+        // Passes — move closer to original
+        if (boundL > oklch.l) hi = mid;
+        else lo = mid;
+      } else {
+        // Fails — move toward extreme
+        if (boundL > oklch.l) lo = mid;
+        else hi = mid;
+      }
+    }
+    const finalL = boundL > oklch.l ? hi : lo;
+    const final = oklchToRgb({ ...oklch, l: finalL });
+    return contrastRatio(final, bg).ratio >= targetRatio ? final : null;
+  }
+
+  return {
+    lighter: search(1),
+    darker: search(0),
   };
 }
 

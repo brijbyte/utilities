@@ -7,6 +7,11 @@ tags: ["color", "css", "oklch", "wide-gamut", "color-science"]
 
 CSS Color Level 4 brought a revolution to how we specify colors on the web. We now have perceptually uniform color spaces like OKLCH, wide-gamut spaces like Display P3 and Rec. 2020, and device-independent models like CIE LAB. Most color picker tools still only understand HEX and RGB. We wanted one that speaks every color language CSS knows.
 
+{/* ── Inline demo helper styles ── */}
+export const demoBox = { border: "1px solid #d6d3d1", borderRadius: "8px", padding: "16px", margin: "24px 0", background: "#fafaf9" }
+export const demoBoxDark = { border: "1px solid #44403c", borderRadius: "8px", padding: "16px", margin: "24px 0", background: "#1c1917" }
+export const demoLabel = { fontSize: "12px", fontFamily: "monospace", textAlign: "center", color: "#78716c", marginTop: "8px" }
+
 ## The Problem with Round-Tripping
 
 The first architectural decision was choosing an internal representation. The naive approach — store RGB and convert on the fly — breaks immediately. Try this: pick a gray in HSL, convert to RGB, convert back. The hue is gone. `hsl(210 80% 50%)` → `rgb(25, 118, 210)` → `hsl(210 78.9% 46.1%)` is close, but drag that gray through `hsl(0 0% 50%)` → `rgb(128, 128, 128)` → `hsl(0 0% 50.2%)` and the hue information is destroyed. Any hue you had before going gray is lost.
@@ -111,6 +116,106 @@ This means `color(display-p3 1 0 0)` correctly shows sRGB ✕ and Display P3 ✓
 
 This tells you at a glance: "this color works on a standard monitor" vs "this needs a P3-capable display" vs "this only exists in the full Rec. 2020 space."
 
+<div style={demoBox}>
+  <svg
+    viewBox="0 0 360 180"
+    style={{
+      width: "100%",
+      maxWidth: "400px",
+      display: "block",
+      margin: "0 auto",
+    }}
+  >
+    <rect
+      x="10"
+      y="10"
+      width="340"
+      height="160"
+      rx="12"
+      fill="none"
+      stroke="#78716c"
+      strokeWidth="1.5"
+      strokeDasharray="4 3"
+    />
+    <text
+      x="340"
+      y="28"
+      textAnchor="end"
+      fontSize="11"
+      fontFamily="monospace"
+      fill="#78716c"
+    >
+      Rec. 2020
+    </text>
+    <rect
+      x="35"
+      y="30"
+      width="280"
+      height="130"
+      rx="10"
+      fill="none"
+      stroke="#a78bfa"
+      strokeWidth="1.5"
+      strokeDasharray="4 3"
+    />
+    <text
+      x="305"
+      y="48"
+      textAnchor="end"
+      fontSize="11"
+      fontFamily="monospace"
+      fill="#a78bfa"
+    >
+      ProPhoto
+    </text>
+    <rect
+      x="60"
+      y="50"
+      width="220"
+      height="100"
+      rx="8"
+      fill="none"
+      stroke="#f97316"
+      strokeWidth="1.5"
+    />
+    <text
+      x="270"
+      y="68"
+      textAnchor="end"
+      fontSize="11"
+      fontFamily="monospace"
+      fill="#f97316"
+    >
+      Display P3
+    </text>
+    <rect
+      x="95"
+      y="70"
+      width="150"
+      height="70"
+      rx="6"
+      fill="#3b82f620"
+      stroke="#3b82f6"
+      strokeWidth="1.5"
+    />
+    <text
+      x="170"
+      y="110"
+      textAnchor="middle"
+      fontSize="12"
+      fontFamily="monospace"
+      fontWeight="bold"
+      fill="#3b82f6"
+    >
+      sRGB
+    </text>
+  </svg>
+  <div style={demoLabel}>
+    Color gamuts nest like Russian dolls — each wider gamut contains all colors
+    of the narrower ones
+  </div>
+</div>
+
 ## Parsing Any CSS Color
 
 The parser handles every CSS color function: `rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, and the `color()` function with colorspace identifiers (`display-p3`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `srgb`). Plus hex codes and 148 named colors.
@@ -142,6 +247,113 @@ function relativeLuminance(rgb: RgbColor): number {
 
 The ratio formula `(L1 + 0.05) / (L2 + 0.05)` then gives us a number we check against WCAG thresholds: 3:1 for large text AA, 4.5:1 for normal text AA, and 7:1 for AAA.
 
+<div style={demoBox}>
+  <div
+    style={{
+      display: "flex",
+      gap: "12px",
+      justifyContent: "center",
+      flexWrap: "wrap",
+    }}
+  >
+    <div
+      style={{
+        width: "140px",
+        padding: "12px",
+        borderRadius: "8px",
+        background: "#1e293b",
+        textAlign: "center",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "16px",
+          fontWeight: "bold",
+          fontFamily: "monospace",
+          color: "#ffffff",
+        }}
+      >
+        White on dark
+      </div>
+      <div
+        style={{
+          fontSize: "11px",
+          fontFamily: "monospace",
+          color: "#94a3b8",
+          marginTop: "6px",
+        }}
+      >
+        15.3:1 — AAA ✓
+      </div>
+    </div>
+    <div
+      style={{
+        width: "140px",
+        padding: "12px",
+        borderRadius: "8px",
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        textAlign: "center",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "16px",
+          fontWeight: "bold",
+          fontFamily: "monospace",
+          color: "#64748b",
+        }}
+      >
+        Gray on white
+      </div>
+      <div
+        style={{
+          fontSize: "11px",
+          fontFamily: "monospace",
+          color: "#94a3b8",
+          marginTop: "6px",
+        }}
+      >
+        4.6:1 — AA ✓
+      </div>
+    </div>
+    <div
+      style={{
+        width: "140px",
+        padding: "12px",
+        borderRadius: "8px",
+        background: "#fef3c7",
+        textAlign: "center",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "16px",
+          fontWeight: "bold",
+          fontFamily: "monospace",
+          color: "#fbbf24",
+        }}
+      >
+        Yellow on cream
+      </div>
+      <div
+        style={{
+          fontSize: "11px",
+          fontFamily: "monospace",
+          color: "#94a3b8",
+          marginTop: "6px",
+        }}
+      >
+        1.5:1 — Fail ✕
+      </div>
+    </div>
+  </div>
+  <div style={demoLabel}>
+    Same text at three contrast ratios — the difference between readable and
+    invisible
+  </div>
+</div>
+
 ## The Canvas Saturation Panel
 
 The 2D saturation–brightness picker uses a `<canvas>` with three layered gradients:
@@ -166,6 +378,91 @@ blackGrad.addColorStop(1, "rgba(0,0,0,1)");
 ctx.fillStyle = blackGrad;
 ctx.fillRect(0, 0, width, height);
 ```
+
+Here's how the three layers combine. Each layer is a simple CSS gradient — the magic is in the compositing:
+
+<div style={demoBox}>
+  <div
+    style={{
+      display: "flex",
+      gap: "8px",
+      alignItems: "center",
+      justifyContent: "center",
+      flexWrap: "wrap",
+    }}
+  >
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "100px",
+          height: "75px",
+          borderRadius: "6px",
+          background: "hsl(210 100% 50%)",
+        }}
+      />
+      <div style={demoLabel}>1. Hue fill</div>
+    </div>
+    <div style={{ fontSize: "20px", color: "#a8a29e" }}>+</div>
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "100px",
+          height: "75px",
+          borderRadius: "6px",
+          background: "linear-gradient(to right, white, transparent)",
+        }}
+      />
+      <div style={demoLabel}>2. White →</div>
+    </div>
+    <div style={{ fontSize: "20px", color: "#a8a29e" }}>+</div>
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "100px",
+          height: "75px",
+          borderRadius: "6px",
+          background: "linear-gradient(to bottom, transparent, black)",
+        }}
+      />
+      <div style={demoLabel}>3. Black ↓</div>
+    </div>
+    <div style={{ fontSize: "20px", color: "#a8a29e" }}>=</div>
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          width: "100px",
+          height: "75px",
+          borderRadius: "6px",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "hsl(210 100% 50%)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(to right, white, transparent)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(to bottom, transparent, black)",
+          }}
+        />
+      </div>
+      <div style={demoLabel}>Combined</div>
+    </div>
+  </div>
+</div>
 
 The canvas is resized via `ResizeObserver` and redrawn only when the hue changes. Pointer events use `setPointerCapture` for reliable drag behavior even when the cursor leaves the element bounds.
 
@@ -209,6 +506,130 @@ export function oklchHueGradient(oklch: OklchColor): string {
 
 The gradients update reactively — when you drag the hue slider, the saturation and lightness track gradients recompute to reflect the new hue context.
 
+<div style={demoBox}>
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+      maxWidth: "320px",
+      margin: "0 auto",
+    }}
+  >
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <span
+        style={{
+          fontSize: "11px",
+          fontFamily: "monospace",
+          color: "#78716c",
+          width: "16px",
+        }}
+      >
+        H
+      </span>
+      <div
+        style={{
+          flex: 1,
+          height: "12px",
+          borderRadius: "6px",
+          background:
+            "linear-gradient(to right, hsl(0 100% 50%), hsl(60 100% 50%), hsl(120 100% 50%), hsl(180 100% 50%), hsl(240 100% 50%), hsl(300 100% 50%), hsl(360 100% 50%))",
+        }}
+      />
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <span
+        style={{
+          fontSize: "11px",
+          fontFamily: "monospace",
+          color: "#78716c",
+          width: "16px",
+        }}
+      >
+        R
+      </span>
+      <div
+        style={{
+          flex: 1,
+          height: "12px",
+          borderRadius: "6px",
+          background:
+            "linear-gradient(to right, rgb(0 107 179), rgb(255 107 179))",
+        }}
+      />
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <span
+        style={{
+          fontSize: "11px",
+          fontFamily: "monospace",
+          color: "#78716c",
+          width: "16px",
+        }}
+      >
+        G
+      </span>
+      <div
+        style={{
+          flex: 1,
+          height: "12px",
+          borderRadius: "6px",
+          background:
+            "linear-gradient(to right, rgb(36 0 179), rgb(36 255 179))",
+        }}
+      />
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <span
+        style={{
+          fontSize: "11px",
+          fontFamily: "monospace",
+          color: "#78716c",
+          width: "16px",
+        }}
+      >
+        B
+      </span>
+      <div
+        style={{
+          flex: 1,
+          height: "12px",
+          borderRadius: "6px",
+          background:
+            "linear-gradient(to right, rgb(36 107 0), rgb(36 107 255))",
+        }}
+      />
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <span
+        style={{
+          fontSize: "11px",
+          fontFamily: "monospace",
+          color: "#78716c",
+          width: "16px",
+        }}
+      >
+        α
+      </span>
+      <div
+        style={{
+          flex: 1,
+          height: "12px",
+          borderRadius: "6px",
+          background: "linear-gradient(to right, transparent, rgb(36 107 179))",
+          backgroundImage:
+            "linear-gradient(to right, transparent, rgb(36 107 179)), repeating-conic-gradient(#d4d4d4 0% 25%, white 0% 50%)",
+          backgroundSize: "100% 100%, 8px 8px",
+        }}
+      />
+    </div>
+  </div>
+  <div style={demoLabel}>
+    Channel slider gradients for rgb(36 107 179) — each track shows how the
+    color changes as that channel varies
+  </div>
+</div>
+
 ## Harmony Generation
 
 Color harmonies are computed by rotating the hue angle in HSL space. The tool supports six types, each with a contextual explanation that updates when you switch:
@@ -221,6 +642,85 @@ Color harmonies are computed by rotating the hue angle in HSL space. The tool su
 - **Monochromatic** — Same hue at different lightness levels. The safest harmony.
 
 ### Visualizing Relationships on the Wheel
+
+Each harmony type forms a distinct geometric shape on the color wheel:
+
+export function MiniWheel({ angles, labels }) {
+  const cx = 50,
+    cy = 50,
+    r = 32,
+    ringW = 8;
+  const segments = 36;
+  const arcs = Array.from({ length: segments }, (_, i) => {
+    const step = 360 / segments;
+    const a1 = ((i * step - 90) * Math.PI) / 180;
+    const a2 = (((i + 1) * step - 90) * Math.PI) / 180;
+    return {
+      d: `M ${cx + r * Math.cos(a1)} ${cy + r * Math.sin(a1)} A ${r} ${r} 0 0 1 ${cx + r * Math.cos(a2)} ${cy + r * Math.sin(a2)}`,
+      color: `hsl(${i * step} 80% 55%)`,
+    };
+  });
+  const pts = angles.map((a) => {
+    const rad = ((a - 90) * Math.PI) / 180;
+    return {
+      x: cx + r * Math.cos(rad),
+      y: cy + r * Math.sin(rad),
+      color: `hsl(${a} 80% 55%)`,
+    };
+  });
+  return (
+    <div style={{ textAlign: "center" }}>
+      <svg viewBox="0 0 100 100" width="90" height="90">
+        {arcs.map((arc, i) => (
+          <path
+            key={i}
+            d={arc.d}
+            fill="none"
+            stroke={arc.color}
+            strokeWidth={ringW}
+            strokeLinecap="butt"
+          />
+        ))}
+        <polygon
+          points={pts.map((p) => `${p.x},${p.y}`).join(" ")}
+          fill="none"
+          stroke="#78716c"
+          strokeWidth="1"
+          strokeDasharray="2 2"
+        />
+        {pts.map((p, i) => (
+          <circle
+            key={i}
+            cx={p.x}
+            cy={p.y}
+            r={4.5}
+            fill={p.color}
+            stroke="white"
+            strokeWidth="1.5"
+          />
+        ))}
+      </svg>
+      <div style={demoLabel}>{labels}</div>
+    </div>
+  );
+}
+
+<div style={demoBox}>
+  <div
+    style={{
+      display: "flex",
+      gap: "16px",
+      justifyContent: "center",
+      flexWrap: "wrap",
+    }}
+  >
+    <MiniWheel angles={[210, 30]} labels="Complementary" />
+    <MiniWheel angles={[180, 210, 240]} labels="Analogous" />
+    <MiniWheel angles={[210, 330, 90]} labels="Triadic" />
+    <MiniWheel angles={[210, 0, 30]} labels="Split Comp." />
+    <MiniWheel angles={[210, 300, 30, 120]} labels="Tetradic" />
+  </div>
+</div>
 
 For all hue-rotation harmonies (everything except monochromatic), an SVG color wheel renders below the swatches. The wheel is drawn as 60 arc segments — each a short `<path>` stroked with its hue's color at full saturation. This pure-SVG approach avoids `foreignObject` and `conic-gradient`, which are unreliable across browsers (we tried — Safari rendered a leaf shape instead of a ring).
 
@@ -284,3 +784,7 @@ Building a color picker that handles the full CSS color specification taught us 
 - **Gamut boundaries are real** — a significant portion of the P3 and Rec. 2020 gamuts cannot be represented in sRGB. Knowing which gamut your color lives in prevents surprises on standard displays.
 - **Progressive enhancement works** — native EyeDropper where available, `getDisplayMedia` fallback everywhere else. Both paths produce an sRGB color value that feeds into the same conversion engine.
 - **Zero dependencies is achievable** — the entire color engine is pure math. No Color.js, no chroma.js. The CSS Color Level 4 spec provides all the matrices and formulas you need.
+
+---
+
+Want to try it out? **[Open the Color Picker →](/a/color-picker)** — paste any CSS color, explore wide-gamut spaces, check contrast ratios, and generate harmony palettes.

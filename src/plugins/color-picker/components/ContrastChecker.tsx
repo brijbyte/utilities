@@ -1,9 +1,16 @@
-import { useState, useMemo } from "react";
-import type { RgbColor } from "../utils/types";
-import { contrastRatio, rgbToHex, parseCssColor } from "../utils/color";
+import { useState, useMemo, useCallback } from "react";
+import { Copy, Check } from "lucide-react";
+import type { RgbColor, ContrastResult } from "../utils/types";
+import {
+  contrastRatio,
+  rgbToHex,
+  parseCssColor,
+  suggestContrast,
+} from "../utils/color";
 
 interface Props {
   rgb: RgbColor;
+  onColorChange: (rgb: RgbColor) => void;
 }
 
 function Badge({ pass, label }: { pass: boolean; label: string }) {
@@ -20,7 +27,68 @@ function Badge({ pass, label }: { pass: boolean; label: string }) {
   );
 }
 
-export function ContrastChecker({ rgb }: Props) {
+/** Highest failing WCAG level — returns the target ratio needed, or null if all pass. */
+function getHighestFailingTarget(result: ContrastResult): {
+  ratio: number;
+  label: string;
+} | null {
+  // Check from strictest to loosest
+  if (!result.aaa) return { ratio: 7, label: "AAA" };
+  // All pass
+  return null;
+}
+
+function SuggestionSwatch({
+  rgb,
+  bg,
+  label,
+  onApply,
+}: {
+  rgb: RgbColor;
+  bg: RgbColor;
+  label: string;
+  onApply: (c: RgbColor) => void;
+}) {
+  const hex = rgbToHex(rgb);
+  const ratio = useMemo(() => contrastRatio(rgb, bg).ratio, [rgb, bg]);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(hex);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [hex]);
+
+  return (
+    <div className="flex items-center gap-2 px-2 py-1.5 rounded border border-border-muted bg-bg-surface">
+      <button
+        onClick={() => onApply(rgb)}
+        title="Use this color"
+        className="w-6 h-6 rounded border border-border shrink-0 cursor-pointer hover:scale-110 transition-transform"
+        style={{ backgroundColor: hex }}
+      />
+      <div className="flex flex-col min-w-0 flex-1">
+        <span className="text-xs font-mono text-text truncate">{hex}</span>
+        <span className="text-xs text-text-muted">
+          {label} · {ratio}:1
+        </span>
+      </div>
+      <button
+        onClick={handleCopy}
+        title="Copy hex"
+        className="p-1 rounded text-text-muted hover:text-text hover:bg-bg-hover transition-colors cursor-pointer shrink-0"
+      >
+        {copied ? (
+          <Check size={12} className="text-success" />
+        ) : (
+          <Copy size={12} />
+        )}
+      </button>
+    </div>
+  );
+}
+
+export function ContrastChecker({ rgb, onColorChange }: Props) {
   const [bgInput, setBgInput] = useState("#ffffff");
   const bg = useMemo(
     () => parseCssColor(bgInput) ?? { r: 255, g: 255, b: 255, a: 1 },
@@ -30,6 +98,14 @@ export function ContrastChecker({ rgb }: Props) {
 
   const fgHex = rgbToHex(rgb);
   const bgHex = rgbToHex(bg);
+
+  // Compute suggestions for the highest failing WCAG level
+  const suggestions = useMemo(() => {
+    const target = getHighestFailingTarget(result);
+    if (!target) return null;
+    const { lighter, darker } = suggestContrast(rgb, bg, target.ratio);
+    return { target, lighter, darker };
+  }, [result, rgb, bg]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -72,7 +148,7 @@ export function ContrastChecker({ rgb }: Props) {
         </div>
       </div>
 
-      {/* Ratio */}
+      {/* Ratio + badges */}
       <div className="flex items-center gap-2">
         <span className="text-lg font-bold text-text">{result.ratio}:1</span>
         <div className="flex flex-wrap gap-1">
@@ -82,6 +158,34 @@ export function ContrastChecker({ rgb }: Props) {
           <Badge pass={result.aaa} label="AAA" />
         </div>
       </div>
+
+      {/* Suggestions for failing levels */}
+      {suggestions && (suggestions.lighter || suggestions.darker) && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-text-muted">
+            Suggested colors to pass {suggestions.target.label} (
+            {suggestions.target.ratio}:1)
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {suggestions.lighter && (
+              <SuggestionSwatch
+                rgb={suggestions.lighter}
+                bg={bg}
+                label="Lighter"
+                onApply={onColorChange}
+              />
+            )}
+            {suggestions.darker && (
+              <SuggestionSwatch
+                rgb={suggestions.darker}
+                bg={bg}
+                label="Darker"
+                onApply={onColorChange}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

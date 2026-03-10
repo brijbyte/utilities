@@ -210,7 +210,7 @@ export default function ColorPicker() {
             icon={<ScanEye size={14} className="text-primary" />}
             badge={`L:${Math.round(hsl.l)}%`}
           >
-            <ContrastChecker rgb={rgb} />
+            <ContrastChecker rgb={rgb} onColorChange={setFromRgb} />
           </Collapsible>
 
           <Collapsible
