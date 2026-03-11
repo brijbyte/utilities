@@ -249,16 +249,6 @@ async function prerender() {
     });
   }
 
-  // Read the manifest, inject shortcuts, write back
-  const manifestPath = path.join(distDir, "manifest.webmanifest");
-  const manifest = JSON.parse(await fs.readFile(manifestPath, "utf-8"));
-  manifest.shortcuts = shortcuts;
-  await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-
-  console.log(
-    `✓ Generated ${shortcuts.length} shortcut icons and updated manifest`,
-  );
-
   // --- Generate blog pages ---
   // Blog pages are fully separate from the main app: own HTML template,
   // own CSS bundle, own SSR entry. No JS loads at all.
@@ -390,6 +380,16 @@ async function prerender() {
 
     await fs.mkdir(route.dir, { recursive: true });
     await fs.writeFile(path.join(route.dir, "index.html"), blogPageHtml);
+
+    // Read the manifest, inject shortcuts, write back
+    const manifestPath = path.join(distDir, "manifest.webmanifest");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf-8"));
+    manifest.shortcuts = shortcuts;
+    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+
+    console.log(
+      `✓ Generated ${shortcuts.length} shortcut icons and updated manifest`,
+    );
   }
 
   console.log(
