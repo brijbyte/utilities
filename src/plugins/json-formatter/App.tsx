@@ -158,7 +158,7 @@ export default function JsonFormatter() {
 
       {/* Input panel */}
       <Tabs.Panel value="input" className="flex-1 min-h-0 flex flex-col">
-        <div className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
+        <div className="h-9 flex items-center gap-tb px-tb-x border-b border-border bg-bg-surface">
           <Button variant="primary" onClick={format}>
             format
           </Button>
@@ -210,15 +210,15 @@ export default function JsonFormatter() {
 
       {/* Output panel */}
       <Tabs.Panel value="output" className="flex-1 min-h-0 flex flex-col">
-        {output && (
-          <div className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
-            <div className="ml-auto">
+        <div className="h-9 flex items-center gap-tb px-tb-x border-b border-border bg-bg-surface">
+          <div className="ml-auto flex items-center gap-tb">
+            {output && (
               <Button variant="outline" onClick={copyOutput}>
                 copy
               </Button>
-            </div>
+            )}
           </div>
-        )}
+        </div>
         <textarea
           value={output}
           readOnly
