@@ -217,6 +217,8 @@ Crucially, the desktop split-panel layout (which imports Monaco and `SplitPanel`
 
 The toolbar's **open** button triggers a hidden `<input type="file">` that accepts `.md`, `.mdx`, `.markdown`, and `.txt` files. The file is read via `FileReader.readAsText()` and replaces the editor content. No drag-and-drop — a single button click is simpler and works identically on desktop and mobile.
 
+The **copy HTML** button is a split button — clicking it copies the raw HTML fragment directly, while the dropdown chevron reveals a menu with "Copy HTML" and "Copy HTML with CSS". The latter wraps the HTML in a `<style>` block + `<article class="markdown-body">` with full prose styling, shiki CSS variable toggles, and a `prefers-color-scheme: dark` media query — ready to paste into any external preview site or email template and retain the same look.
+
 **Export** builds a standalone HTML document with embedded styles and shiki CSS variable support, including a `prefers-color-scheme: dark` media query for automatic dark mode. When the TOC toggle is active, the table of contents is included at the top of the exported document with its own styled nav block and an `<hr>` separator.
 
 **Print** opens the document in a new window with a sticky toolbar showing the document title, a print button, and a close button. The toolbar uses viewport-relative sizing so it stays usable on mobile, while the document content renders at full width. The toolbar is hidden via `@media print` so it doesn't appear on paper.

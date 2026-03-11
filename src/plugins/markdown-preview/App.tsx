@@ -14,6 +14,7 @@ import { lazy, Suspense } from "react";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
+import { Menu } from "@base-ui/react/menu";
 import { Button } from "../../components/Button";
 import {
   ListTree,
@@ -28,6 +29,7 @@ import {
   Eye,
   Link,
   Upload,
+  ChevronDown,
 } from "lucide-react";
 
 const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
@@ -38,6 +40,7 @@ import {
   renderToc,
   getStats,
   buildHtmlDocument,
+  getEmbeddedCss,
   DEFAULT_MARKDOWN,
 } from "./utils/markdown";
 
@@ -131,13 +134,21 @@ export default function MarkdownPreview() {
   /* ── Actions ────────────────────────────────────────────────── */
 
   const copyAs = useCallback(
-    async (format: "html" | "md") => {
-      const text = format === "html" ? html : source;
+    async (format: "html" | "md" | "html-css") => {
+      let text: string;
+      if (format === "html-css") {
+        const css = getEmbeddedCss();
+        const toc = showToc ? tocHtml : undefined;
+        const tocBlock = toc ? `${toc}\n<hr />\n` : "";
+        text = `<style>\n${css}\n</style>\n<article class="markdown-body">\n${tocBlock}${html}\n</article>`;
+      } else {
+        text = format === "html" ? html : source;
+      }
       await navigator.clipboard.writeText(text);
-      setCopied(format);
+      setCopied(format === "html-css" ? "html" : format);
       setTimeout(() => setCopied(null), 1500);
     },
-    [html, source],
+    [html, source, showToc, tocHtml],
   );
 
   const exportHtml = useCallback(() => {
@@ -282,22 +293,53 @@ export default function MarkdownPreview() {
               </Button>
             )}
           />
-          <Toolbar.Button
-            render={(props) => (
-              <Button
-                {...props}
-                variant="outline"
-                onClick={() => copyAs("html")}
+          {/* Copy HTML split button: main action + dropdown for "with CSS" */}
+          <div className="inline-flex items-stretch rounded border border-border overflow-hidden">
+            <Toolbar.Button
+              render={(props) => (
+                <button
+                  {...props}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs leading-none cursor-pointer transition-colors bg-bg-surface hover:bg-bg-hover text-text"
+                  onClick={() => copyAs("html")}
+                >
+                  {copied === "html" ? (
+                    <Check size={ICON} />
+                  ) : (
+                    <FileCode size={ICON} />
+                  )}
+                  {copied === "html" ? "copied!" : "copy html"}
+                </button>
+              )}
+            />
+            <Menu.Root>
+              <Menu.Trigger
+                className="inline-flex items-center px-1.5 cursor-pointer transition-colors bg-bg-surface hover:bg-bg-hover text-text-muted border-l border-border"
+                aria-label="Copy HTML options"
               >
-                {copied === "html" ? (
-                  <Check size={ICON} />
-                ) : (
-                  <FileCode size={ICON} />
-                )}
-                {copied === "html" ? "copied!" : "copy html"}
-              </Button>
-            )}
-          />
+                <ChevronDown size={12} />
+              </Menu.Trigger>
+              <Menu.Portal>
+                <Menu.Positioner align="end" sideOffset={4}>
+                  <Menu.Popup className="rounded border border-border bg-bg-surface shadow-md py-1 min-w-[10rem] z-50">
+                    <Menu.Item
+                      className="flex items-center gap-2 px-mi-x py-mi-y text-xs text-text cursor-pointer transition-colors data-highlighted:bg-bg-hover"
+                      onClick={() => copyAs("html")}
+                    >
+                      <FileCode size={ICON} />
+                      Copy HTML
+                    </Menu.Item>
+                    <Menu.Item
+                      className="flex items-center gap-2 px-mi-x py-mi-y text-xs text-text cursor-pointer transition-colors data-highlighted:bg-bg-hover"
+                      onClick={() => copyAs("html-css")}
+                    >
+                      <FileCode size={ICON} />
+                      Copy HTML with CSS
+                    </Menu.Item>
+                  </Menu.Popup>
+                </Menu.Positioner>
+              </Menu.Portal>
+            </Menu.Root>
+          </div>
         </div>
       </Toolbar.Root>
 

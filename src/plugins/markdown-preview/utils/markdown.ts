@@ -347,16 +347,10 @@ function getToolbarStyles(): string {
 </style>`;
 }
 
-function getEmbeddedStyles(): string {
-  return `<style>
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    max-width: 48rem;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    color: #24292f;
-    line-height: 1.6;
-  }
+/** Return raw CSS for the markdown-body article (no <style> tags). */
+export function getEmbeddedCss(): string {
+  return `
+  .markdown-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; max-width: 48rem; margin: 0 auto; color: #24292f; line-height: 1.6; }
   .markdown-body h1 { font-size: 2rem; font-weight: 600; margin: 1.5rem 0 0.75rem; border-bottom: 1px solid #d1d5da; padding-bottom: 0.3rem; }
   .markdown-body h2 { font-size: 1.5rem; font-weight: 600; margin: 1.25rem 0 0.5rem; border-bottom: 1px solid #d1d5da; padding-bottom: 0.3rem; }
   .markdown-body h3 { font-size: 1.25rem; font-weight: 600; margin: 1rem 0 0.5rem; }
@@ -386,7 +380,7 @@ function getEmbeddedStyles(): string {
   .markdown-body .md-toc a { color: #0969da; text-decoration: none; }
   .markdown-body .md-toc a:hover { text-decoration: underline; }
   @media (prefers-color-scheme: dark) {
-    body { background: #0d1117; color: #c9d1d9; }
+    .markdown-body { color: #c9d1d9; }
     .markdown-body h1, .markdown-body h2 { border-bottom-color: #30363d; }
     .markdown-body blockquote { border-left-color: #30363d; color: #8b949e; }
     .markdown-body code { background: #161b22; }
@@ -399,7 +393,23 @@ function getEmbeddedStyles(): string {
     .markdown-body .shiki, .markdown-body .shiki span { color: var(--shiki-dark); font-weight: var(--shiki-dark-font-weight); font-style: var(--shiki-dark-font-style); }
     .markdown-body .md-toc { background: #161b22; border-color: #30363d; }
     .markdown-body .md-toc a { color: #58a6ff; }
+  }`.trim();
+}
+
+function getEmbeddedStyles(): string {
+  return `<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    max-width: 48rem;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    color: #24292f;
+    line-height: 1.6;
   }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0d1117; color: #c9d1d9; }
+  }
+  ${getEmbeddedCss()}
 </style>`;
 }
 
