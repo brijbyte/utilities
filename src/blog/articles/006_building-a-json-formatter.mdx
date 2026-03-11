@@ -1,0 +1,214 @@
+---
+title: "Building a JSON Formatter with Monaco and JSONC Support"
+date: "2026-03-11"
+description: "How we rebuilt a simple JSON formatter into a full-featured tool with Monaco editor, JSON validation via a web worker, JSONC comment stripping, and responsive mobile tabs — all running in the browser."
+tags:
+  [
+    "json",
+    "jsonc",
+    "monaco",
+    "formatter",
+    "validation",
+    "responsive",
+    "base-ui",
+  ]
+---
+
+A JSON formatter sounds like the simplest tool in a developer utilities app. Paste JSON on the left, click format, see pretty-printed output on the right. Two `JSON.parse` / `JSON.stringify` calls wrapped in a try-catch. Ship it.
+
+But once you start using it daily, the rough edges show. A plain `<textarea>` has no syntax highlighting, no bracket matching, no code folding. There's no feedback when you paste malformed JSON until you hit the format button. And on mobile, two side-by-side panels don't fit. We rebuilt the JSON formatter from scratch — replacing textareas with Monaco editors on desktop, adding real-time validation, JSONC support, and a completely different mobile layout.
+
+## Two layouts, one component
+
+The formatter has a single `App.tsx` that renders entirely different UIs based on screen width. A `useIsDesktop()` hook backed by `useSyncExternalStore` listens to `matchMedia("(min-width: 768px)")`:
+
+```typescript
+const MQ = "(min-width: 768px)";
+const mql = window.matchMedia(MQ);
+
+function useIsDesktop() {
+  return useSyncExternalStore(
+    (cb) => {
+      mql.addEventListener("change", cb);
+      return () => mql.removeEventListener("change", cb);
+    },
+    () => mql.matches,
+    () => true,
+  );
+}
+```
+
+**Desktop** renders a `DesktopLayout` component inside `React.lazy()` + `<Suspense>`. This component imports `SplitPanel` (which wraps `react-resizable-panels`) and two `CodeEditor` instances — one editable for input, one read-only for output. Monaco, the editor core, themes, and the JSON grammar are all loaded lazily from CDN via `modern-monaco`.
+
+**Mobile** renders Base UI `Tabs` with two panels: Input and Output. Each panel has its own toolbar, and the content is a plain `<textarea>` — no Monaco, no CDN fetch. On mobile, clicking format or minify automatically switches to the output tab.
+
+The key win: `DesktopLayout` is behind `React.lazy()`, so mobile devices never download Monaco, the editor core, the split panel library, or any of the desktop-specific code. It's not a responsive layout — it's two completely different applications sharing the same state.
+
+## Monaco for JSON editing
+
+The desktop layout uses the shared `CodeEditor` component — the same one powering the markdown preview editor. For JSON, we tune Monaco's options to behave like a JSON-focused editor rather than a general IDE:
+
+```typescript
+const JSON_EDITOR_OPTIONS = {
+  quickSuggestions: false,
+  suggestOnTriggerCharacters: false,
+  parameterHints: { enabled: false },
+  codeLens: false,
+  hover: { enabled: false },
+  lightbulb: { enabled: false },
+  bracketPairColorization: { enabled: true },
+  folding: true,
+  guides: { indentation: true, bracketPairs: true },
+};
+```
+
+Autocomplete, hover tooltips, and code actions are disabled — they're noise for a paste-and-format workflow. But bracket pair colorization and indentation guides stay on, because they're genuinely useful when scanning deeply nested JSON. Code folding lets you collapse objects and arrays to get an overview of the structure.
+
+The input editor is fully editable. The output editor uses `readOnly: true` with `domReadOnly: true` — the latter prevents the cursor from appearing at all, making it clear this is a display pane. Both editors share the same `tabSize` setting, synced to the indent selector.
+
+## JSON validation via a web worker
+
+Monaco's JSON language service provides real-time validation — red squiggly underlines on syntax errors, unexpected tokens, and structural problems. The `modern-monaco` library bundles a JSON LSP (Language Server Protocol) worker that can be loaded from CDN.
+
+We explicitly set up the JSON worker when the editor is first created:
+
+```typescript
+let jsonLspReady = false;
+
+async function ensureJsonValidation(monaco) {
+  if (jsonLspReady) return;
+  jsonLspReady = true;
+  try {
+    const cdnUrl =
+      "https://esm.sh/modern-monaco@0.4.0/es2022/lsp/json/setup.mjs";
+    const { setup } = await import(/* @vite-ignore */ cdnUrl);
+    setup(monaco, "json");
+  } catch {
+    jsonLspReady = false;
+  }
+}
+```
+
+The `setup` function creates a web worker that runs the JSON language service. It registers diagnostics providers, completion providers, formatting providers, and document symbol providers — all for the `"json"` language. The worker validates every model change with a 500ms debounce, and Monaco renders the results as inline error markers.
+
+This is loaded from CDN (not bundled) for two reasons: the worker needs to resolve its own URL to load its WASM/JS dependencies, and CDN hosting means it works correctly with cross-origin worker creation. The `/* @vite-ignore */` comment prevents Vite from trying to bundle the CDN URL as a local module.
+
+The `onCreated` callback is the right place for this — it fires once when the Monaco editor instance is ready, and receives both the editor and the monaco namespace as arguments. The validation setup is idempotent (guarded by `jsonLspReady`), so even though we have two CodeEditor instances (input and output), the worker is created only once.
+
+## JSONC: comments and trailing commas
+
+Real-world JSON often comes with comments — config files like `tsconfig.json`, VS Code's `settings.json`, and many API responses include `//` or `/* */` comments that `JSON.parse` rejects. A JSONC toggle in the toolbar enables comment support.
+
+When JSONC is enabled, two things change:
+
+1. **The editor language switches to `"jsonc"`** — Monaco highlights comments as valid syntax instead of marking them as errors. The `jsonc` language has no strict validation registered (only `json` gets the LSP worker), so comment-heavy input doesn't light up with false error markers.
+
+2. **The processing pipeline strips comments before parsing** — A custom `stripJsonc` function runs before `JSON.parse`:
+
+```typescript
+function stripJsonc(text: string): string {
+  let result = "";
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === '"') {
+      // Copy string literals verbatim (don't strip // inside strings)
+      const start = i;
+      i++;
+      while (i < text.length && text[i] !== '"') {
+        if (text[i] === "\\") i++; // skip escaped chars
+        i++;
+      }
+      i++;
+      result += text.slice(start, i);
+      continue;
+    }
+    if (text[i] === "/" && text[i + 1] === "/") {
+      // Skip single-line comment
+      i += 2;
+      while (i < text.length && text[i] !== "\n") i++;
+      continue;
+    }
+    if (text[i] === "/" && text[i + 1] === "*") {
+      // Skip block comment
+      i += 2;
+      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i++;
+      i += 2;
+      continue;
+    }
+    result += text[i];
+    i++;
+  }
+  // Remove trailing commas before } or ]
+  return result.replace(/,\s*([}\]])/g, "$1");
+}
+```
+
+The function is a simple character-by-character scanner. The critical detail is string awareness — a `//` inside a JSON string value like `"url": "https://example.com"` must not be treated as a comment. The scanner tracks whether it's inside a quoted string and only strips comments in non-string contexts. Escaped quotes (`\"`) inside strings are handled correctly.
+
+Trailing commas (another common JSONC extension) are removed with a single regex after comment stripping. The output is always valid JSON — comments and trailing commas are stripped, not preserved.
+
+## Per-panel toolbars
+
+Rather than a single shared toolbar at the top, each panel has its own toolbar embedded in its label bar. On desktop, the `SplitPanel` component renders a label above each panel as a `ReactNode`, so we inject a flex row with buttons:
+
+**Input panel toolbar**: Format, Minify, Indent selector, JSONC toggle, Copy, Clear.
+
+**Output panel toolbar**: Copy (shown only when output exists).
+
+This keeps actions close to their context. The format and minify buttons are right above the input you're about to process. The copy button for the output is right above the output you want to copy. No ambiguity about what "copy" copies.
+
+On mobile, the same pattern applies — each `Tabs.Panel` has its own toolbar row beneath the tab bar. Both toolbars use a fixed `h-9` height so switching tabs doesn't cause layout shift.
+
+## Mobile tabs with card styling
+
+The mobile layout uses Base UI's `Tabs` component with a card-tab visual treatment. The tab bar sits on `bg-bg` (the page background — stone-100 in light mode, stone-950 in dark mode), which is noticeably different from the panel content below (`bg-bg-surface` — white / stone-900).
+
+The active tab rises to `bg-bg-surface` to match its panel, with a transparent bottom border (`-mb-px` + `border-b-transparent`) that visually merges the tab with the content below it. Side borders frame the active tab. The inactive tab stays recessed on the darker background with muted text. It's a classic card-tab pattern implemented entirely with Tailwind utility classes and Base UI's `data-active` attribute:
+
+```tsx
+<Tabs.Tab
+  value="input"
+  className="... border-b border-border -mb-px
+    data-active:bg-bg-surface data-active:text-accent
+    data-active:border-b-transparent data-active:border-x"
+>
+```
+
+Clicking format or minify on the input tab automatically switches to the output tab via `setMobileTab("output")` — you don't have to manually tap over to see the result.
+
+## Processing: format and minify
+
+The actual JSON processing is minimal — two functions in `process.ts`:
+
+```typescript
+function parse(text: string, jsonc: boolean): unknown {
+  return JSON.parse(jsonc ? stripJsonc(text) : text);
+}
+
+export const format = async (input, config) => {
+  const parsed = parse(input.data, config.jsonc === "true");
+  return {
+    type: "text",
+    data: JSON.stringify(parsed, null, Number(config.indent)),
+  };
+};
+
+export const minify = async (input, config) => {
+  const parsed = parse(input.data, config.jsonc === "true");
+  return { type: "text", data: JSON.stringify(parsed) };
+};
+```
+
+Both functions follow the app's `ProcessFn` interface, which means they can also be used in the pipeline system for chaining operations across plugins. The JSONC flag is passed as a string (`"true"` / `"false"`) because the pipeline config system uses string values.
+
+Parse errors are caught in `App.tsx` and displayed in a danger-colored banner between the toolbar and the editor. The banner disappears on the next successful operation.
+
+## What we learned
+
+**Two layouts beat one responsive layout.** A `SplitPanel` with Monaco editors simply doesn't work on a phone. Instead of fighting CSS to make it fit, we render a completely different UI — `Tabs` with textareas. The `React.lazy()` boundary ensures mobile never downloads the desktop code. The state layer (`input`, `output`, `error`, `indent`, `jsonc`) is shared — only the presentation differs.
+
+**Per-panel toolbars reduce ambiguity.** When the format button lives in the input panel and the copy button lives in the output panel, there's no confusion about what each action does. The `SplitPanel` component's `leftLabel` / `rightLabel` props accept `ReactNode`, making this trivial to implement.
+
+**JSONC stripping needs string awareness.** A naive regex-based comment stripper will mangle URLs in string values. The character-by-character scanner with string tracking adds ~40 lines of code but handles every edge case correctly — escaped quotes, nested strings, block comments spanning multiple lines.
+
+**Monaco's JSON validation is free once you set up the worker.** The `modern-monaco` library's JSON LSP setup creates a web worker that validates on every edit. There's no configuration needed beyond calling `setup(monaco, "json")` — you get syntax validation, structural validation, and inline error markers out of the box. When JSONC mode switches the language to `"jsonc"`, the validation gracefully stops (no LSP is registered for that language), and comments are highlighted as valid syntax by Monaco's tokenizer.
