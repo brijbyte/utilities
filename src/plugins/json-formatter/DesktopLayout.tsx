@@ -5,6 +5,7 @@ import { Square, SquareCheck } from "lucide-react";
 import { SplitPanel } from "../../components/SplitPanel";
 import { CodeEditor } from "../../components/CodeEditor";
 import { Button } from "../../components/Button";
+import { Select } from "../../components/Select";
 
 /** Monaco options tuned for JSON editing. */
 const JSON_EDITOR_OPTIONS = {
@@ -23,6 +24,12 @@ const JSON_EDITOR_OPTIONS = {
   renderWhitespace: "none" as const,
   guides: { indentation: true, bracketPairs: true },
 };
+
+const INDENT_OPTIONS = [
+  { value: "2", label: "2 spaces" },
+  { value: "4", label: "4 spaces" },
+  { value: "8", label: "8 spaces" },
+];
 
 const noopFn = () => {};
 
@@ -74,18 +81,13 @@ export default function DesktopLayout({
             <Button variant="secondary" onClick={onMinify}>
               minify
             </Button>
-            <label className="flex items-center gap-1 text-xs text-text-muted">
-              indent
-              <select
-                value={indent}
-                onChange={(e) => setIndent(Number(e.target.value))}
-                className="border border-border bg-bg-surface text-text px-1.5 py-0.5 text-xs cursor-pointer"
-              >
-                <option value={2}>2</option>
-                <option value={4}>4</option>
-                <option value={8}>8</option>
-              </select>
-            </label>
+            <Select
+              value={String(indent)}
+              onValueChange={(v) => setIndent(Number(v))}
+              options={INDENT_OPTIONS}
+              align="start"
+              popupMinWidth="min-w-24"
+            />
             <Button
               variant="outline"
               active={jsonc}

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { Button } from "../../components/Button";
+import { Select } from "../../components/Select";
 import { Pencil, Eye, LoaderCircle, Square, SquareCheck } from "lucide-react";
 import { format as formatJson, minify as minifyJson } from "./process";
 
@@ -28,6 +29,12 @@ const getServerSnapshot = () => true;
 function useIsDesktop() {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
+
+const INDENT_OPTIONS = [
+  { value: "2", label: "2 spaces" },
+  { value: "4", label: "4 spaces" },
+  { value: "8", label: "8 spaces" },
+];
 
 /* ── Component ───────────────────────────────────────────────── */
 
@@ -164,15 +171,13 @@ export default function JsonFormatter() {
           <Button variant="secondary" onClick={minify}>
             minify
           </Button>
-          <select
-            value={indent}
-            onChange={(e) => setIndent(Number(e.target.value))}
-            className="border border-border bg-bg-surface text-text px-2 py-1 text-xs cursor-pointer"
-          >
-            <option value={2}>2 sp</option>
-            <option value={4}>4 sp</option>
-            <option value={8}>8 sp</option>
-          </select>
+          <Select
+            value={String(indent)}
+            onValueChange={(v) => setIndent(Number(v))}
+            options={INDENT_OPTIONS}
+            align="start"
+            popupMinWidth="min-w-24"
+          />
           <Button
             variant="outline"
             active={jsonc}
