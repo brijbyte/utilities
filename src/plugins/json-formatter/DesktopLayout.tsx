@@ -1,7 +1,6 @@
 "use no memo";
 
 import { useCallback } from "react";
-import { Toggle } from "@base-ui/react/toggle";
 import { SplitPanel } from "../../components/SplitPanel";
 import { CodeEditor } from "../../components/CodeEditor";
 import { Button } from "../../components/Button";
@@ -86,14 +85,13 @@ export default function DesktopLayout({
                 <option value={8}>8</option>
               </select>
             </label>
-            <Toggle
-              pressed={jsonc}
-              onPressedChange={setJsonc}
-              className="inline-flex items-center justify-center px-1.5 py-0.5 text-xs leading-none rounded border cursor-pointer transition-colors border-border bg-bg-surface hover:bg-bg-hover text-text-muted data-pressed:bg-accent-subtle data-pressed:border-accent data-pressed:text-accent"
-              aria-label="Toggle JSONC support"
+            <Button
+              variant="outline"
+              active={jsonc}
+              onClick={() => setJsonc(!jsonc)}
             >
               JSONC
-            </Toggle>
+            </Button>
             {input && (
               <Button variant="outline" onClick={onCopyInput}>
                 copy

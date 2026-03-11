@@ -8,7 +8,6 @@ import {
   useSyncExternalStore,
 } from "react";
 import { Tabs } from "@base-ui/react/tabs";
-import { Toggle } from "@base-ui/react/toggle";
 import { Button } from "../../components/Button";
 import { Pencil, Eye, LoaderCircle } from "lucide-react";
 import { format as formatJson, minify as minifyJson } from "./process";
@@ -174,14 +173,13 @@ export default function JsonFormatter() {
             <option value={4}>4 sp</option>
             <option value={8}>8 sp</option>
           </select>
-          <Toggle
-            pressed={jsonc}
-            onPressedChange={setJsonc}
-            className="inline-flex items-center justify-center px-2 py-1 text-xs leading-none rounded border cursor-pointer transition-colors border-border bg-bg-surface hover:bg-bg-hover text-text-muted data-pressed:bg-accent-subtle data-pressed:border-accent data-pressed:text-accent"
-            aria-label="Toggle JSONC support"
+          <Button
+            variant="outline"
+            active={jsonc}
+            onClick={() => setJsonc(!jsonc)}
           >
             JSONC
-          </Toggle>
+          </Button>
           <div className="ml-auto flex items-center gap-tb">
             {input && (
               <Button variant="outline" onClick={copyInput}>
