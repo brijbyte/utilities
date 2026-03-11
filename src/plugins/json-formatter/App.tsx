@@ -29,11 +29,6 @@ function useIsDesktop() {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-/* ── Shared styles ───────────────────────────────────────────── */
-
-const TAB_CLS =
-  "flex items-center gap-1.5 px-3 py-1 text-[0.625rem] uppercase tracking-widest text-text-muted cursor-pointer transition-colors data-selected:bg-accent-subtle data-selected:text-accent";
-
 /* ── Component ───────────────────────────────────────────────── */
 
 export default function JsonFormatter() {
@@ -130,67 +125,63 @@ export default function JsonFormatter() {
       onValueChange={setMobileTab}
       className="h-full flex flex-col"
     >
+      {/* Tab bar */}
+      <Tabs.List className="flex border-b border-border bg-bg-surface">
+        <Tabs.Tab
+          value="input"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-text-muted cursor-pointer transition-colors border-b-2 border-transparent data-selected:border-accent data-selected:text-accent"
+        >
+          <Pencil size={12} />
+          Input
+        </Tabs.Tab>
+        <Tabs.Tab
+          value="output"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-text-muted cursor-pointer transition-colors border-b-2 border-transparent data-selected:border-accent data-selected:text-accent"
+        >
+          <Eye size={12} />
+          Output
+        </Tabs.Tab>
+      </Tabs.List>
+
       {error && (
         <div className="px-tb-x py-tb-y text-xs bg-danger/5 border-b border-danger/20 text-danger">
           ✕ {error}
         </div>
       )}
 
-      <div className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
-        <Tabs.List className="flex rounded border border-border overflow-hidden">
-          <Tabs.Tab value="input" className={TAB_CLS}>
-            <Pencil size={10} />
-            input
-          </Tabs.Tab>
-          <Tabs.Tab value="output" className={TAB_CLS}>
-            <Eye size={10} />
-            output
-          </Tabs.Tab>
-        </Tabs.List>
-
-        <div className="ml-auto flex items-center gap-tb">
-          {mobileTab === "input" && (
-            <>
-              <Button variant="primary" onClick={format}>
-                format
-              </Button>
-              <Button variant="secondary" onClick={minify}>
-                minify
-              </Button>
-              <label className="flex items-center gap-2 text-xs text-text-muted">
-                <select
-                  value={indent}
-                  onChange={(e) => setIndent(Number(e.target.value))}
-                  className="border border-border bg-bg-surface text-text px-2 py-1 text-xs cursor-pointer"
-                >
-                  <option value={2}>2 sp</option>
-                  <option value={4}>4 sp</option>
-                  <option value={8}>8 sp</option>
-                </select>
-              </label>
-              {input && (
-                <Button variant="outline" onClick={copyInput}>
-                  copy
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                onClick={clear}
-                disabled={!input && !output}
-              >
-                clear
-              </Button>
-            </>
-          )}
-          {mobileTab === "output" && output && (
-            <Button variant="outline" onClick={copyOutput}>
-              copy
-            </Button>
-          )}
-        </div>
-      </div>
-
+      {/* Input panel */}
       <Tabs.Panel value="input" className="flex-1 min-h-0 flex flex-col">
+        <div className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
+          <Button variant="primary" onClick={format}>
+            format
+          </Button>
+          <Button variant="secondary" onClick={minify}>
+            minify
+          </Button>
+          <select
+            value={indent}
+            onChange={(e) => setIndent(Number(e.target.value))}
+            className="border border-border bg-bg-surface text-text px-2 py-1 text-xs cursor-pointer"
+          >
+            <option value={2}>2 sp</option>
+            <option value={4}>4 sp</option>
+            <option value={8}>8 sp</option>
+          </select>
+          <div className="ml-auto flex items-center gap-tb">
+            {input && (
+              <Button variant="outline" onClick={copyInput}>
+                copy
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              onClick={clear}
+              disabled={!input && !output}
+            >
+              clear
+            </Button>
+          </div>
+        </div>
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -201,7 +192,18 @@ export default function JsonFormatter() {
           className="flex-1 min-h-0 resize-none bg-bg-surface text-text font-mono text-[0.8125rem] leading-[1.7] px-pn-x py-pn-y outline-none"
         />
       </Tabs.Panel>
+
+      {/* Output panel */}
       <Tabs.Panel value="output" className="flex-1 min-h-0 flex flex-col">
+        {output && (
+          <div className="flex items-center gap-tb px-tb-x py-tb-y border-b border-border bg-bg-surface">
+            <div className="ml-auto">
+              <Button variant="outline" onClick={copyOutput}>
+                copy
+              </Button>
+            </div>
+          </div>
+        )}
         <textarea
           value={output}
           readOnly
