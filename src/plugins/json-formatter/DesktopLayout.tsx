@@ -34,6 +34,24 @@ const INDENT_OPTIONS = [
 
 const noopFn = () => {};
 
+/* ── JSON validation via Monaco's built-in JSON worker ───────── */
+
+let jsonLspReady = false;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function ensureJsonValidation(monaco: any) {
+  if (jsonLspReady) return;
+  jsonLspReady = true;
+  try {
+    const cdnUrl =
+      "https://esm.sh/modern-monaco@0.4.0/es2022/lsp/json/setup.mjs";
+    const { setup } = await import(/* @vite-ignore */ cdnUrl);
+    setup(monaco, "json");
+  } catch {
+    jsonLspReady = false;
+  }
+}
+
 interface DesktopLayoutProps {
   input: string;
   setInput: (value: string) => void;
@@ -68,6 +86,7 @@ export default function DesktopLayout({
     const { KeyMod, KeyCode } = monaco;
     editor.addCommand(KeyCode.F1, noopFn);
     editor.addCommand(KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyP, noopFn);
+    ensureJsonValidation(monaco);
   }, []);
 
   return (
