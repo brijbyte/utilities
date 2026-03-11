@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { Tabs } from "@base-ui/react/tabs";
+import { Toggle } from "@base-ui/react/toggle";
 import { Button } from "../../components/Button";
 import { Pencil, Eye, LoaderCircle } from "lucide-react";
 import { format as formatJson, minify as minifyJson } from "./process";
@@ -36,6 +37,7 @@ export default function JsonFormatter() {
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [indent, setIndent] = useState(2);
+  const [jsonc, setJsonc] = useState(false);
   const [mobileTab, setMobileTab] = useState<string | null>("input");
 
   const isDesktop = useIsDesktop();
@@ -44,7 +46,7 @@ export default function JsonFormatter() {
     try {
       const result = await formatJson(
         { type: "text", data: input },
-        { indent: String(indent) },
+        { indent: String(indent), jsonc: String(jsonc) },
       );
       setOutput(result.data as string);
       setError("");
@@ -53,11 +55,14 @@ export default function JsonFormatter() {
       setError((e as Error).message);
       setOutput("");
     }
-  }, [input, indent, isDesktop]);
+  }, [input, indent, jsonc, isDesktop]);
 
   const minify = useCallback(async () => {
     try {
-      const result = await minifyJson({ type: "text", data: input }, {});
+      const result = await minifyJson(
+        { type: "text", data: input },
+        { jsonc: String(jsonc) },
+      );
       setOutput(result.data as string);
       setError("");
       if (!isDesktop) setMobileTab("output");
@@ -65,7 +70,7 @@ export default function JsonFormatter() {
       setError((e as Error).message);
       setOutput("");
     }
-  }, [input, isDesktop]);
+  }, [input, jsonc, isDesktop]);
 
   const clear = useCallback(() => {
     setInput("");
@@ -106,6 +111,8 @@ export default function JsonFormatter() {
             output={output}
             indent={indent}
             setIndent={setIndent}
+            jsonc={jsonc}
+            setJsonc={setJsonc}
             onFormat={format}
             onMinify={minify}
             onCopyInput={copyInput}
@@ -167,6 +174,14 @@ export default function JsonFormatter() {
             <option value={4}>4 sp</option>
             <option value={8}>8 sp</option>
           </select>
+          <Toggle
+            pressed={jsonc}
+            onPressedChange={setJsonc}
+            className="inline-flex items-center justify-center px-2 py-1 text-xs leading-none rounded border cursor-pointer transition-colors border-border bg-bg-surface hover:bg-bg-hover text-text-muted data-pressed:bg-accent-subtle data-pressed:border-accent data-pressed:text-accent"
+            aria-label="Toggle JSONC support"
+          >
+            JSONC
+          </Toggle>
           <div className="ml-auto flex items-center gap-tb">
             {input && (
               <Button variant="outline" onClick={copyInput}>
