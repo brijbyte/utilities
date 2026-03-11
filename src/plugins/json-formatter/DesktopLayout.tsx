@@ -1,11 +1,12 @@
 "use no memo";
 
 import { useCallback } from "react";
-import { Square, SquareCheck } from "lucide-react";
+import { Settings, Square, SquareCheck } from "lucide-react";
 import { SplitPanel } from "../../components/SplitPanel";
 import { CodeEditor } from "../../components/CodeEditor";
 import { Button } from "../../components/Button";
 import { Select } from "../../components/Select";
+import { Popover } from "../../components/Popover";
 
 /** Monaco options tuned for JSON editing. */
 const JSON_EDITOR_OPTIONS = {
@@ -81,21 +82,41 @@ export default function DesktopLayout({
             <Button variant="secondary" onClick={onMinify}>
               minify
             </Button>
-            <Select
-              value={String(indent)}
-              onValueChange={(v) => setIndent(Number(v))}
-              options={INDENT_OPTIONS}
-              align="start"
-              popupMinWidth="min-w-24"
-            />
-            <Button
-              variant="outline"
-              active={jsonc}
-              onClick={() => setJsonc(!jsonc)}
-            >
-              {jsonc ? <SquareCheck size={12} /> : <Square size={12} />}
-              JSONC
-            </Button>
+            <Popover.Root>
+              <Popover.Trigger className="inline-flex items-center justify-center gap-1 px-2 py-1 text-xs border border-border bg-bg-surface text-text-muted rounded cursor-pointer hover:bg-bg-hover hover:text-text transition-colors">
+                <Settings size={12} />
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Positioner align="start">
+                  <Popover.Popup className="w-48">
+                    <Popover.Arrow />
+                    <div className="p-3 flex flex-col gap-3">
+                      <label className="flex items-center justify-between text-xs text-text">
+                        Indent
+                        <Select
+                          value={String(indent)}
+                          onValueChange={(v) => setIndent(Number(v))}
+                          options={INDENT_OPTIONS}
+                          align="end"
+                          popupMinWidth="min-w-24"
+                        />
+                      </label>
+                      <button
+                        onClick={() => setJsonc(!jsonc)}
+                        className="flex items-center gap-2 text-xs text-text cursor-pointer hover:text-accent transition-colors"
+                      >
+                        {jsonc ? (
+                          <SquareCheck size={14} className="text-accent" />
+                        ) : (
+                          <Square size={14} />
+                        )}
+                        JSONC (comments, trailing commas)
+                      </button>
+                    </div>
+                  </Popover.Popup>
+                </Popover.Positioner>
+              </Popover.Portal>
+            </Popover.Root>
             {input && (
               <Button variant="outline" onClick={onCopyInput}>
                 copy
