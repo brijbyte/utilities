@@ -1,6 +1,7 @@
 "use no memo";
 
 import { useCallback } from "react";
+import { Square, SquareCheck } from "lucide-react";
 import { SplitPanel } from "../../components/SplitPanel";
 import { CodeEditor } from "../../components/CodeEditor";
 import { Button } from "../../components/Button";
@@ -90,6 +91,7 @@ export default function DesktopLayout({
               active={jsonc}
               onClick={() => setJsonc(!jsonc)}
             >
+              {jsonc ? <SquareCheck size={12} /> : <Square size={12} />}
               JSONC
             </Button>
             {input && (

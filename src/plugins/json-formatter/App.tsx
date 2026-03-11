@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { Button } from "../../components/Button";
-import { Pencil, Eye, LoaderCircle } from "lucide-react";
+import { Pencil, Eye, LoaderCircle, Square, SquareCheck } from "lucide-react";
 import { format as formatJson, minify as minifyJson } from "./process";
 
 const DesktopLayout = lazy(() => import("./DesktopLayout"));
@@ -178,6 +178,7 @@ export default function JsonFormatter() {
             active={jsonc}
             onClick={() => setJsonc(!jsonc)}
           >
+            {jsonc ? <SquareCheck size={12} /> : <Square size={12} />}
             JSONC
           </Button>
           <div className="ml-auto flex items-center gap-tb">
