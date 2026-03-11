@@ -24,8 +24,8 @@ import rehypeShikiFromHighlighter from "@shikijs/rehype/core";
 import { createHighlighterCore } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
 
-import githubLight from "shiki/themes/github-light.mjs";
-import githubDark from "shiki/themes/github-dark.mjs";
+import vitesseLight from "shiki/themes/vitesse-light.mjs";
+import vitesseDark from "shiki/themes/vitesse-dark.mjs";
 
 // Curated set of common languages — loaded eagerly but only these are bundled.
 // Unsupported languages fall back to plain text via fallbackLanguage.
@@ -55,7 +55,7 @@ let highlighterPromise: Promise<any> | null = null;
 function getHighlighter() {
   if (!highlighterPromise) {
     highlighterPromise = createHighlighterCore({
-      themes: [githubLight, githubDark],
+      themes: [vitesseLight, vitesseDark],
       langs: [
         langJs,
         langTs,
@@ -95,7 +95,7 @@ async function getProcessor() {
       .use(remarkRehype)
       .use(rehypeSlug)
       .use(rehypeShikiFromHighlighter, highlighter, {
-        themes: { light: "github-light", dark: "github-dark" },
+        themes: { light: "vitesse-light", dark: "vitesse-dark" },
         defaultColor: false,
         fallbackLanguage: "text",
       })
@@ -204,9 +204,13 @@ export function buildHtmlDocument(
   title: string,
   includeStyles: boolean,
   tocHtml?: string,
+  /** When true, adds a sticky toolbar with print + close buttons (hidden in @media print). */
+  showToolbar?: boolean,
 ): string {
   const styles = includeStyles ? getEmbeddedStyles() : "";
   const toc = tocHtml ? `${tocHtml}\n<hr />\n` : "";
+  const toolbar = showToolbar ? getToolbarHtml(title) : "";
+  const toolbarStyles = showToolbar ? getToolbarStyles() : "";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -214,8 +218,10 @@ export function buildHtmlDocument(
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>${escapeHtml(title)}</title>
 ${styles}
+${toolbarStyles}
 </head>
 <body>
+${toolbar}
 <article class="markdown-body">
 ${toc}${html}
 </article>
@@ -229,6 +235,79 @@ function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function getToolbarHtml(title: string): string {
+  return `<div class="preview-toolbar">
+  <span class="preview-toolbar-title">${escapeHtml(title)}</span>
+  <div class="preview-toolbar-actions">
+    <button onclick="window.print()" class="preview-toolbar-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+      Print
+    </button>
+    <button onclick="window.close()" class="preview-toolbar-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      Close
+    </button>
+  </div>
+</div>`;
+}
+
+function getToolbarStyles(): string {
+  return `<style>
+  .preview-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: #f6f8fa;
+    border-bottom: 1px solid #d1d5da;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.8125rem;
+  }
+  .preview-toolbar-title {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    color: #24292f;
+  }
+  .preview-toolbar-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  .preview-toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    border: 1px solid #d1d5da;
+    border-radius: 6px;
+    background: #fff;
+    color: #24292f;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .preview-toolbar-btn:hover { background: #f0f0f0; }
+  @media (prefers-color-scheme: dark) {
+    .preview-toolbar { background: #161b22; border-bottom-color: #30363d; }
+    .preview-toolbar-title { color: #c9d1d9; }
+    .preview-toolbar-btn { background: #21262d; border-color: #30363d; color: #c9d1d9; }
+    .preview-toolbar-btn:hover { background: #30363d; }
+  }
+  @media print {
+    .preview-toolbar { display: none; }
+  }
+</style>`;
 }
 
 function getEmbeddedStyles(): string {
@@ -289,7 +368,8 @@ function getEmbeddedStyles(): string {
 
 /* ── Default sample ────────────────────────────────────────────── */
 
-export const DEFAULT_MARKDOWN = `# Markdown Preview
+export const DEFAULT_MARKDOWN = `
+# Markdown Preview
 
 A **live preview** editor with full GFM support.
 
@@ -304,13 +384,13 @@ A **live preview** editor with full GFM support.
 
 ## Table Example
 
-| Feature | Status |
-|---------|--------|
-| GFM tables | ✅ Supported |
-| Task lists | ✅ Supported |
-| Syntax highlighting | ✅ Supported |
-| ~~Strikethrough~~ | ✅ Supported |
-| Autolinks | ✅ https://example.com |
+| Feature             | Status                 |
+| ------------------- | ---------------------- |
+| GFM tables          | ✅ Supported           |
+| Task lists          | ✅ Supported           |
+| Syntax highlighting | ✅ Supported           |
+| ~~Strikethrough~~   | ✅ Supported           |
+| Autolinks           | ✅ https://example.com |
 
 ## Task List
 
@@ -333,6 +413,10 @@ function greet(user: User): string {
 }
 \`\`\`
 
+## Horizontal Rule
+
+---
+
 ### Inline Code
 
 Use \`console.log()\` for debugging and \`npm install\` to add packages.
@@ -344,9 +428,5 @@ Use \`console.log()\` for debugging and \`npm install\` to add packages.
 >
 > — John Gruber
 
-## Horizontal Rule
-
----
-
-*Edit the left panel to see changes here in real time.*
-`;
+_Edit the left panel to see changes here in real time._
+`.trim();

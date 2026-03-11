@@ -6,7 +6,7 @@
  * itself via the `<monaco-editor>` web component).
  *
  * Features:
- * - Automatic theme sync with app light/dark mode (github-light / github-dark)
+ * - Automatic theme sync with app light/dark mode (vitesse-light / vitesse-dark)
  * - Language grammars loaded on demand from CDN
  * - Controlled value via `value` / `onChange` props
  * - Configurable read-only, word wrap, minimap, line numbers, font size
@@ -38,8 +38,8 @@ async function getMonaco(): Promise<Monaco> {
       const isDark = document.documentElement.classList.contains("dark");
       const { init } = await import("modern-monaco");
       const monaco = await init({
-        defaultTheme: isDark ? "github-dark" : "github-light",
-        themes: ["github-light", "github-dark"],
+        defaultTheme: isDark ? "vitesse-dark" : "vitesse-light",
+        themes: ["vitesse-light", "vitesse-dark"],
       });
       monacoInstance = monaco;
       return monaco;
@@ -80,6 +80,12 @@ export interface CodeEditorProps {
   className?: string;
   /** Called when the editor scrolls. */
   onScroll?: () => void;
+  /** Extra Monaco editor options merged into create call. Applied once at mount. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  editorOptions?: Record<string, any>;
+  /** Called after the editor instance is created. Use to customize keybindings, actions, etc. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onCreated?: (editor: any, monaco: any) => void;
 }
 
 /* ── Component ───────────────────────────────────────────────── */
@@ -97,6 +103,8 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
       placeholder,
       className,
       onScroll,
+      editorOptions,
+      onCreated,
     },
     ref,
   ) {
@@ -104,6 +112,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
     const editorRef = useRef<IStandaloneCodeEditor>(null);
     const onChangeRef = useRef(onChange);
     const onScrollRef = useRef(onScroll);
+    const onCreatedRef = useRef(onCreated);
     const isUpdatingRef = useRef(false);
     const [loading, setLoading] = useState(true);
     const { resolved: currentTheme, fontSize: fontSizeId } = useTheme();
@@ -113,6 +122,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
     // Keep callback refs fresh without re-running effects
     onChangeRef.current = onChange;
     onScrollRef.current = onScroll;
+    onCreatedRef.current = onCreated;
 
     /* ── Imperative handle ────────────────────────────────────── */
 
@@ -153,7 +163,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
         const editor = monaco.editor.create(container, {
           automaticLayout: true,
           fontFamily: "'JetBrains Mono', monospace",
-          fontSize: fontSizePx * 0.75,
+          fontSize: fontSizePx * 0.8125,
           lineNumbers,
           minimap: { enabled: minimap },
           readOnly,
@@ -169,8 +179,9 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
             verticalScrollbarSize: 8,
             horizontalScrollbarSize: 8,
           },
-          theme: currentTheme === "dark" ? "github-dark" : "github-light",
+          theme: currentTheme === "dark" ? "vitesse-dark" : "vitesse-light",
           ...(placeholder && !value ? { placeholder } : {}),
+          ...editorOptions,
         });
 
         const model = monaco.editor.createModel(value, language);
@@ -189,6 +200,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
         });
 
         editorRef.current = editor;
+        onCreatedRef.current?.(editor, monaco);
         setLoading(false);
       });
 
@@ -231,17 +243,6 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
         });
       }
     }, [language]);
-
-    /* ── Sync font size ───────────────────────────────────────────── */
-    useEffect(() => {
-      if (loading || !monacoInstance) {
-        return;
-      }
-      const editor = editorRef.current;
-      if (!editor) return;
-      editor.updateOptions({ fontSize: fontSizePx * 0.75 });
-    }, [fontSizePx, loading]);
-
     /* ── Sync theme ───────────────────────────────────────────── */
 
     useEffect(() => {
@@ -250,7 +251,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
         return;
       }
       monacoInstance.editor.setTheme(
-        currentTheme === "dark" ? "github-dark" : "github-light",
+        currentTheme === "dark" ? "vitesse-dark" : "vitesse-light",
       );
     }, [currentTheme]);
 
@@ -266,16 +267,19 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
     useEffect(() => updateOptions({ readOnly }), [readOnly, updateOptions]);
     useEffect(() => updateOptions({ wordWrap }), [wordWrap, updateOptions]);
     useEffect(
+      () =>
+        updateOptions({
+          fontSize: fontSizePx * 0.8125,
+        }),
+      [fontSizePx, updateOptions],
+    );
+    useEffect(
       () => updateOptions({ minimap: { enabled: minimap } }),
       [minimap, updateOptions],
     );
     useEffect(
       () => updateOptions({ lineNumbers }),
       [lineNumbers, updateOptions],
-    );
-    useEffect(
-      () => updateOptions({ fontSize: fontSizePx }),
-      [fontSizePx, updateOptions],
     );
 
     /* ── Render ───────────────────────────────────────────────── */

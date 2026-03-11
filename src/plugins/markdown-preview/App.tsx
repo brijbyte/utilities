@@ -28,6 +28,7 @@ import {
   Pencil,
   Eye,
   Link,
+  Upload,
 } from "lucide-react";
 
 const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
@@ -60,8 +61,19 @@ function useIsDesktop() {
 
 /* ── Component ───────────────────────────────────────────────── */
 
+const STORAGE_KEY = "md-preview-source";
+
+function loadSavedSource(): string {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ?? DEFAULT_MARKDOWN;
+  } catch {
+    return DEFAULT_MARKDOWN;
+  }
+}
+
 export default function MarkdownPreview() {
-  const [source, setSource] = useState(DEFAULT_MARKDOWN);
+  const [source, setSource] = useState(loadSavedSource);
   const [html, setHtml] = useState("");
   const [tocHtml, setTocHtml] = useState("");
   const [showToc, setShowToc] = useState(false);
@@ -74,6 +86,7 @@ export default function MarkdownPreview() {
 
   const editorRef = useRef<CodeEditorHandle>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const readyRef = useRef(false);
   const parseGenRef = useRef(0);
 
@@ -100,6 +113,20 @@ export default function MarkdownPreview() {
       cancelled = true;
     };
   }, [deferredSource]);
+
+  /* ── Persist to localStorage (skip default content) ────────── */
+
+  useEffect(() => {
+    try {
+      if (source === DEFAULT_MARKDOWN) {
+        localStorage.removeItem(STORAGE_KEY);
+      } else {
+        localStorage.setItem(STORAGE_KEY, source);
+      }
+    } catch {
+      /* storage full or unavailable — ignore */
+    }
+  }, [source]);
 
   const stats = useMemo(() => getStats(source), [source]);
 
@@ -180,17 +207,31 @@ export default function MarkdownPreview() {
     const firstLine = source.split("\n").find((l) => l.trim()) ?? "Document";
     const title = firstLine.replace(/^#+\s*/, "").trim();
     const toc = showToc ? tocHtml : undefined;
-    const doc = buildHtmlDocument(html, title, true, toc);
+    const doc = buildHtmlDocument(html, title, true, toc, true);
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(doc);
     win.document.close();
-    win.addEventListener("load", () => win.print());
   }, [html, source, showToc, tocHtml]);
 
   const clear = useCallback(() => {
     setSource("");
   }, []);
+
+  const handleFileUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") setSource(reader.result);
+      };
+      reader.readAsText(file);
+      // Reset so the same file can be re-uploaded
+      e.target.value = "";
+    },
+    [],
+  );
 
   const handleMobileTabChange = useCallback((value: string[]) => {
     if (value.length > 0) setMobileTab(value[0] as "editor" | "preview");
@@ -225,6 +266,26 @@ export default function MarkdownPreview() {
             >
               <Eraser size={ICON} />
               clear
+            </Button>
+          )}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".md,.mdx,.markdown,.txt,.text"
+          onChange={handleFileUpload}
+          className="hidden"
+          aria-hidden
+        />
+        <Toolbar.Button
+          render={(props) => (
+            <Button
+              {...props}
+              variant="ghost"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload size={ICON} />
+              <span className="hidden sm:inline">open</span>
             </Button>
           )}
         />

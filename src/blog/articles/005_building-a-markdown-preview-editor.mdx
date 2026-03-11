@@ -182,9 +182,15 @@ The key insight: mobile users editing markdown on their phone want a textarea th
 
 Crucially, the desktop split-panel layout (which imports Monaco and `SplitPanel`) is wrapped in `React.lazy()` and only rendered when `isDesktop` is true. On mobile, that chunk is never fetched — no Monaco download, no editor core, no CDN request. The entire desktop layout lives in its own `DesktopLayout` component behind a `<Suspense>` boundary.
 
-## Export and print
+## File open, export, and print
 
-Export builds a standalone HTML document with embedded styles and shiki CSS variable support, including a `prefers-color-scheme: dark` media query for automatic dark mode. When the TOC toggle is active, the table of contents is included at the top of the exported document with its own styled nav block and an `<hr>` separator. Print opens the same document in a new window and triggers `window.print()`.
+The toolbar's **open** button triggers a hidden `<input type="file">` that accepts `.md`, `.mdx`, `.markdown`, and `.txt` files. The file is read via `FileReader.readAsText()` and replaces the editor content. No drag-and-drop — a single button click is simpler and works identically on desktop and mobile.
+
+**Export** builds a standalone HTML document with embedded styles and shiki CSS variable support, including a `prefers-color-scheme: dark` media query for automatic dark mode. When the TOC toggle is active, the table of contents is included at the top of the exported document with its own styled nav block and an `<hr>` separator.
+
+**Print** opens the document in a new window with a sticky toolbar showing the document title, a print button, and a close button. The toolbar uses viewport-relative sizing so it stays usable on mobile, while the document content renders at full width. The toolbar is hidden via `@media print` so it doesn't appear on paper.
+
+Editor content is automatically persisted to `localStorage` on every change. Reloading the page restores your work. The default sample markdown is excluded from storage — it only saves content you've actually typed or opened.
 
 ## Plugin-scoped CSS
 
