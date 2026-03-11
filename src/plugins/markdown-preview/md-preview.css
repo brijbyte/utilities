@@ -178,3 +178,43 @@
     text-decoration: var(--shiki-dark-text-decoration);
   }
 }
+
+/* Active source line indicator in preview — shimmer animation */
+/* Uses box-shadow for top/bottom lines so layout is unaffected. */
+.md-preview .md-active-line {
+  box-shadow:
+    inset 0 0.5px 0 0 var(--color-primary),
+    inset 0 -0.5px 0 0 var(--color-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.md-preview .md-active-line::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--color-primary) 4%, transparent) 0%,
+    color-mix(in oklch, var(--color-primary) 10%, transparent) 50%,
+    color-mix(in oklch, var(--color-primary) 4%, transparent) 100%
+  );
+  animation: md-line-shimmer 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes md-line-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* CSS Custom Highlight API — editor selection mirrored in preview */
+::highlight(md-selection) {
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: 1px;
+}

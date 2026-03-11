@@ -57,6 +57,12 @@ export interface CodeEditorHandle {
   setScrollFraction: (fraction: number) => void;
   /** Focus the editor. */
   focus: () => void;
+  /** Get the current cursor line number (1-based). */
+  getCursorLine: () => number;
+  /** Get the first visible line number in the viewport (1-based). */
+  getTopVisibleLine: () => number;
+  /** Get the currently selected text (empty string if no selection). */
+  getSelectedText: () => string;
 }
 
 export interface CodeEditorProps {
@@ -80,6 +86,8 @@ export interface CodeEditorProps {
   className?: string;
   /** Called when the editor scrolls. */
   onScroll?: () => void;
+  /** Called when cursor position or selection changes. */
+  onCursorChange?: () => void;
   /** Extra Monaco editor options merged into create call. Applied once at mount. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editorOptions?: Record<string, any>;
@@ -103,6 +111,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
       placeholder,
       className,
       onScroll,
+      onCursorChange,
       editorOptions,
       onCreated,
     },
@@ -112,6 +121,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
     const editorRef = useRef<IStandaloneCodeEditor>(null);
     const onChangeRef = useRef(onChange);
     const onScrollRef = useRef(onScroll);
+    const onCursorChangeRef = useRef(onCursorChange);
     const onCreatedRef = useRef(onCreated);
     const isUpdatingRef = useRef(false);
     const [loading, setLoading] = useState(true);
@@ -122,6 +132,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
     // Keep callback refs fresh without re-running effects
     onChangeRef.current = onChange;
     onScrollRef.current = onScroll;
+    onCursorChangeRef.current = onCursorChange;
     onCreatedRef.current = onCreated;
 
     /* ── Imperative handle ────────────────────────────────────── */
@@ -146,6 +157,25 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
       },
       focus() {
         editorRef.current?.focus();
+      },
+      getCursorLine() {
+        const editor = editorRef.current;
+        if (!editor) return 1;
+        return editor.getPosition()?.lineNumber ?? 1;
+      },
+      getTopVisibleLine() {
+        const editor = editorRef.current;
+        if (!editor) return 1;
+        const ranges = editor.getVisibleRanges();
+        return ranges?.[0]?.startLineNumber ?? 1;
+      },
+      getSelectedText() {
+        const editor = editorRef.current;
+        if (!editor) return "";
+        const model = editor.getModel();
+        const selection = editor.getSelection();
+        if (!model || !selection || selection.isEmpty()) return "";
+        return model.getValueInRange(selection);
       },
     }));
 
@@ -197,6 +227,14 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(
         // Listen for scroll
         editor.onDidScrollChange(() => {
           onScrollRef.current?.();
+        });
+
+        // Listen for cursor position and selection changes
+        editor.onDidChangeCursorPosition(() => {
+          onCursorChangeRef.current?.();
+        });
+        editor.onDidChangeCursorSelection(() => {
+          onCursorChangeRef.current?.();
         });
 
         editorRef.current = editor;

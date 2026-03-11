@@ -15,7 +15,6 @@ import { Toolbar } from "@base-ui/react/toolbar";
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
 import { Button } from "../../components/Button";
-import type { CodeEditorHandle } from "../../components/CodeEditor";
 import {
   ListTree,
   FileDown,
@@ -84,8 +83,7 @@ export default function MarkdownPreview() {
 
   const isDesktop = useIsDesktop();
 
-  const editorRef = useRef<CodeEditorHandle>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
+  const mobilePreviewRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const readyRef = useRef(false);
   const parseGenRef = useRef(0);
@@ -129,53 +127,6 @@ export default function MarkdownPreview() {
   }, [source]);
 
   const stats = useMemo(() => getStats(source), [source]);
-
-  /* ── Scroll sync (desktop only) ─────────────────────────────── */
-
-  const syncScrollEnabledRef = useRef(syncScroll);
-  useEffect(() => {
-    syncScrollEnabledRef.current = syncScroll;
-  }, [syncScroll]);
-
-  const scrollSyncRef = useRef<"editor" | "preview" | null>(null);
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
-
-  const doSyncScroll = useCallback((from: "editor" | "preview") => {
-    if (!readyRef.current) return;
-    if (!syncScrollEnabledRef.current) return;
-    if (scrollSyncRef.current && scrollSyncRef.current !== from) return;
-    scrollSyncRef.current = from;
-
-    if (from === "editor") {
-      const fraction = editorRef.current?.getScrollFraction() ?? 0;
-      const tgt = previewRef.current;
-      if (tgt) {
-        const tgtMax = tgt.scrollHeight - tgt.clientHeight;
-        tgt.scrollTop = fraction * tgtMax;
-      }
-    } else {
-      const src = previewRef.current;
-      if (src) {
-        const srcMax = src.scrollHeight - src.clientHeight;
-        const fraction = srcMax > 0 ? src.scrollTop / srcMax : 0;
-        editorRef.current?.setScrollFraction(fraction);
-      }
-    }
-
-    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-    scrollTimerRef.current = setTimeout(() => {
-      scrollSyncRef.current = null;
-    }, 100);
-  }, []);
-
-  const handleEditorScroll = useCallback(
-    () => doSyncScroll("editor"),
-    [doSyncScroll],
-  );
-  const handlePreviewScroll = useCallback(
-    () => doSyncScroll("preview"),
-    [doSyncScroll],
-  );
 
   /* ── Actions ────────────────────────────────────────────────── */
 
@@ -369,10 +320,7 @@ export default function MarkdownPreview() {
             ready={ready}
             isParsing={isParsing}
             stats={stats}
-            editorRef={editorRef}
-            previewRef={previewRef}
-            onEditorScroll={handleEditorScroll}
-            onPreviewScroll={handlePreviewScroll}
+            syncScroll={syncScroll}
           />
         </Suspense>
       ) : (
@@ -421,12 +369,11 @@ export default function MarkdownPreview() {
             />
           ) : (
             <Preview
-              ref={previewRef}
+              ref={mobilePreviewRef}
               html={html}
               tocHtml={tocHtml}
               showToc={showToc}
               ready={ready}
-              onScroll={handlePreviewScroll}
             />
           )}
         </div>

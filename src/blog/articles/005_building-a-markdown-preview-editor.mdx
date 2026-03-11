@@ -53,7 +53,9 @@ Key design decisions:
 - **Scroll sync API** — The imperative handle exposes `getScrollFraction()` / `setScrollFraction()` for proportional scroll sync between the editor and any companion pane.
 - **Loading skeleton** — While Monaco loads from CDN, a full-size animated skeleton mimics the editor layout (gutter + code lines). It's absolutely positioned over the container and disappears the instant the editor renders.
 
-The component accepts `language`, `readOnly`, `wordWrap`, `minimap`, `lineNumbers`, and `onScroll` props — all synced to Monaco via individual `useEffect` hooks calling `editor.updateOptions()`.
+The component accepts `language`, `readOnly`, `wordWrap`, `minimap`, `lineNumbers`, `onScroll`, and `onCursorChange` props — all synced to Monaco via individual `useEffect` hooks calling `editor.updateOptions()`. An `editorOptions` prop allows passing extra Monaco options at creation time, and `onCreated` gives access to the raw editor instance for post-creation customization like disabling keybindings.
+
+For the markdown preview, we disable IDE features that don't help with prose: autocomplete, parameter hints, code lens, hover, bracket matching, folding, and code actions. The command palette (F1 / Ctrl+Shift+P), go-to-line, and go-to-symbol keybindings are suppressed via `editor.addCommand()` with a no-op handler.
 
 ## The remark/rehype pipeline
 
@@ -70,7 +72,7 @@ import { createHighlighterCore } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
 
 const highlighter = await createHighlighterCore({
-  themes: [githubLight, githubDark],
+  themes: [vitesseLight, vitesseDark],
   langs: [langTs, langPython, langBash /* ... 14 more */],
   engine: createJavaScriptRegexEngine(),
 });
@@ -129,23 +131,50 @@ function extractToc(source: string): TocEntry[] {
 
 Code fence detection ensures headings inside code blocks are ignored. The slug algorithm matches `rehype-slug` so anchor links work correctly. The TOC renders as a styled nav block at the top of the preview, toggled via a toolbar button. When enabled, the TOC is also included in exported HTML and print output.
 
-## Scroll sync
+## Scroll sync and selection highlighting
 
-Proportional scroll sync between Monaco and the preview pane uses the editor's scroll API:
+The scroll sync goes beyond proportional fraction matching. A custom rehype plugin stamps `data-source-line` attributes on block-level elements during the markdown→HTML transformation, preserving the mapping between source lines and rendered output:
 
 ```typescript
-// Editor → Preview
-const fraction = editorRef.current.getScrollFraction();
-previewEl.scrollTop =
-  fraction * (previewEl.scrollHeight - previewEl.clientHeight);
-
-// Preview → Editor
-const fraction =
-  previewEl.scrollTop / (previewEl.scrollHeight - previewEl.clientHeight);
-editorRef.current.setScrollFraction(fraction);
+function rehypeSourceLines() {
+  return (tree: HastRoot) => {
+    visit(tree, "element", (node: HastElement) => {
+      if (!BLOCK_TAGS.has(node.tagName)) return;
+      const line = node.position?.start?.line;
+      if (line != null) {
+        node.properties["dataSourceLine"] = line;
+      }
+    });
+  };
+}
 ```
 
-Not line-accurate — a heading in the editor might not align pixel-perfectly with its rendered version. But proportional sync is simple, predictable, and works well for most documents. A re-entrancy guard prevents the two panels from ping-ponging scroll events. Monaco's `onDidScrollChange` event drives the editor→preview direction.
+When the cursor moves in Monaco, we find the closest `[data-source-line]` element at or before the cursor line and scroll it into view — positioned roughly one quarter from the top of the preview panel. This gives line-level accuracy: click on a heading in the editor and the preview jumps to that heading. The preview→editor direction falls back to proportional scroll since the preview doesn't have line-number awareness in reverse.
+
+**Selection highlighting** uses the [CSS Custom Highlight API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Custom_Highlight_API). When text is selected in the editor, we walk the preview's text nodes with a `TreeWalker`, find matching substrings, create `Range` objects, and register them as a named highlight:
+
+```typescript
+const ranges: Range[] = [];
+// ... find matching text nodes ...
+CSS.highlights.set("md-selection", new Highlight(...ranges));
+```
+
+The highlight is styled with a single CSS rule:
+
+```css
+::highlight(md-selection) {
+  background-color: var(--color-primary);
+  color: white;
+}
+```
+
+This is a progressive enhancement — browsers that don't support `CSS.highlights` simply don't get the feature. Both the line sync and selection highlight are gated behind the scroll sync toggle in the toolbar.
+
+**Active line indicator** — The preview element matching the cursor's source line gets a shimmer animation: a `::before` pseudo-element with a subtle gradient sweeps left-to-right on a 1.8s loop. Top and bottom `box-shadow` lines in the primary color frame the element. Both are layout-neutral — no borders or padding that would shift content.
+
+**Three-way re-entrancy guard** — Scroll sync involves three triggers that can cascade: editor scroll, cursor movement, and preview scroll. A `scrollLockRef` with three states (`"editor"` | `"cursor"` | `"preview"`) prevents bounce. When the cursor moves, the lock is set to `"cursor"` so the resulting preview scroll doesn't sync back to the editor — this was the key fix for the jarring jump that would cause the editor to lose focus on the current line. Cursor-driven sync is also throttled to 150ms to avoid flickering when holding arrow keys.
+
+**Scroll-to-top** — The preview shows a floating button (arrow-up icon) when scrolled past 300px. It animates in from below via `translate-y` + `opacity` transition and scrolls to top smoothly on click.
 
 ## Mobile: a different UI, not a broken one
 
@@ -181,6 +210,8 @@ function useIsDesktop() {
 The key insight: mobile users editing markdown on their phone want a textarea they can type in, not a full IDE. The preview tab lets them check rendering. No scroll sync needed — you're looking at one pane at a time.
 
 Crucially, the desktop split-panel layout (which imports Monaco and `SplitPanel`) is wrapped in `React.lazy()` and only rendered when `isDesktop` is true. On mobile, that chunk is never fetched — no Monaco download, no editor core, no CDN request. The entire desktop layout lives in its own `DesktopLayout` component behind a `<Suspense>` boundary.
+
+`DesktopLayout` also owns all scroll sync and highlighting logic — editor/preview refs, the re-entrancy guard, line finding, selection highlighting, and the cursor throttle. The parent `App.tsx` just passes `syncScroll` as a boolean prop. This means mobile loads zero sync code — it's all inside the lazy chunk.
 
 ## File open, export, and print
 

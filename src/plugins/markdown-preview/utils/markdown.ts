@@ -20,6 +20,8 @@ import remarkGfm from "remark-gfm";
 import remarkRehype from "remark-rehype";
 import rehypeSlug from "rehype-slug";
 import rehypeStringify from "rehype-stringify";
+import type { Root as HastRoot, Element as HastElement } from "hast";
+import { visit } from "unist-util-visit";
 import rehypeShikiFromHighlighter from "@shikijs/rehype/core";
 import { createHighlighterCore } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
@@ -81,6 +83,40 @@ function getHighlighter() {
   return highlighterPromise;
 }
 
+/* ── Rehype plugin: stamp data-source-line on block elements ──── */
+
+/** Block-level tags that should carry source line info. */
+const BLOCK_TAGS = new Set([
+  "p",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "ul",
+  "ol",
+  "li",
+  "blockquote",
+  "pre",
+  "table",
+  "hr",
+  "div",
+]);
+
+function rehypeSourceLines() {
+  return (tree: HastRoot) => {
+    visit(tree, "element", (node: HastElement) => {
+      if (!BLOCK_TAGS.has(node.tagName)) return;
+      const line = node.position?.start?.line;
+      if (line != null) {
+        node.properties = node.properties || {};
+        node.properties["dataSourceLine"] = line;
+      }
+    });
+  };
+}
+
 /* ── Unified processor ─────────────────────────────────────────── */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,6 +130,7 @@ async function getProcessor() {
       .use(remarkGfm)
       .use(remarkRehype)
       .use(rehypeSlug)
+      .use(rehypeSourceLines)
       .use(rehypeShikiFromHighlighter, highlighter, {
         themes: { light: "vitesse-light", dark: "vitesse-dark" },
         defaultColor: false,

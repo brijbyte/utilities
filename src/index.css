@@ -67,6 +67,7 @@
 
 /* ---- dark overrides ---- */
 .dark {
+  color-scheme: dark;
   --color-bg: var(--color-stone-950);
   --color-bg-surface: var(--color-stone-900);
   --color-bg-hover: var(--color-stone-800);
@@ -117,7 +118,13 @@
 
   html,
   body {
+    color-scheme: light;
     font-size: 16px;
+  }
+
+  .dark,
+  .dark body {
+    color-scheme: dark;
   }
 
   html,
