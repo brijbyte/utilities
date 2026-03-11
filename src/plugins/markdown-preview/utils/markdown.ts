@@ -117,28 +117,53 @@ function rehypeSourceLines() {
   };
 }
 
-/* ── Unified processor ─────────────────────────────────────────── */
+/* ── Unified processors ────────────────────────────────────────── */
+
+// Two processors sharing the same shiki highlighter:
+// - preview processor includes rehypeSourceLines (for scroll sync)
+// - clean processor omits it (for copy / export / print output)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _processor: any = null;
+let _previewProcessor: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _cleanProcessor: any = null;
 
-async function getProcessor() {
-  if (!_processor) {
-    const highlighter = await getHighlighter();
-    _processor = unified()
-      .use(remarkParse)
-      .use(remarkGfm)
-      .use(remarkRehype)
-      .use(rehypeSlug)
-      .use(rehypeSourceLines)
-      .use(rehypeShikiFromHighlighter, highlighter, {
-        themes: { light: "vitesse-light", dark: "vitesse-dark" },
-        defaultColor: false,
-        fallbackLanguage: "text",
-      })
-      .use(rehypeStringify);
-  }
-  return _processor;
+function buildProcessors(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  highlighter: any,
+) {
+  const shikiOpts = {
+    themes: { light: "vitesse-light", dark: "vitesse-dark" },
+    defaultColor: false as const,
+    fallbackLanguage: "text",
+  };
+
+  _previewProcessor = unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkRehype)
+    .use(rehypeSlug)
+    .use(rehypeSourceLines)
+    .use(rehypeShikiFromHighlighter, highlighter, shikiOpts)
+    .use(rehypeStringify);
+
+  _cleanProcessor = unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkRehype)
+    .use(rehypeSlug)
+    .use(rehypeShikiFromHighlighter, highlighter, shikiOpts)
+    .use(rehypeStringify);
+}
+
+async function getPreviewProcessor() {
+  if (!_previewProcessor) buildProcessors(await getHighlighter());
+  return _previewProcessor;
+}
+
+async function getCleanProcessor() {
+  if (!_cleanProcessor) buildProcessors(await getHighlighter());
+  return _cleanProcessor;
 }
 
 /* ── TOC types ─────────────────────────────────────────────────── */
@@ -156,17 +181,23 @@ export interface ParseResult {
   toc: TocEntry[];
 }
 
-/** Parse markdown source to HTML + TOC entries (async — shiki lazy-loads grammars). */
+/** Normalize task list shorthand. */
+function normalizeTasks(source: string): string {
+  return source.replace(/^(\s*[-*+]\s)\[\]/gm, "$1[ ]");
+}
+
+/** Parse markdown source to HTML (with data-source-line attrs) + TOC entries. */
 export async function parseMarkdown(source: string): Promise<ParseResult> {
-  // Normalize `- []` → `- [ ]` so GFM recognizes them as task list items.
-  // The GFM spec requires a space inside the brackets, but `- []` is a
-  // common shorthand that people expect to work.
-  const normalized = source.replace(/^(\s*[-*+]\s)\[\]/gm, "$1[ ]");
-  const processor = await getProcessor();
-  const file = await processor.process(normalized);
-  const html = String(file);
-  const toc = extractToc(source);
-  return { html, toc };
+  const processor = await getPreviewProcessor();
+  const file = await processor.process(normalizeTasks(source));
+  return { html: String(file), toc: extractToc(source) };
+}
+
+/** Parse markdown to clean HTML (no internal attributes) — for copy / export / print. */
+export async function parseCleanMarkdown(source: string): Promise<string> {
+  const processor = await getCleanProcessor();
+  const file = await processor.process(normalizeTasks(source));
+  return String(file);
 }
 
 /**

@@ -37,6 +37,7 @@ const DesktopLayout = lazy(() => import("./components/DesktopLayout"));
 import Preview from "./components/Preview";
 import {
   parseMarkdown,
+  parseCleanMarkdown,
   renderToc,
   getStats,
   buildHtmlDocument,
@@ -133,29 +134,38 @@ export default function MarkdownPreview() {
 
   /* ── Actions ────────────────────────────────────────────────── */
 
+  /** Parse current source through the clean processor (no data-source-line attrs). */
+  const getCleanHtml = useCallback(() => parseCleanMarkdown(source), [source]);
+
   const copyAs = useCallback(
     async (format: "html" | "md" | "html-css") => {
       let text: string;
-      if (format === "html-css") {
-        const css = getEmbeddedCss();
-        const toc = showToc ? tocHtml : undefined;
-        const tocBlock = toc ? `${toc}\n<hr />\n` : "";
-        text = `<style>\n${css}\n</style>\n<article class="markdown-body">\n${tocBlock}${html}\n</article>`;
+      if (format === "md") {
+        text = source;
       } else {
-        text = format === "html" ? html : source;
+        const clean = await getCleanHtml();
+        if (format === "html-css") {
+          const css = getEmbeddedCss();
+          const toc = showToc ? tocHtml : undefined;
+          const tocBlock = toc ? `${toc}\n<hr />\n` : "";
+          text = `<style>\n${css}\n</style>\n<article class="markdown-body">\n${tocBlock}${clean}\n</article>`;
+        } else {
+          text = clean;
+        }
       }
       await navigator.clipboard.writeText(text);
       setCopied(format === "html-css" ? "html" : format);
       setTimeout(() => setCopied(null), 1500);
     },
-    [html, source, showToc, tocHtml],
+    [source, showToc, tocHtml, getCleanHtml],
   );
 
-  const exportHtml = useCallback(() => {
+  const exportHtml = useCallback(async () => {
     const firstLine = source.split("\n").find((l) => l.trim()) ?? "Document";
     const title = firstLine.replace(/^#+\s*/, "").trim();
+    const clean = await getCleanHtml();
     const toc = showToc ? tocHtml : undefined;
-    const doc = buildHtmlDocument(html, title, true, toc);
+    const doc = buildHtmlDocument(clean, title, true, toc);
     const blob = new Blob([doc], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -163,18 +173,19 @@ export default function MarkdownPreview() {
     a.download = `${title.toLowerCase().replace(/[^\w]+/g, "-") || "document"}.html`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [html, source, showToc, tocHtml]);
+  }, [source, showToc, tocHtml, getCleanHtml]);
 
-  const printPreview = useCallback(() => {
+  const printPreview = useCallback(async () => {
     const firstLine = source.split("\n").find((l) => l.trim()) ?? "Document";
     const title = firstLine.replace(/^#+\s*/, "").trim();
+    const clean = await getCleanHtml();
     const toc = showToc ? tocHtml : undefined;
-    const doc = buildHtmlDocument(html, title, true, toc, true);
+    const doc = buildHtmlDocument(clean, title, true, toc, true);
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(doc);
     win.document.close();
-  }, [html, source, showToc, tocHtml]);
+  }, [source, showToc, tocHtml, getCleanHtml]);
 
   const clear = useCallback(() => {
     setSource("");
