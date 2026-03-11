@@ -65,7 +65,7 @@ export default function DesktopLayout({
   return (
     <SplitPanel
       leftLabel={
-        <span className="flex items-center gap-tb w-full">
+        <span className="flex items-center gap-tb w-full h-6">
           input
           <span className="ml-auto flex items-center gap-tb font-normal normal-case tracking-normal">
             <Button variant="primary" onClick={onFormat}>
@@ -110,7 +110,7 @@ export default function DesktopLayout({
         </span>
       }
       rightLabel={
-        <span className="flex items-center gap-tb w-full">
+        <span className="flex items-center gap-tb w-full h-6">
           output
           {output && (
             <span className="ml-auto font-normal normal-case tracking-normal">
