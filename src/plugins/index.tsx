@@ -2,7 +2,6 @@ import {
   Braces,
   Binary,
   Hash,
-  Workflow,
   Link,
   KeyRound,
   ShieldCheck,
@@ -27,17 +26,17 @@ import { operations as urlOps } from "./url-encoder/operations";
 import { operations as jwtOps } from "./jwt-decoder/operations";
 
 export const plugins: Plugin[] = [
-  {
-    id: "pipeline",
-    name: "Pipeline",
-    icon: <Workflow size={24} />,
-    meta: {
-      description: "Chain operations together into reusable data pipelines",
-      keywords: ["pipeline", "chain", "workflow", "compose", "transform"],
-    },
-    load: () => import("./pipeline/App"),
-    skeleton: () => <TwoPanelSkeleton />,
-  },
+  // {
+  //   id: "pipeline",
+  //   name: "Pipeline",
+  //   icon: <Workflow size={24} />,
+  //   meta: {
+  //     description: "Chain operations together into reusable data pipelines",
+  //     keywords: ["pipeline", "chain", "workflow", "compose", "transform"],
+  //   },
+  //   load: () => import("./pipeline/App"),
+  //   skeleton: () => <TwoPanelSkeleton />,
+  // },
   {
     id: "json-formatter",
     name: "JSON Formatter",

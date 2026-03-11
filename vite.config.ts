@@ -132,6 +132,18 @@ export default defineConfig({
     buildServiceWorker(),
   ],
   define: {},
+  resolve: {
+    alias: {
+      // The browser export of decode-named-character-reference uses
+      // document.createElement which crashes in Web Workers. Alias to a
+      // pure-JS shim (character-entities lookup table) that works everywhere.
+      // Applied globally via alias so it also covers Vite's dep pre-bundling.
+      "decode-named-character-reference": path.resolve(
+        __dirname,
+        "src/plugins/markdown-preview/utils/decode-shim.ts",
+      ),
+    },
+  },
   build: {
     manifest: true,
     rolldownOptions: {
@@ -146,7 +158,12 @@ export default defineConfig({
             },
             {
               name: "vendor-base-ui",
-              test: /@base-ui\/react/,
+              test: /node_modules\/@base-ui\/react/,
+              priority: 10,
+            },
+            {
+              name: "vendor-lucide",
+              test: /node_modules\/lucide-react/,
               priority: 10,
             },
           ],

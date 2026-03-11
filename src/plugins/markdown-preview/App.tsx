@@ -81,7 +81,9 @@ export default function MarkdownPreview() {
   const [tocHtml, setTocHtml] = useState("");
   const [showToc, setShowToc] = useState(false);
   const [syncScroll, setSyncScroll] = useState(true);
-  const [copied, setCopied] = useState<"html" | "md" | null>(null);
+  const [copied, setCopied] = useState<
+    "html" | "md" | "loading-html" | "loading-md" | null
+  >(null);
   const [ready, setReady] = useState(false);
   const [mobileTab, setMobileTab] = useState<"editor" | "preview">("editor");
 
@@ -138,24 +140,32 @@ export default function MarkdownPreview() {
   const getCleanHtml = useCallback(() => parseCleanMarkdown(source), [source]);
 
   const copyAs = useCallback(
-    async (format: "html" | "md" | "html-css") => {
-      let text: string;
-      if (format === "md") {
-        text = source;
-      } else {
-        const clean = await getCleanHtml();
-        if (format === "html-css") {
-          const css = getEmbeddedCss();
-          const toc = showToc ? tocHtml : undefined;
-          const tocBlock = toc ? `${toc}\n<hr />\n` : "";
-          text = `<style>\n${css}\n</style>\n<article class="markdown-body">\n${tocBlock}${clean}\n</article>`;
+    async (format: "html" | "md" | "html-css" | "html-toc") => {
+      const tag = format === "md" ? "md" : "html";
+      setCopied(`loading-${tag}` as typeof copied);
+      try {
+        let text: string;
+        if (format === "md") {
+          text = source;
         } else {
-          text = clean;
+          const clean = await getCleanHtml();
+          if (format === "html-css") {
+            const css = getEmbeddedCss();
+            const toc = showToc ? tocHtml : undefined;
+            const tocBlock = toc ? `${toc}\n<hr />\n` : "";
+            text = `<style>\n${css}\n</style>\n<article class="markdown-body">\n${tocBlock}${clean}\n</article>`;
+          } else if (format === "html-toc") {
+            text = `${tocHtml}\n<hr />\n${clean}`;
+          } else {
+            text = clean;
+          }
         }
+        await navigator.clipboard.writeText(text);
+        setCopied(tag);
+        setTimeout(() => setCopied(null), 1500);
+      } catch {
+        setCopied(null);
       }
-      await navigator.clipboard.writeText(text);
-      setCopied(format === "html-css" ? "html" : format);
-      setTimeout(() => setCopied(null), 1500);
     },
     [source, showToc, tocHtml, getCleanHtml],
   );
@@ -219,13 +229,24 @@ export default function MarkdownPreview() {
         {/* Left: source actions */}
         <Toolbar.Button
           render={(props) => (
-            <Button {...props} variant="outline" onClick={() => copyAs("md")}>
-              {copied === "md" ? (
+            <Button
+              {...props}
+              variant="outline"
+              onClick={() => copyAs("md")}
+              disabled={copied === "loading-md"}
+            >
+              {copied === "loading-md" ? (
+                <LoaderCircle size={ICON} className="animate-spin" />
+              ) : copied === "md" ? (
                 <Check size={ICON} />
               ) : (
                 <ClipboardCopy size={ICON} />
               )}
-              {copied === "md" ? "copied!" : "copy md"}
+              {copied === "loading-md"
+                ? "copying…"
+                : copied === "md"
+                  ? "copied!"
+                  : "copy md"}
             </Button>
           )}
         />
@@ -310,15 +331,22 @@ export default function MarkdownPreview() {
               render={(props) => (
                 <button
                   {...props}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs leading-none cursor-pointer transition-colors bg-bg-surface hover:bg-bg-hover text-text"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs leading-none cursor-pointer transition-colors bg-bg-surface hover:bg-bg-hover text-text disabled:opacity-40 disabled:cursor-not-allowed"
                   onClick={() => copyAs("html")}
+                  disabled={copied === "loading-html"}
                 >
-                  {copied === "html" ? (
+                  {copied === "loading-html" ? (
+                    <LoaderCircle size={ICON} className="animate-spin" />
+                  ) : copied === "html" ? (
                     <Check size={ICON} />
                   ) : (
                     <FileCode size={ICON} />
                   )}
-                  {copied === "html" ? "copied!" : "copy html"}
+                  {copied === "loading-html"
+                    ? "copying…"
+                    : copied === "html"
+                      ? "copied!"
+                      : "copy html"}
                 </button>
               )}
             />
@@ -336,15 +364,52 @@ export default function MarkdownPreview() {
                       className="flex items-center gap-2 px-mi-x py-mi-y text-xs text-text cursor-pointer transition-colors data-highlighted:bg-bg-hover"
                       onClick={() => copyAs("html")}
                     >
-                      <FileCode size={ICON} />
-                      Copy HTML
+                      {copied === "loading-html" ? (
+                        <LoaderCircle size={ICON} className="animate-spin" />
+                      ) : copied === "html" ? (
+                        <Check size={ICON} />
+                      ) : (
+                        <FileCode size={ICON} />
+                      )}
+                      {copied === "loading-html"
+                        ? "Copying…"
+                        : copied === "html"
+                          ? "Copied!"
+                          : "Copy HTML"}
                     </Menu.Item>
                     <Menu.Item
                       className="flex items-center gap-2 px-mi-x py-mi-y text-xs text-text cursor-pointer transition-colors data-highlighted:bg-bg-hover"
                       onClick={() => copyAs("html-css")}
                     >
-                      <FileCode size={ICON} />
-                      Copy HTML with CSS
+                      {copied === "loading-html" ? (
+                        <LoaderCircle size={ICON} className="animate-spin" />
+                      ) : copied === "html" ? (
+                        <Check size={ICON} />
+                      ) : (
+                        <FileCode size={ICON} />
+                      )}
+                      {copied === "loading-html"
+                        ? "Copying…"
+                        : copied === "html"
+                          ? "Copied!"
+                          : "Copy HTML with CSS"}
+                    </Menu.Item>
+                    <Menu.Item
+                      className="flex items-center gap-2 px-mi-x py-mi-y text-xs text-text cursor-pointer transition-colors data-highlighted:bg-bg-hover"
+                      onClick={() => copyAs("html-toc")}
+                    >
+                      {copied === "loading-html" ? (
+                        <LoaderCircle size={ICON} className="animate-spin" />
+                      ) : copied === "html" ? (
+                        <Check size={ICON} />
+                      ) : (
+                        <ListTree size={ICON} />
+                      )}
+                      {copied === "loading-html"
+                        ? "Copying…"
+                        : copied === "html"
+                          ? "Copied!"
+                          : "Copy HTML with TOC"}
                     </Menu.Item>
                   </Menu.Popup>
                 </Menu.Positioner>

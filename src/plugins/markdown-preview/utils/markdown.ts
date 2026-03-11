@@ -119,51 +119,26 @@ function rehypeSourceLines() {
 
 /* ── Unified processors ────────────────────────────────────────── */
 
-// Two processors sharing the same shiki highlighter:
-// - preview processor includes rehypeSourceLines (for scroll sync)
-// - clean processor omits it (for copy / export / print output)
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _previewProcessor: any = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _cleanProcessor: any = null;
+let _processor: any = null;
 
-function buildProcessors(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  highlighter: any,
-) {
-  const shikiOpts = {
-    themes: { light: "vitesse-light", dark: "vitesse-dark" },
-    defaultColor: false as const,
-    fallbackLanguage: "text",
-  };
-
-  _previewProcessor = unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype)
-    .use(rehypeSlug)
-    .use(rehypeSourceLines)
-    .use(rehypeShikiFromHighlighter, highlighter, shikiOpts)
-    .use(rehypeStringify);
-
-  _cleanProcessor = unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype)
-    .use(rehypeSlug)
-    .use(rehypeShikiFromHighlighter, highlighter, shikiOpts)
-    .use(rehypeStringify);
-}
-
-async function getPreviewProcessor() {
-  if (!_previewProcessor) buildProcessors(await getHighlighter());
-  return _previewProcessor;
-}
-
-async function getCleanProcessor() {
-  if (!_cleanProcessor) buildProcessors(await getHighlighter());
-  return _cleanProcessor;
+async function getProcessor() {
+  if (!_processor) {
+    const highlighter = await getHighlighter();
+    _processor = unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkRehype)
+      .use(rehypeSlug)
+      .use(rehypeSourceLines)
+      .use(rehypeShikiFromHighlighter, highlighter, {
+        themes: { light: "vitesse-light", dark: "vitesse-dark" },
+        defaultColor: false as const,
+        fallbackLanguage: "text",
+      })
+      .use(rehypeStringify);
+  }
+  return _processor;
 }
 
 /* ── TOC types ─────────────────────────────────────────────────── */
@@ -188,16 +163,46 @@ function normalizeTasks(source: string): string {
 
 /** Parse markdown source to HTML (with data-source-line attrs) + TOC entries. */
 export async function parseMarkdown(source: string): Promise<ParseResult> {
-  const processor = await getPreviewProcessor();
+  const processor = await getProcessor();
   const file = await processor.process(normalizeTasks(source));
   return { html: String(file), toc: extractToc(source) };
 }
 
-/** Parse markdown to clean HTML (no internal attributes) — for copy / export / print. */
-export async function parseCleanMarkdown(source: string): Promise<string> {
-  const processor = await getCleanProcessor();
-  const file = await processor.process(normalizeTasks(source));
-  return String(file);
+/* ── Clean HTML via Web Worker (no data-source-line attributes) ── */
+
+let cleanWorker: Worker | null = null;
+let nextId = 0;
+const pending = new Map<
+  number,
+  { resolve: (html: string) => void; reject: (err: unknown) => void }
+>();
+
+function getCleanWorker(): Worker {
+  if (!cleanWorker) {
+    cleanWorker = new Worker(new URL("./clean-worker.ts", import.meta.url), {
+      type: "module",
+    });
+    cleanWorker.onmessage = (
+      e: MessageEvent<{ id: number; html?: string; error?: string }>,
+    ) => {
+      const { id, html, error } = e.data;
+      const p = pending.get(id);
+      if (!p) return;
+      pending.delete(id);
+      if (error) p.reject(new Error(error));
+      else p.resolve(html!);
+    };
+  }
+  return cleanWorker;
+}
+
+/** Parse markdown to clean HTML off the main thread — for copy / export / print. */
+export function parseCleanMarkdown(source: string): Promise<string> {
+  const id = nextId++;
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    getCleanWorker().postMessage({ id, source });
+  });
 }
 
 /**
