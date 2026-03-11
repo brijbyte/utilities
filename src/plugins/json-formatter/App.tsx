@@ -126,17 +126,17 @@ export default function JsonFormatter() {
       className="h-full flex flex-col"
     >
       {/* Tab bar */}
-      <Tabs.List className="flex border-b border-border bg-bg-surface">
+      <Tabs.List className="flex bg-bg-inset">
         <Tabs.Tab
           value="input"
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-text-muted cursor-pointer transition-colors border-b-2 border-transparent data-selected:border-accent data-selected:text-accent"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-text-muted cursor-pointer transition-colors border-b border-border data-selected:bg-bg-surface data-selected:text-accent data-selected:border-b-transparent data-selected:border-x data-selected:first:border-l-transparent"
         >
           <Pencil size={12} />
           Input
         </Tabs.Tab>
         <Tabs.Tab
           value="output"
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-text-muted cursor-pointer transition-colors border-b-2 border-transparent data-selected:border-accent data-selected:text-accent"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-text-muted cursor-pointer transition-colors border-b border-border data-selected:bg-bg-surface data-selected:text-accent data-selected:border-b-transparent data-selected:border-x data-selected:last:border-r-transparent"
         >
           <Eye size={12} />
           Output
