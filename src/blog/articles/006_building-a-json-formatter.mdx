@@ -103,49 +103,28 @@ When JSONC is enabled, two things change:
 
 1. **The editor language switches to `"jsonc"`** — Monaco highlights comments as valid syntax instead of marking them as errors. The `jsonc` language has no strict validation registered (only `json` gets the LSP worker), so comment-heavy input doesn't light up with false error markers.
 
-2. **The processing pipeline strips comments before parsing** — A custom `stripJsonc` function runs before `JSON.parse`:
+2. **The processing pipeline uses `jsonc-parser` instead of `JSON.parse`** — Microsoft's [`jsonc-parser`](https://github.com/microsoft/node-jsonc-parser) is the same library that powers VS Code's JSON handling. It parses JSON with comments and trailing commas natively, with proper error reporting:
 
 ```typescript
-function stripJsonc(text: string): string {
-  let result = "";
-  let i = 0;
-  while (i < text.length) {
-    if (text[i] === '"') {
-      // Copy string literals verbatim (don't strip // inside strings)
-      const start = i;
-      i++;
-      while (i < text.length && text[i] !== '"') {
-        if (text[i] === "\\") i++; // skip escaped chars
-        i++;
-      }
-      i++;
-      result += text.slice(start, i);
-      continue;
-    }
-    if (text[i] === "/" && text[i + 1] === "/") {
-      // Skip single-line comment
-      i += 2;
-      while (i < text.length && text[i] !== "\n") i++;
-      continue;
-    }
-    if (text[i] === "/" && text[i + 1] === "*") {
-      // Skip block comment
-      i += 2;
-      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i++;
-      i += 2;
-      continue;
-    }
-    result += text[i];
-    i++;
-  }
-  // Remove trailing commas before } or ]
-  return result.replace(/,\s*([}\]])/g, "$1");
+import {
+  parse as parseJsonc,
+  printParseErrorCode,
+  type ParseError,
+} from "jsonc-parser";
+
+function parse(text: string, jsonc: boolean): unknown {
+  if (!jsonc) return JSON.parse(text);
+
+  const errors: ParseError[] = [];
+  const result = parseJsonc(text, errors, { allowTrailingComma: true });
+  if (errors.length > 0) throw new SyntaxError(formatErrors(text, errors));
+  return result;
 }
 ```
 
-The function is a simple character-by-character scanner. The critical detail is string awareness — a `//` inside a JSON string value like `"url": "https://example.com"` must not be treated as a comment. The scanner tracks whether it's inside a quoted string and only strips comments in non-string contexts. Escaped quotes (`\"`) inside strings are handled correctly.
+The `parseJsonc` function collects errors into an array rather than throwing, so we can report all problems at once — not just the first one. Each `ParseError` includes an offset and length, which we convert to line/column numbers for human-readable messages using `printParseErrorCode` for the error label.
 
-Trailing commas (another common JSONC extension) are removed with a single regex after comment stripping. The output is always valid JSON — comments and trailing commas are stripped, not preserved.
+Using `jsonc-parser` instead of a hand-rolled comment stripper avoids the subtle bugs that come with writing your own scanner — string awareness, nested comments, edge cases with escape sequences. The library handles all of it correctly because it's the same parser that millions of developers use through VS Code every day. The output is always valid JSON — comments and trailing commas are consumed by the parser, not preserved in the formatted result.
 
 ## Per-panel toolbars
 
@@ -178,13 +157,9 @@ Clicking format or minify on the input tab automatically switches to the output 
 
 ## Processing: format and minify
 
-The actual JSON processing is minimal — two functions in `process.ts`:
+The actual JSON processing is minimal — two functions in `process.ts` that share the same `parse` helper:
 
 ```typescript
-function parse(text: string, jsonc: boolean): unknown {
-  return JSON.parse(jsonc ? stripJsonc(text) : text);
-}
-
 export const format = async (input, config) => {
   const parsed = parse(input.data, config.jsonc === "true");
   return {
@@ -199,7 +174,7 @@ export const minify = async (input, config) => {
 };
 ```
 
-Both functions follow the app's `ProcessFn` interface, which means they can also be used in the pipeline system for chaining operations across plugins. The JSONC flag is passed as a string (`"true"` / `"false"`) because the pipeline config system uses string values.
+Both functions follow the app's `ProcessFn` interface, which means they can also be used in the pipeline system for chaining operations across plugins. The `parse` helper delegates to `JSON.parse` for strict JSON or `jsonc-parser` when JSONC mode is active.
 
 Parse errors are caught in `App.tsx` and displayed in a danger-colored banner between the toolbar and the editor. The banner disappears on the next successful operation.
 
@@ -209,6 +184,6 @@ Parse errors are caught in `App.tsx` and displayed in a danger-colored banner be
 
 **Per-panel toolbars reduce ambiguity.** When the format button lives in the input panel and the copy button lives in the output panel, there's no confusion about what each action does. The `SplitPanel` component's `leftLabel` / `rightLabel` props accept `ReactNode`, making this trivial to implement.
 
-**JSONC stripping needs string awareness.** A naive regex-based comment stripper will mangle URLs in string values. The character-by-character scanner with string tracking adds ~40 lines of code but handles every edge case correctly — escaped quotes, nested strings, block comments spanning multiple lines.
+**Use `jsonc-parser`, don't roll your own.** Stripping comments from JSON sounds simple until you consider string awareness (a `//` inside a URL value isn't a comment), escape sequences, nested block comments, and trailing commas before closing brackets. Microsoft's `jsonc-parser` handles all of it — it's the same parser VS Code uses, battle-tested by millions of developers. One dependency, zero edge cases to worry about.
 
 **Monaco's JSON validation is free once you set up the worker.** The `modern-monaco` library's JSON LSP setup creates a web worker that validates on every edit. There's no configuration needed beyond calling `setup(monaco, "json")` — you get syntax validation, structural validation, and inline error markers out of the box. When JSONC mode switches the language to `"jsonc"`, the validation gracefully stops (no LSP is registered for that language), and comments are highlighted as valid syntax by Monaco's tokenizer.

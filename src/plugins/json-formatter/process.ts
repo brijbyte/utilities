@@ -1,47 +1,38 @@
+import {
+  parse as parseJsonc,
+  printParseErrorCode,
+  type ParseError,
+} from "jsonc-parser";
 import type { ProcessFn } from "../../types";
 
-/**
- * Strip JSONC extensions: single-line comments, block comments, and trailing commas.
- * Preserves strings (won't strip comment-like content inside quoted strings).
- */
-function stripJsonc(text: string): string {
-  let result = "";
-  let i = 0;
-  while (i < text.length) {
-    // String literal — copy verbatim
-    if (text[i] === '"') {
-      const start = i;
-      i++; // skip opening quote
-      while (i < text.length && text[i] !== '"') {
-        if (text[i] === "\\") i++; // skip escaped char
-        i++;
+function formatErrors(text: string, errors: ParseError[]): string {
+  const lines = text.split("\n");
+  return errors
+    .map((e) => {
+      let line = 1;
+      let col = 1;
+      for (let i = 0; i < e.offset && i < text.length; i++) {
+        if (text[i] === "\n") {
+          line++;
+          col = 1;
+        } else {
+          col++;
+        }
       }
-      i++; // skip closing quote
-      result += text.slice(start, i);
-      continue;
-    }
-    // Single-line comment
-    if (text[i] === "/" && text[i + 1] === "/") {
-      i += 2;
-      while (i < text.length && text[i] !== "\n") i++;
-      continue;
-    }
-    // Block comment
-    if (text[i] === "/" && text[i + 1] === "*") {
-      i += 2;
-      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i++;
-      i += 2; // skip */
-      continue;
-    }
-    result += text[i];
-    i++;
-  }
-  // Remove trailing commas before } or ]
-  return result.replace(/,\s*([}\]])/g, "$1");
+      const src = lines[line - 1]?.trim() ?? "";
+      const snippet = src.length > 40 ? src.slice(0, 40) + "…" : src;
+      return `${printParseErrorCode(e.error)} at line ${line}, column ${col}: ${snippet}`;
+    })
+    .join("\n");
 }
 
 function parse(text: string, jsonc: boolean): unknown {
-  return JSON.parse(jsonc ? stripJsonc(text) : text);
+  if (!jsonc) return JSON.parse(text);
+
+  const errors: ParseError[] = [];
+  const result = parseJsonc(text, errors, { allowTrailingComma: true });
+  if (errors.length > 0) throw new SyntaxError(formatErrors(text, errors));
+  return result;
 }
 
 export const format: ProcessFn<{ indent: string; jsonc?: string }> = async (
