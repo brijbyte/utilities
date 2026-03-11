@@ -129,14 +129,14 @@ export default function JsonFormatter() {
       <Tabs.List className="flex bg-bg border-b border-border">
         <Tabs.Tab
           value="input"
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs text-text-muted cursor-pointer transition-colors border-b border-border -mb-px data-active:bg-bg-surface data-active:text-accent data-active:border-b-transparent data-active:border-t data-active:border-x data-active:border-border data-active:first:border-l-transparent"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs text-text-muted cursor-pointer transition-colors border-b border-border -mb-px data-active:bg-bg-surface data-active:text-accent data-active:border-b-transparent data-active:border-x data-active:border-border data-active:first:border-l-transparent"
         >
           <Pencil size={12} />
           Input
         </Tabs.Tab>
         <Tabs.Tab
           value="output"
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs text-text-muted cursor-pointer transition-colors border-b border-border -mb-px data-active:bg-bg-surface data-active:text-accent data-active:border-b-transparent data-active:border-t data-active:border-x data-active:border-border data-active:last:border-r-transparent"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs text-text-muted cursor-pointer transition-colors border-b border-border -mb-px data-active:bg-bg-surface data-active:text-accent data-active:border-b-transparent data-active:border-x data-active:border-border data-active:last:border-r-transparent"
         >
           <Eye size={12} />
           Output
