@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { SplitPanel } from "../../components/SplitPanel";
 import { CodeEditor } from "../../components/CodeEditor";
+import { Button } from "../../components/Button";
 
 /** Monaco options tuned for JSON editing. */
 const JSON_EDITOR_OPTIONS = {
@@ -29,6 +30,12 @@ interface DesktopLayoutProps {
   setInput: (value: string) => void;
   output: string;
   indent: number;
+  setIndent: (indent: number) => void;
+  onFormat: () => void;
+  onMinify: () => void;
+  onCopyInput: () => void;
+  onCopyOutput: () => void;
+  onClear: () => void;
 }
 
 export default function DesktopLayout({
@@ -36,6 +43,12 @@ export default function DesktopLayout({
   setInput,
   output,
   indent,
+  setIndent,
+  onFormat,
+  onMinify,
+  onCopyInput,
+  onCopyOutput,
+  onClear,
 }: DesktopLayoutProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleCreated = useCallback((editor: any, monaco: any) => {
@@ -46,8 +59,55 @@ export default function DesktopLayout({
 
   return (
     <SplitPanel
-      leftLabel="input"
-      rightLabel="output"
+      leftLabel={
+        <span className="flex items-center gap-tb w-full">
+          input
+          <span className="ml-auto flex items-center gap-tb font-normal normal-case tracking-normal">
+            <Button variant="primary" onClick={onFormat}>
+              format
+            </Button>
+            <Button variant="secondary" onClick={onMinify}>
+              minify
+            </Button>
+            <label className="flex items-center gap-1 text-xs text-text-muted">
+              indent
+              <select
+                value={indent}
+                onChange={(e) => setIndent(Number(e.target.value))}
+                className="border border-border bg-bg-surface text-text px-1.5 py-0.5 text-xs cursor-pointer"
+              >
+                <option value={2}>2</option>
+                <option value={4}>4</option>
+                <option value={8}>8</option>
+              </select>
+            </label>
+            {input && (
+              <Button variant="outline" onClick={onCopyInput}>
+                copy
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              onClick={onClear}
+              disabled={!input && !output}
+            >
+              clear
+            </Button>
+          </span>
+        </span>
+      }
+      rightLabel={
+        <span className="flex items-center gap-tb w-full">
+          output
+          {output && (
+            <span className="ml-auto font-normal normal-case tracking-normal">
+              <Button variant="outline" onClick={onCopyOutput}>
+                copy
+              </Button>
+            </span>
+          )}
+        </span>
+      }
       left={
         <CodeEditor
           value={input}
