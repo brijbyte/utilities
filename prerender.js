@@ -143,6 +143,9 @@ async function prerender() {
 
   const baseUrl = "https://utilities.brijbyte.com";
 
+  const pluginDir = path.join(distDir, "a");
+  await fs.mkdir(pluginDir, { recursive: true });
+
   for (const plugin of plugins) {
     const pluginTitle = `${plugin.name} — utilities`;
     const pluginDesc = plugin.meta.description;
@@ -191,10 +194,8 @@ async function prerender() {
     // Clear the SSR outlet — leave #root empty for client-side render
     pluginHtml = pluginHtml.replace("<!--ssr-outlet-->", "");
 
-    // Write to dist/a/<id>/index.html
-    const pluginDir = path.join(distDir, "a", plugin.id);
-    await fs.mkdir(pluginDir, { recursive: true });
-    await fs.writeFile(path.join(pluginDir, "index.html"), pluginHtml);
+    // Write to dist/a/<id>.html
+    await fs.writeFile(path.join(pluginDir, `${plugin.id}.html`), pluginHtml);
   }
 
   console.log(`✓ Generated HTML pages for ${plugins.length} plugins`);
@@ -238,7 +239,7 @@ async function prerender() {
       name: plugin.name,
       short_name: plugin.name,
       description: plugin.meta.description,
-      url: `/a/${plugin.id}?source=pwa`,
+      url: `/a/${plugin.id}?utm_source=pwa_shortcut&utm_medium=manifest&utm_campaign=utilities`,
       icons: [
         {
           src: `/icons/${pngFilename}`,
@@ -307,10 +308,10 @@ async function prerender() {
 
   // 4. Generate each blog page
   const blogRoutes = [
-    { path: "/blog", dir: path.join(distDir, "blog") },
+    { path: "/blog", file: path.join(distDir, "blog", "index.html") },
     ...articles.map((a) => ({
       path: `/blog/${a.slug}`,
-      dir: path.join(distDir, "blog", a.slug),
+      file: path.join(distDir, "blog", `${a.slug}.html`),
     })),
   ];
 
@@ -378,22 +379,22 @@ async function prerender() {
     );
     blogPageHtml = blogPageHtml.replace("<!--ssr-outlet-->", blogSsrHtml);
 
-    await fs.mkdir(route.dir, { recursive: true });
-    await fs.writeFile(path.join(route.dir, "index.html"), blogPageHtml);
-
-    // Read the manifest, inject shortcuts, write back
-    const manifestPath = path.join(distDir, "manifest.webmanifest");
-    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf-8"));
-    manifest.shortcuts = shortcuts;
-    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-
-    console.log(
-      `✓ Generated ${shortcuts.length} shortcut icons and updated manifest`,
-    );
+    await fs.mkdir(path.dirname(route.file), { recursive: true });
+    await fs.writeFile(route.file, blogPageHtml);
   }
 
   console.log(
     `✓ Generated blog index + ${articles.length} article pages (CSS: ${blogCssPath})`,
+  );
+
+  // Read the manifest, inject shortcuts, write back
+  const manifestPath = path.join(distDir, "manifest.webmanifest");
+  const manifest = JSON.parse(await fs.readFile(manifestPath, "utf-8"));
+  manifest.shortcuts = shortcuts;
+  await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+
+  console.log(
+    `✓ Generated ${shortcuts.length} shortcut icons and updated manifest`,
   );
 
   // --- Generate sitemap.xml ---

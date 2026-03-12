@@ -7,14 +7,14 @@
   "display_override": ["tabbed"],
   "tab_strip": {
     "new_tab_button": {
-      "url": "/"
+      "url": "/?utm_source=pwa"
     }
   },
-  "start_url": "/?source=pwa",
+  "start_url": "/?utm_source=pwa",
   "related_applications": [
     {
       "platform": "webapp",
-      "url": "https://utilities.brijbyte.com/manifest.webmanifest"
+      "url": "https://utilities.brijbyte.com"
     }
   ],
   "display": "standalone",
