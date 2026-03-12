@@ -84,7 +84,7 @@ export const articleMap = ${JSON.stringify(articleMap)};`;
           const { renderBlog } = await server.ssrLoadModule(
             "./src/blog/entry-server.tsx",
           );
-          const ssrHtml = renderBlog(url.replace(/\/$/, "") || "/blog");
+          const ssrHtml = await renderBlog(url.replace(/\/$/, "") || "/blog");
 
           // Fill in placeholders with dev-mode defaults
           template = template.replaceAll("<!--app:hash-->", "dev");

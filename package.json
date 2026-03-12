@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node prerender.js",
+    "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "pnpm dlx serve dist -L -p 5173",
     "deploy": "pnpm build && wrangler pages deploy",

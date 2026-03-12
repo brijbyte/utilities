@@ -3,7 +3,7 @@
  * Compiles MDX files to HTML fragments + frontmatter metadata.
  * Used by:
  *   - Blog React components (loaded via virtual module in dev, or eagerly in SSR)
- *   - prerender.js (build-time static generation)
+ *   - prerender Vite plugin (build-time static generation)
  *
  * Does NOT produce full pages — the React components handle layout.
  */

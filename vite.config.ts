@@ -4,15 +4,15 @@ import { build } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { blogPlugin } from "./src/blog/vite-plugin.ts";
+import { prerenderPlugin } from "./vite-plugin-prerender.ts";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
 
 function parseToUTC(dateStr: string): Date {
   const iso = dateStr
-    .replace(" ", "T") // date-time separator
-    .replace(" +", "+") // remove space before timezone
-    .replace(/([+-]\d{2})(\d{2})$/, "$1:$2"); // +0530 → +05:30
-
+    .replace(" ", "T")
+    .replace(" +", "+")
+    .replace(/([+-]\d{2})(\d{2})$/, "$1:$2");
   return new Date(iso);
 }
 
@@ -21,14 +21,9 @@ const commitHash =
   execSync("git rev-parse --short HEAD").toString().trim();
 const commitDateRaw =
   process.env.SW_DATE ||
-  execSync("git log -1 --format=%cd --date=iso", {
-    env: {
-      TZ: "UTC",
-    },
-  })
+  execSync("git log -1 --format=%cd --date=iso", { env: { TZ: "UTC" } })
     .toString()
     .trim();
-
 const commitDate = parseToUTC(commitDateRaw).toISOString();
 
 const DEFINE = {
@@ -43,7 +38,6 @@ const DEFINE = {
 async function collectAssets(distDir: string): Promise<string[]> {
   const files = new Set<string>();
 
-  // 1. Manifest: covers all modules in the import graph
   const manifestPath = path.join(distDir, ".vite", "manifest.json");
   if (
     await fs
@@ -62,7 +56,6 @@ async function collectAssets(distDir: string): Promise<string[]> {
     }
   }
 
-  // 2. Directory scan: catches workers and other assets not in the manifest
   const assetsDir = path.join(distDir, "assets");
   if (
     await fs
@@ -81,8 +74,7 @@ async function collectAssets(distDir: string): Promise<string[]> {
 }
 
 /**
- * Vite plugin that builds src/sw.ts into dist/sw.js as a
- * separate entry after the main build completes.
+ * Builds src/sw.ts into dist/sw.js after the main build completes.
  * Reads the Vite manifest to inject the full asset list for precaching.
  */
 function buildServiceWorker(): Plugin {
@@ -130,14 +122,11 @@ export default defineConfig({
     }),
     tailwindcss(),
     buildServiceWorker(),
+    prerenderPlugin(),
   ],
   define: {},
   resolve: {
     alias: {
-      // The browser export of decode-named-character-reference uses
-      // document.createElement which crashes in Web Workers. Alias to a
-      // pure-JS shim (character-entities lookup table) that works everywhere.
-      // Applied globally via alias so it also covers Vite's dep pre-bundling.
       "decode-named-character-reference": path.resolve(
         __dirname,
         "src/plugins/markdown-preview/utils/decode-shim.ts",
@@ -146,10 +135,12 @@ export default defineConfig({
   },
   build: {
     manifest: true,
+    // Workers are self-contained bundles that can't be split further
+    chunkSizeWarningLimit: 1600,
     rolldownOptions: {
       output: {
         codeSplitting: {
-          minSize: 10 * 1024, // 10KB — smaller chunks get inlined
+          minSize: 10 * 1024,
           groups: [
             {
               name: "vendor-react",
@@ -164,6 +155,21 @@ export default defineConfig({
             {
               name: "vendor-lucide",
               test: /node_modules\/lucide-react/,
+              priority: 10,
+            },
+            {
+              name: "vendor-shiki",
+              test: /node_modules\/(shiki|@shikijs)\//,
+              priority: 10,
+            },
+            {
+              name: "vendor-markdown",
+              test: /node_modules\/(unified|remark|rehype|mdast|hast|micromark|vfile|unist)\//,
+              priority: 10,
+            },
+            {
+              name: "vendor-monaco",
+              test: /node_modules\/modern-monaco\//,
               priority: 10,
             },
           ],

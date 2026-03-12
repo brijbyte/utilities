@@ -1,5 +1,5 @@
 /**
- * Blog SSR entry — used by prerender.js to render blog routes to static HTML.
+ * Blog SSR entry — used by the prerender Vite plugin to render blog routes to static HTML.
  * Separate from the main app's entry-server.tsx so the blog can be rendered
  * independently with its own component tree (no app providers, no toasts, etc).
  */
