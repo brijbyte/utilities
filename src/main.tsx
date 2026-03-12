@@ -1,8 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router";
+import { createBrowserRouter, RouterProvider } from "react-router";
 
-import App from "./App";
+import { routes } from "./routes";
 import { getPersistedRoute, isPwa } from "./pwa";
 import { initServiceWorker } from "./sw-update";
 
@@ -19,11 +19,11 @@ if (isPwa && initialPath === "/") {
   }
 }
 
+const router = createBrowserRouter(routes);
+
 const app = (
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <RouterProvider router={router} />
   </StrictMode>
 );
 

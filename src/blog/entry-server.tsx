@@ -5,17 +5,29 @@
  */
 
 import { renderToString } from "react-dom/server";
-import { StaticRouter, Route, Routes } from "react-router";
+import {
+  createStaticHandler,
+  createStaticRouter,
+  StaticRouterProvider,
+} from "react-router";
+import type { RouteObject } from "react-router";
 import { BlogIndexPage } from "./BlogIndexPage";
 import { BlogArticlePage } from "./BlogArticlePage";
 
-export function renderBlog(url: string): string {
+const routes: RouteObject[] = [
+  { path: "/blog", Component: BlogIndexPage },
+  { path: "/blog/:slug", Component: BlogArticlePage },
+];
+
+export async function renderBlog(url: string): Promise<string> {
+  const handler = createStaticHandler(routes);
+  const request = new Request(`http://localhost${url}`, { method: "GET" });
+  const context = await handler.query(request);
+
+  if (context instanceof Response) return "";
+
+  const router = createStaticRouter(routes, context);
   return renderToString(
-    <StaticRouter location={url}>
-      <Routes>
-        <Route path="/blog" element={<BlogIndexPage />} />
-        <Route path="/blog/:slug" element={<BlogArticlePage />} />
-      </Routes>
-    </StaticRouter>,
+    <StaticRouterProvider router={router} context={context} />,
   );
 }

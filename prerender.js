@@ -360,7 +360,7 @@ async function prerender() {
             },
           });
 
-    const blogSsrHtml = renderBlog(route.path);
+    const blogSsrHtml = await renderBlog(route.path);
 
     let blogPageHtml = blogTemplate;
     blogPageHtml = blogPageHtml.replaceAll("<!--app:hash-->", commitHash);

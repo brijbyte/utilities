@@ -31,7 +31,7 @@ export function PluginPage() {
   }
 
   const LazyComponent = getLazyComponent(plugin);
-  const fallback = plugin.skeleton ? plugin.skeleton() : <DefaultSkeleton />;
+  const fallback = plugin.skeleton?.() ?? <DefaultSkeleton />;
   return (
     <Suspense key={plugin.id} fallback={fallback}>
       {/* eslint-disable-next-line react-hooks/static-components */}

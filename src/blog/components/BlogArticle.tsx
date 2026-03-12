@@ -23,7 +23,7 @@ export function BlogArticle({
       <BlogHeader articleTitle={meta.title} />
       <div className="flex-1 overflow-y-auto">
         <article
-          className="blog-prose max-w-[42rem] mx-auto px-6 pt-10 pb-16"
+          className="blog-prose max-w-2xl mx-auto px-6 pt-10 pb-16"
           itemScope
           itemType="https://schema.org/BlogPosting"
         >

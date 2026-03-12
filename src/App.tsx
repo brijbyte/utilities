@@ -1,15 +1,12 @@
-import { Route, Routes } from "react-router";
+import { Outlet } from "react-router";
 import { Toast } from "@base-ui/react/toast";
 
 import { plugins } from "./plugins";
 import { RegistryProvider } from "./registry";
-import { AppPage } from "./shell/AppPage";
-import { HomePage } from "./shell/HomePage";
 import { ThemeProvider } from "./theme";
 import { toastManager } from "./utils/toastManager";
 import { GlobalToasts } from "./components/Toasts";
 import { PwaRoutePersist } from "./PwaRouteRestore";
-import { PluginPage } from "./shell/PluginPage";
 
 function Toaster() {
   return (
@@ -21,18 +18,13 @@ function Toaster() {
   );
 }
 
-export default function App() {
+export function AppLayout() {
   return (
     <RegistryProvider plugins={plugins}>
       <Toast.Provider toastManager={toastManager}>
         <ThemeProvider>
           <PwaRoutePersist />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/a/" element={<AppPage />}>
-              <Route index path=":id" element={<PluginPage />} />
-            </Route>
-          </Routes>
+          <Outlet />
           <Toaster />
         </ThemeProvider>
       </Toast.Provider>
