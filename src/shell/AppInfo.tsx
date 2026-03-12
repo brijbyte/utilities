@@ -163,7 +163,7 @@ export function AppInfo() {
 
               <div className="border-t border-border px-4 py-2 flex items-center justify-end gap-3">
                 <a
-                  href="/blog"
+                  href="/blog/"
                   className="text-text-muted hover:text-text transition-colors"
                   title="Blog"
                 >

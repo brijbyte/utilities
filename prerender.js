@@ -409,7 +409,7 @@ async function prerender() {
       priority: "0.8",
     })),
     // Blog index
-    { loc: `${baseUrl}/blog`, changefreq: "weekly", priority: "0.7" },
+    { loc: `${baseUrl}/blog/`, changefreq: "weekly", priority: "0.7" },
     // Blog articles
     ...articles.map((a) => ({
       loc: `${baseUrl}/blog/${a.slug}`,
