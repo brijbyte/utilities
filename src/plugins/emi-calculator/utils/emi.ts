@@ -238,6 +238,7 @@ export function calculateFull(input: FullCalcInput): EmiResult {
   let totalPayment = 0;
   let totalInterest = 0;
   // Track remaining tenure for reduce-tenure strategy
+  // eslint-disable-next-line no-useless-assignment
   let remainingTenure = tenureMonths;
 
   // For reduce-emi strategy, track recomputed EMI
@@ -248,7 +249,7 @@ export function calculateFull(input: FullCalcInput): EmiResult {
     if (newRate !== currentRate) {
       currentRate = newRate;
       // Recompute EMI with new rate on remaining balance/tenure
-      remainingTenure = Math.max(1, tenureMonths - m + 1);
+      const remainingTenure = Math.max(1, tenureMonths - m + 1);
       currentEmi = computeEmi(balance, currentRate, remainingTenure);
     }
 
@@ -270,7 +271,7 @@ export function calculateFull(input: FullCalcInput): EmiResult {
         principalPart,
         interestPart,
         prepayment: prepay,
-        balance: 0,
+        balance,
         rateUsed: currentRate,
       });
       break;

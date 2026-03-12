@@ -142,14 +142,12 @@ export async function segmentPerson(
 
   // Downscale large images for faster segmentation
   let input: ImageBitmap = image;
-  let inputW = origW;
-  let inputH = origH;
 
   let downscaled: ImageBitmap | null = null;
   if (origW > MAX_SEGMENTATION_DIM || origH > MAX_SEGMENTATION_DIM) {
     const scale = MAX_SEGMENTATION_DIM / Math.max(origW, origH);
-    inputW = Math.round(origW * scale);
-    inputH = Math.round(origH * scale);
+    const inputW = Math.round(origW * scale);
+    const inputH = Math.round(origH * scale);
 
     const canvas = new OffscreenCanvas(inputW, inputH);
     const ctx = canvas.getContext("2d")!;
